@@ -72,4 +72,9 @@ export default defineConfig([
   },
 ])
 
+Para guardar futuros cambios
+git add .
+git commit -m "Descripción de los cambios"
+git push
+
 ```
