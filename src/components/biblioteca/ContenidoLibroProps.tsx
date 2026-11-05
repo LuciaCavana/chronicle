@@ -1,0 +1,2 @@
+onAddSpecies: () => void
+speciesCount: number

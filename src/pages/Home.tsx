@@ -1,64 +1,18 @@
 
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/useAuth'
-import { authService } from '../services/authService'
-import AuthLayout from '../components/auth/AuthLayout'
-import Sidebar from '../components/layout/Sidebar'
+import AppLayout from '../components/layout/AppLayout'
 
 export default function Home() {
-  const { session } = useAuth()
-  const navigate = useNavigate()
-
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function handleLogout() {
-    if (loading) return
-
-    setError('')
-    setLoading(true)
-
-    try {
-      const { error: authError } = await authService.logout()
-
-      if (authError) {
-        setError('No se pudo cerrar la sesión.')
-        return
-      }
-
-      navigate('/login', { replace: true })
-    } catch {
-      setError('No se pudo conectar con el servidor.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      <Sidebar />
+    <AppLayout
+      title="Inicio"
+      subtitle="Tu espacio personal"
+    >
+      <h2>Bienvenida a Chronicle</h2>
 
-      <main style={{ flex: 1, minWidth: 0 }}>
-        <AuthLayout>
-          <h2>¡Bienvenida a Chronicle!</h2>
-          <p>Sesión iniciada como: {session?.user.email}</p>
-
-          {error && (
-            <div className="mensaje error" role="alert">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={loading}
-          >
-            {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
-          </button>
-        </AuthLayout>
-      </main>
-    </div>
+      <p>
+        Tus aventuras, personajes y campañas
+        estarán organizados aquí.
+      </p>
+    </AppLayout>
   )
 }

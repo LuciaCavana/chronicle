@@ -1,0 +1,194 @@
+
+.libros {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.libros-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 28px;
+  color: #d8b77b;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.libros-back:hover {
+  color: #f0d6a3;
+}
+
+.libros-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid #343342;
+}
+
+.libros-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 13px 18px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #a4a3b2;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.libros-tab:hover {
+  color: #e8dfcf;
+}
+
+.libros-tab--active {
+  color: #d8b77b;
+  border-bottom-color: #d8b77b;
+}
+
+.libros-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  background: #222431;
+  border: 1px solid #343342;
+  border-radius: 10px;
+  color: #a4a3b2;
+}
+
+.libros-search:focus-within {
+  border-color: #d8b77b;
+}
+
+.libros-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e8dfcf;
+  font: inherit;
+}
+
+.libros-search input::placeholder {
+  color: #a4a3b2;
+}
+
+.libros-empty {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 36px;
+  background: #222431;
+  border: 1px solid #343342;
+  border-radius: 12px;
+  text-align: center;
+  color: #d8b77b;
+}
+
+.libros-empty h2 {
+  margin: 4px 0 0;
+  color: #e8dfcf;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.libros-empty p {
+  max-width: 420px;
+  margin: 0;
+  color: #a4a3b2;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .libros-tabs {
+    gap: 0;
+  }
+
+  .libros-tab {
+    padding: 12px;
+    font-size: 13px;
+  }
+
+  .libros-empty {
+    min-height: 250px;
+    padding: 24px;
+  }
+}
+
+/* Encabezado de Mis propuestas */
+
+.libros-propuestas-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.libros-propuestas-header h2 {
+  margin: 0 0 6px;
+  color: #e8dfcf;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.libros-propuestas-header p {
+  margin: 0;
+  color: #a4a3b2;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Botón Nueva propuesta */
+
+.libros-new-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  flex-shrink: 0;
+  padding: 12px 18px;
+  background: #d8b77b;
+  border: 1px solid #d8b77b;
+  border-radius: 8px;
+  color: #171923;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.libros-new-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .libros-propuestas-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .libros-new-button {
+    width: 100%;
+  }
+}
+.libros-new-button {
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.libros-new-button:hover {
+  background: #f0d6a3;
+  border-color: #f0d6a3;
+}

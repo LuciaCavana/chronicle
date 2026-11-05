@@ -7,6 +7,9 @@ import Register from './pages/auth/Register'
 import Home from './pages/Home'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
+import Biblioteca from './pages/Biblioteca'
+import Libros from './pages/Libros'
+import NuevaPropuesta from './pages/NuevaPropuesta'
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -41,7 +44,22 @@ function AppRoutes() {
 
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-
+      <Route
+        path="/biblioteca/libros"
+        element={
+          <ProtectedRoute>
+            <Libros />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/biblioteca/libros/nueva-propuesta"
+        element={
+          <ProtectedRoute>
+            <NuevaPropuesta />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/home"
         element={
@@ -50,7 +68,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/biblioteca"
+        element={
+          <ProtectedRoute>
+            <Biblioteca />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/forgot-password"
         element={<ForgotPassword />}

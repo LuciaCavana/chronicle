@@ -1,0 +1,97 @@
+
+.biblioteca {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.biblioteca-search {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 28px;
+  background: #222431;
+  border: 1px solid #343342;
+  border-radius: 10px;
+  color: #a4a3b2;
+}
+
+.biblioteca-search:focus-within {
+  border-color: #d8b77b;
+}
+
+.biblioteca-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #e8dfcf;
+  font: inherit;
+}
+
+.biblioteca-search input::placeholder {
+  color: #a4a3b2;
+}
+
+.biblioteca-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 20px;
+}
+
+.biblioteca-card {
+  min-height: 165px;
+  padding: 24px;
+  background: #222431;
+  border: 1px solid #343342;
+  border-radius: 12px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.biblioteca-card:hover {
+  border-color: #d8b77b;
+  transform: translateY(-3px);
+}
+
+.biblioteca-card-icon {
+  color: #d8b77b;
+  margin-bottom: 18px;
+}
+
+.biblioteca-card h2 {
+  margin: 0 0 10px;
+  color: #e8dfcf;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.biblioteca-card p {
+  margin: 0;
+  color: #a4a3b2;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.biblioteca-empty {
+  text-align: center;
+  padding: 32px;
+  color: #a4a3b2;
+}
+
+@media (max-width: 600px) {
+  .biblioteca-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.biblioteca-card--link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.biblioteca-card--link:focus-visible {
+  outline: 2px solid #d8b77b;
+  outline-offset: 3px;
+}
