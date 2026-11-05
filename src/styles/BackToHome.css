@@ -1,0 +1,32 @@
+.back-to-home {
+  position: fixed;
+  top: 24px;
+  left: 24px;
+  z-index: 100;
+
+  width: 42px;
+  height: 42px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+
+  background: rgba(20, 20, 30, 0.8);
+  color: #e5d5b0;
+
+  text-decoration: none;
+  transition: background 0.2s, transform 0.2s;
+}
+
+.back-to-home:hover {
+  background: rgba(70, 55, 90, 0.9);
+  transform: translateY(-2px);
+}
+
+.back-to-home:focus-visible {
+  outline: 2px solid #e5d5b0;
+  outline-offset: 3px;
+}

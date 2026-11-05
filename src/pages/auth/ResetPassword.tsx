@@ -1,9 +1,9 @@
-
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../../components/auth/AuthLayout'
 import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
+import BackToHome from '../../components/auth/BackToHome'
 
 export default function ResetPassword() {
   const {
@@ -67,6 +67,8 @@ export default function ResetPassword() {
   if (verificando) {
     return (
       <AuthLayout>
+        <BackToHome />
+        {/* Contenido actual de la pantalla */}
         <p>Verificando enlace...</p>
       </AuthLayout>
     )
@@ -74,6 +76,7 @@ export default function ResetPassword() {
 if (session && !isPasswordRecovery) {
   return (
     <AuthLayout>
+      <BackToHome />
       <h2>Enlace de recuperación no reconocido</h2>
       <p>
         No se pudo confirmar que esta sesión provenga
@@ -89,6 +92,7 @@ if (session && !isPasswordRecovery) {
   if (!session) {
     return (
       <AuthLayout>
+        <BackToHome />
         <h2>Enlace no disponible</h2>
         <p>
           El enlace es inválido, expiró o ya fue utilizado.
@@ -104,6 +108,7 @@ if (session && !isPasswordRecovery) {
 
   return (
     <AuthLayout>
+      <BackToHome />
       <form onSubmit={handleSubmit}>
         <h2>Nueva contraseña</h2>
 

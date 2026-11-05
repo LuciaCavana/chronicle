@@ -35,13 +35,11 @@ export function AuthProvider({
     } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!active) return
-      console.log('[Chronicle Auth]', {
-        event,
-        path: window.location.pathname,
-        recovery: event === 'PASSWORD_RECOVERY',
-        hasSession: Boolean(newSession),
-      })
-
+console.log('[Chronicle Auth]', {
+  event,
+  path: window.location.pathname,
+  hasSession: Boolean(newSession),
+})
         if (event === 'PASSWORD_RECOVERY') {
           sessionStorage.setItem(RECOVERY_KEY, 'true')
           setIsPasswordRecovery(true)

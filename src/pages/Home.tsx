@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/useAuth'
 import { authService } from '../services/authService'
 import AuthLayout from '../components/auth/AuthLayout'
+import Sidebar from '../components/layout/Sidebar'
 
 export default function Home() {
   const { session } = useAuth()
@@ -35,25 +36,29 @@ export default function Home() {
   }
 
   return (
-    <AuthLayout>
-      <h2>¡Bienvenido a Chronicle!</h2>
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      <Sidebar />
 
-      <p>Sesión iniciada como:</p>
-      <p>{session?.user.email}</p>
+      <main style={{ flex: 1, minWidth: 0 }}>
+        <AuthLayout>
+          <h2>¡Bienvenida a Chronicle!</h2>
+          <p>Sesión iniciada como: {session?.user.email}</p>
 
-      {error && (
-        <div className="mensaje error" role="alert">
-          {error}
-        </div>
-      )}
+          {error && (
+            <div className="mensaje error" role="alert">
+              {error}
+            </div>
+          )}
 
-      <button
-        type="button"
-        onClick={handleLogout}
-        disabled={loading}
-      >
-        {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
-      </button>
-    </AuthLayout>
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loading}
+          >
+            {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
+          </button>
+        </AuthLayout>
+      </main>
+    </div>
   )
 }
