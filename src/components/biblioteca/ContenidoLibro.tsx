@@ -6,6 +6,7 @@ import {
   ListChecks,
   X,
   AlertTriangle,
+  Pencil,
 } from 'lucide-react'
 import '../../styles/ContenidoLibro.css'
 
@@ -22,7 +23,8 @@ type ContenidoLibroProps = {
   categoryItemCounts?: Record<string, number>
   onAddSpecies: () => void
   speciesCount: number
-  speciesNames: string[]
+  species: { id: string; nombre: string }[]
+  onEditSpecies: (id: string) => void
 }
 
 export default function ContenidoLibro({
@@ -33,7 +35,8 @@ export default function ContenidoLibro({
   categoryItemCounts = {},
   onAddSpecies,
   speciesCount,
-  speciesNames,
+  species,
+  onEditSpecies,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
@@ -102,15 +105,19 @@ export default function ContenidoLibro({
                         ? 'Todavía no agregaste elementos.'
                         : `${itemCount} elemento(s) cargado(s).`}
                     </p>
-                    {category.id === 'especies' && speciesNames.length > 0 && (
+                    {category.id === 'especies' && species.length > 0 && (
                       <div className="contenido-libro-species-list">
-                        {speciesNames.map((name, index) => (
-                          <span
-                            key={`${name}-${index}`}
+                        {species.map((especie) => (
+                          <button
+                            key={especie.id}
+                            type="button"
                             className="contenido-libro-species-tag"
+                            onClick={() => onEditSpecies(especie.id)}
+                            title={`Editar ${especie.nombre}`}
                           >
-                            {name}
-                          </span>
+                            {especie.nombre}
+                            <Pencil size={13} />
+                          </button>
                         ))}
                       </div>
                     )}

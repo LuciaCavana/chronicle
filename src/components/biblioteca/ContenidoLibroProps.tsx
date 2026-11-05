@@ -1,2 +1,0 @@
-onAddSpecies: () => void
-speciesCount: number

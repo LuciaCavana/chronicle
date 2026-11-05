@@ -1,0 +1,124 @@
+
+.rasgos-especie {
+  margin-top: 24px;
+  padding-top: 22px;
+  border-top: 1px solid #343342;
+}
+
+.rasgos-especie-header,
+.rasgos-especie-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rasgos-especie-header {
+  margin-bottom: 18px;
+}
+
+.rasgos-especie-header h4 {
+  margin: 0;
+  color: #e8dfcf;
+  font-size: 15px;
+}
+
+.rasgos-especie-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #d8b77b;
+  border-radius: 8px;
+  background: transparent;
+  color: #d8b77b;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.rasgos-especie-empty {
+  color: #a4a3b2;
+  font-size: 13px;
+}
+
+.rasgos-especie-list {
+  display: grid;
+  gap: 12px;
+}
+
+.rasgos-especie-card {
+  padding: 18px;
+  border: 1px solid #454354;
+  border-radius: 10px;
+  background: #171923;
+}
+
+.rasgos-especie-card strong {
+  color: #e8dfcf;
+  font-size: 14px;
+}
+
+.rasgos-especie-card p {
+  margin: 12px 0 0;
+  color: #a4a3b2;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.rasgos-especie-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.rasgos-especie-card-actions button {
+  display: inline-flex;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: #d8b77b;
+  cursor: pointer;
+}
+
+.rasgos-especie-card-actions button:hover {
+  color: #fff;
+}
+
+.rasgos-especie-expand {
+  margin-top: 10px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #d8b77b;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.rasgos-especie-editor {
+  margin-top: 18px;
+  padding: 20px;
+  border: 1px solid #454354;
+  border-radius: 10px;
+  background: #1b1d28;
+}
+
+.rasgos-especie-editor h5 {
+  margin: 0 0 20px;
+  color: #e8dfcf;
+  font-size: 15px;
+}
+
+.rasgos-especie-editor-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+}
+
+@media (max-width: 650px) {
+  .rasgos-especie-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

@@ -5,10 +5,8 @@ import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
-import EspecieForm, {
-  type Especie,
-} from '../components/biblioteca/EspecieForm'
-
+import EspecieForm from '../components/biblioteca/EspecieForm'
+import type { Especie } from '../types/especie'
 const categories = [
   { id: 'especies', label: 'Especies' },
   { id: 'clases', label: 'Clases' },
@@ -35,6 +33,7 @@ export default function NuevaPropuesta() {
   const [bookCode, setBookCode] = useState('')
   const [especies, setEspecies] = useState<Especie[]>([])
   const [showEspecieForm, setShowEspecieForm] = useState(false)
+  const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
 
 
   function toggleCategory(id: string) {
@@ -187,13 +186,30 @@ export default function NuevaPropuesta() {
       <>
         {showEspecieForm ? (
           <EspecieForm
+            key={editingSpeciesId ?? 'new'}
             bookTitle={title}
             bookCode={bookCode}
+            initialData={
+              especies.find((especie) => especie.id === editingSpeciesId) ?? null
+            }
             onSave={(especie) => {
-              setEspecies((current) => [...current, especie])
+              setEspecies((current) => {
+                const exists = current.some((item) => item.id === especie.id)
+
+                return exists
+                  ? current.map((item) =>
+                      item.id === especie.id ? especie : item
+                    )
+                  : [...current, especie]
+              })
+
+              setEditingSpeciesId(null)
               setShowEspecieForm(false)
             }}
-            onCancel={() => setShowEspecieForm(false)}
+            onCancel={() => {
+              setEditingSpeciesId(null)
+              setShowEspecieForm(false)
+            }}
           />
         ) : (
           <ContenidoLibro
@@ -203,10 +219,19 @@ export default function NuevaPropuesta() {
             onToggleCategory={toggleCategory}
             speciesCount={especies.length}
             categoryItemCounts={{ especies: especies.length }}
-            onAddSpecies={() => setShowEspecieForm(true)}
-            speciesNames={especies.map((especie) => especie.nombre)}
+            onAddSpecies={() => {
+              setEditingSpeciesId(null)
+              setShowEspecieForm(true)
+            }}
+            onEditSpecies={(id) => {
+              setEditingSpeciesId(id)
+              setShowEspecieForm(true)
+            }}
+            species={especies.map(({ id, nombre }) => ({ id, nombre }))}
+            
           />
         )}
+        
       </>
     )}
 

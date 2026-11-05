@@ -303,3 +303,17 @@
   color: #d8b77b;
   font-size: 12px;
 }
+
+button.contenido-libro-species-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+button.contenido-libro-species-tag:hover {
+  border-color: #d8b77b;
+  background: rgba(216, 183, 123, 0.2);
+}
