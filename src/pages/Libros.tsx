@@ -194,16 +194,6 @@ export default function Libros() {
 
 async function borrarPropuesta(libroId: string) {
   if (actualizandoId || !userId) return
-
-  const confirmado = window.confirm(
-    '¿Querés borrar esta propuesta?\n\n' +
-    'La propuesta desaparecerá de Mis propuestas, ' +
-    'pero sus datos no se eliminarán de la base de datos.'
-  )
-
-  if (!confirmado) return
-
-
   setActualizandoId(libroId)
   setError('')
 

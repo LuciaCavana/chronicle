@@ -4,6 +4,7 @@ import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
+import RevisionLibro from '../components/biblioteca/RevisionLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import type { Especie } from '../types/especie'
 import {
@@ -483,11 +484,28 @@ async function handleGuardarLibro() {
             setEditingSpeciesId(id)
             setShowEspecieForm(true)
           }}
+          onDeleteSpecies={(id) => {
+            setEspecies((actuales) =>
+              actuales.filter((especie) => especie.id !== id)
+            )
+          }}
         />
       )}
     </>
   )}
-
+  {currentStep === 3 && (
+    <RevisionLibro
+      titulo={title}
+      codigo={bookCode}
+      edicion={edition}
+      editorial={publisher}
+      clasificacion={bookType}
+      idioma={idioma}
+      descripcion={description}
+      categorias={activeCategories}
+      cantidadEspecies={especies.length}
+    />
+  )}
 
   {errorGuardado && (
     <p role="alert" style={{ color: '#e57373' }}>
@@ -507,7 +525,10 @@ async function handleGuardarLibro() {
         <button
           type="button"
           className="nueva-propuesta-cancel"
-          onClick={() => setCurrentStep(1)}
+          onClick={() => {
+            setErrorGuardado('')
+            setCurrentStep((paso) => Math.max(1, paso - 1))
+          }}
         >
           Anterior
         </button>
@@ -528,21 +549,37 @@ async function handleGuardarLibro() {
           <ChevronRight size={18} />
         </button>
       )}
-
-
       {currentStep === 2 && !showEspecieForm && (
         <button
           type="button"
           className="nueva-propuesta-next"
-          disabled={guardando || cargandoLibro || (modoEdicion && !versionId)}
+          onClick={() => {
+            setErrorGuardado('')
+            setCurrentStep(3)
+          }}
+        >
+          Continuar a revisión
+          <ChevronRight size={18} />
+        </button>
+      )}
+
+      {currentStep === 3 && (
+        <button
+          type="button"
+          className="nueva-propuesta-next"
+          disabled={
+            guardando ||
+            cargandoLibro ||
+            (modoEdicion && !versionId) ||
+            tipoPropuesta !== 'nuevo'
+          }
           onClick={handleGuardarLibro}
         >
-        {guardando
-          ? 'Guardando...'
-          : modoEdicion
-            ? 'Guardar cambios'
-            : 'Guardar libro'}
-
+          {guardando
+            ? 'Guardando...'
+            : modoEdicion
+              ? 'Guardar cambios'
+              : 'Guardar propuesta'}
         </button>
       )}
 

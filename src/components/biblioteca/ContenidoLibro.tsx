@@ -7,6 +7,7 @@ import {
   X,
   AlertTriangle,
   Pencil,
+  Trash2,
 } from 'lucide-react'
 import '../../styles/ContenidoLibro.css'
 
@@ -25,6 +26,7 @@ type ContenidoLibroProps = {
   speciesCount: number
   species: { id: string; nombre: string }[]
   onEditSpecies: (id: string) => void
+  onDeleteSpecies: (id: string) => void
 }
 
 export default function ContenidoLibro({
@@ -37,9 +39,14 @@ export default function ContenidoLibro({
   speciesCount,
   species,
   onEditSpecies,
+  onDeleteSpecies,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
+  const [speciesToDelete, setSpeciesToDelete] = useState<{
+    id: string
+    nombre: string
+  } | null>(null)
 
   function handleToggle(category: Category) {
     const isSelected = selectedCategories.includes(category.id)
@@ -107,18 +114,37 @@ export default function ContenidoLibro({
                     </p>
                     {category.id === 'especies' && species.length > 0 && (
                       <div className="contenido-libro-species-list">
-                        {species.map((especie) => (
-                          <button
-                            key={especie.id}
-                            type="button"
-                            className="contenido-libro-species-tag"
-                            onClick={() => onEditSpecies(especie.id)}
-                            title={`Editar ${especie.nombre}`}
-                          >
-                            {especie.nombre}
-                            <Pencil size={13} />
-                          </button>
-                        ))}
+                    {species.map((especie) => (
+                      <div
+                        key={especie.id}
+                        className="contenido-libro-species-item"
+                      >
+                        <button
+                          type="button"
+                          className="contenido-libro-species-tag"
+                          onClick={() => onEditSpecies(especie.id)}
+                          title={`Editar ${especie.nombre}`}
+                        >
+                          {especie.nombre}
+                          <Pencil size={13} />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="contenido-libro-species-delete"
+                          onClick={() =>
+                            setSpeciesToDelete({
+                              id: especie.id,
+                              nombre: especie.nombre,
+                            })
+                          }
+                          title={`Eliminar ${especie.nombre}`}
+                          aria-label={`Eliminar ${especie.nombre}`}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
                       </div>
                     )}
                   </div>
@@ -228,12 +254,11 @@ export default function ContenidoLibro({
             <h3 id="remove-category-title">
               ¿Quitar «{pendingRemoval.label}»?
             </h3>
-
             <p>
-              Esta categoría tiene elementos cargados.
-              Si la quitás, esos elementos podrían perderse.
+              La categoría dejará de mostrarse en el contenido del libro,
+              pero todos sus elementos se conservarán.
+              Si volvés a seleccionarla, podrás seguir editándolos.
             </p>
-
             <div className="contenido-libro-confirm-actions">
               <button
                 type="button"
@@ -254,6 +279,47 @@ export default function ContenidoLibro({
           </div>
         </div>
       )}
+      {speciesToDelete && (
+  <div className="contenido-libro-overlay contenido-libro-overlay--confirm">
+    <div
+      className="contenido-libro-confirm"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="delete-species-title"
+    >
+      <AlertTriangle size={28} color="#d8b77b" />
+
+      <h3 id="delete-species-title">
+        ¿Eliminar «{speciesToDelete.nombre}»?
+      </h3>
+
+      <p>
+        Esta especie se quitará del contenido del libro.
+      </p>
+
+      <div className="contenido-libro-confirm-actions">
+        <button
+          type="button"
+          className="contenido-libro-keep"
+          onClick={() => setSpeciesToDelete(null)}
+        >
+          No, cancelar
+        </button>
+
+        <button
+          type="button"
+          className="contenido-libro-remove"
+          onClick={() => {
+            onDeleteSpecies(speciesToDelete.id)
+            setSpeciesToDelete(null)
+          }}
+        >
+          Sí, eliminar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </section>
   )
 }

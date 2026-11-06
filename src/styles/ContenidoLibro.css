@@ -317,3 +317,26 @@ button.contenido-libro-species-tag:hover {
   border-color: #d8b77b;
   background: rgba(216, 183, 123, 0.2);
 }
+.contenido-libro-species-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.contenido-libro-species-delete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: 1px solid #744444;
+  border-radius: 6px;
+  background: transparent;
+  color: #d98b8b;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.contenido-libro-species-delete:hover {
+  background: rgba(180, 60, 60, 0.15);
+  color: #ffaaaa;
+}
