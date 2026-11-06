@@ -1,4 +1,11 @@
 
+export type CampoAdicionalEspecie = {
+  id: string
+  nombre: string
+  tipo: 'texto' | 'numero' | 'booleano'
+  valor: string | number | boolean
+}
+
 export type TamanoEspecie = {
   id: string
   nombre: string
@@ -49,4 +56,5 @@ export type Especie = {
   rasgos: RasgoEspecie[]
   linajes: LinajeEspecie[]
   transformaciones: TransformacionEspecie[]
+  camposAdicionales?: CampoAdicionalEspecie[]
 }

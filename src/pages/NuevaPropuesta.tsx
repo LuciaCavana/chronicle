@@ -1,13 +1,16 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import type { Especie } from '../types/especie'
-import { useNavigate } from 'react-router-dom'
-import { guardarLibro } from '../services/libros'
+import {
+  guardarLibro,
+  actualizarLibro,
+  obtenerLibroParaEditar,
+} from '../services/libros'
 
 const categories = [
   { id: 'especies', label: 'Especies' },
@@ -38,7 +41,14 @@ export default function NuevaPropuesta() {
   const [showEspecieForm, setShowEspecieForm] = useState(false)
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
   type TipoPropuesta = 'nuevo' | 'traduccion'
-  const navigate = useNavigate()
+  const navigate = useNavigate()  
+  const { libroId } = useParams<{ libroId: string }>()
+  const modoEdicion = Boolean(libroId)
+  const [cargandoLibro, setCargandoLibro] = useState(modoEdicion)
+  const [errorCarga, setErrorCarga] = useState('')
+  const [versionId, setVersionId] = useState<string | null>(null)
+
+
   const [guardando, setGuardando] = useState(false)
   const [errorGuardado, setErrorGuardado] = useState('')
 
@@ -48,61 +58,150 @@ export default function NuevaPropuesta() {
 
   const [idioma, setIdioma] = useState('es')
   const [libroOriginalId, setLibroOriginalId] = useState('')
+ 
+  useEffect(() => {
+    if (!libroId) return
+
+    let cancelado = false
+
+    async function cargarLibro() {
+      setCargandoLibro(true)
+      setVersionId(null)
+      setErrorCarga('')
+
+      try {
+        const libro = await obtenerLibroParaEditar(libroId!)
+
+        if (cancelado) return
+
+    const versiones = libro.libro_versiones ?? []
+    const version = versiones.find((item) => item.idioma === 'es')
+      ?? versiones[0]
+
+    if (!version) {
+      throw new Error('El libro no tiene una versión disponible.')
+    }
+    setVersionId(version.id)
+
+    setTitle(version.titulo ?? '')
+
+        setBookCode(libro.codigo ?? '')
+        setEdition(libro.edicion ?? '')
+        setPublisher(libro.editorial ?? '')
+        setBookType(libro.clasificacion ?? '')
+        setDescription(version.descripcion ?? '')
+        setIdioma(version.idioma ?? 'es')
+        setSelectedCategories(version.categorias ?? [])
+        setEspecies((version.especies ?? []) as Especie[])
+        setTipoPropuesta('nuevo')
+        setCurrentStep(1)
+      } catch (error) {
+        if (cancelado) return
+
+        setErrorCarga(
+          error instanceof Error
+            ? error.message
+            : 'No se pudo cargar la propuesta.'
+        )
+      } finally {
+        if (!cancelado) {
+          setCargandoLibro(false)
+        }
+      }
+    }
+
+    cargarLibro()
+
+    return () => {
+      cancelado = true
+    }
+  }, [libroId])
+  
   function toggleCategory(id: string) {
     setSelectedCategories((current) =>
       current.includes(id)
         ? current.filter((category) => category !== id)
         : [...current, id]
     )
-  }
+  } 
   const activeCategories = categories.filter((category) =>
     selectedCategories.includes(category.id)
   )
   
-  async function handleGuardarLibro() {
-    if (guardando || tipoPropuesta !== 'nuevo') return
 
-    if (!title.trim() || !bookType || !idioma) {
-      setErrorGuardado('Completá los campos obligatorios.')
-      return
-    }
-
-    setGuardando(true)
-    setErrorGuardado('')
-
-    try {
-      await guardarLibro({
-        codigo: bookCode.trim(),
-        edicion: edition.trim(),
-        editorial: publisher.trim(),
-        clasificacion: bookType,
-        idioma,
-        titulo: title.trim(),
-        descripcion: description.trim(),
-        categorias: selectedCategories,
-        especies,
-      })
-
-      navigate('/biblioteca/libros')
-    } catch (error) {
-      console.error('Error al guardar el libro:', error)
-
-      setErrorGuardado(
-        error instanceof Error
-          ? error.message
-          : 'No se pudo guardar el libro.'
-      )
-    } finally {
-      setGuardando(false)
-    }
+async function handleGuardarLibro() {
+  if (guardando || cargandoLibro || tipoPropuesta !== 'nuevo') {
+    return
   }
+
+  if (!title.trim() || !bookType || !idioma) {
+    setErrorGuardado('Completá los campos obligatorios.')
+    return
+  }
+
+  if (modoEdicion && (!libroId || !versionId)) {
+    setErrorGuardado(
+      'No se pudo identificar la propuesta que querés editar.'
+    )
+    return
+  }
+
+  setGuardando(true)
+  setErrorGuardado('')
+
+  try {
+    const datos = {
+      codigo: bookCode.trim(),
+      edicion: edition.trim(),
+      editorial: publisher.trim(),
+      clasificacion: bookType,
+      idioma,
+      titulo: title.trim(),
+      descripcion: description.trim(),
+      categorias: selectedCategories,
+      especies,
+    }
+
+    if (modoEdicion && libroId && versionId) {
+      await actualizarLibro(libroId, versionId, datos)
+    } else {
+      await guardarLibro(datos)
+    }
+
+    navigate('/biblioteca/libros?tab=propuestas')
+  } catch (error) {
+    console.error('Error al guardar el libro:', error)
+
+    setErrorGuardado(
+      error instanceof Error
+        ? error.message
+        : 'No se pudo guardar el libro.'
+    )
+  } finally {
+    setGuardando(false)
+  }
+}
+
 
   return (
     <AppLayout
-      title="Nueva propuesta"
+      title={modoEdicion ? 'Editar propuesta' : 'Nueva propuesta'}
       subtitle="Proponé un libro para la Biblioteca de Chronicle"
     >
-      <div className="nueva-propuesta">
+      <div className="nueva-propuesta"> 
+        
+      {cargandoLibro && (
+        <p className="nueva-propuesta-help">
+          Cargando propuesta...
+        </p>
+      )}
+
+      {errorCarga && (
+        <p role="alert" style={{ color: '#e57373' }}>
+          {errorCarga}
+        </p>
+      )}
+
         <Link
           to="/biblioteca/libros"
           className="nueva-propuesta-back"
@@ -114,7 +213,9 @@ export default function NuevaPropuesta() {
         <div className="nueva-propuesta-heading">
           <BookPlus size={28} />
           <div>
-            <h2>Nueva propuesta de libro</h2>
+            <h2>
+              {modoEdicion ? 'Editar propuesta de libro' : 'Nueva propuesta de libro'}
+            </h2>
             <p>
               Completá la información del libro que querés proponer.
             </p>
@@ -433,10 +534,15 @@ export default function NuevaPropuesta() {
         <button
           type="button"
           className="nueva-propuesta-next"
-          disabled={guardando}
+          disabled={guardando || cargandoLibro || (modoEdicion && !versionId)}
           onClick={handleGuardarLibro}
         >
-          {guardando ? 'Guardando...' : 'Guardar libro'}
+        {guardando
+          ? 'Guardando...'
+          : modoEdicion
+            ? 'Guardar cambios'
+            : 'Guardar libro'}
+
         </button>
       )}
 

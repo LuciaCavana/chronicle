@@ -1,14 +1,102 @@
+/* ==========================================================================
+   Variables (acotadas al formulario)
+   ========================================================================== */
 
-.especie-form-section {
+.especie-form {
+  --especie-borde-suave: #343342;
+  --especie-borde: #454354;
+  --especie-borde-hover: #777080;
+  --especie-fondo-input: #171923;
+  --especie-fondo-card: #1b1d28;
+  --especie-texto: #e8dfcf;
+  --especie-texto-suave: #a4a3b2;
+  --especie-placeholder: #777586;
+  --especie-acento: #d8b77b;
+  --especie-acento-suave: rgba(216, 183, 123, 0.12);
+  --especie-peligro: #d67a7a;
+  --especie-peligro-hover: #e89a9a;
+  --especie-radio-sm: 7px;
+  --especie-radio-md: 8px;
+  --especie-radio-lg: 10px;
+}
+
+/* ==========================================================================
+   Bloques compartidos
+   ========================================================================== */
+
+/* Secciones separadas por una línea superior */
+.especie-form-section,
+.especie-campos-adicionales {
   margin: 22px 0;
   padding-top: 20px;
-  border-top: 1px solid #343342;
+  border-top: 1px solid var(--especie-borde-suave);
 }
+
+/* Tarjetas */
+.especie-form-rasgo,
+.especie-tamano-fila,
+.especie-campo-extra {
+  border: 1px solid var(--especie-borde);
+  border-radius: var(--especie-radio-md);
+  background: var(--especie-fondo-card);
+}
+
+/* Inputs y selects */
+.especie-tamano-altura input,
+.especie-campo-extra input:not([type='checkbox']),
+.especie-campo-extra select {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--especie-borde);
+  border-radius: var(--especie-radio-sm);
+  background: var(--especie-fondo-input);
+  color: var(--especie-texto);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.especie-tamano-altura input::placeholder,
+.especie-campo-extra input::placeholder {
+  color: var(--especie-placeholder);
+}
+
+.especie-tamano-altura input:hover,
+.especie-campo-extra input:not([type='checkbox']):hover,
+.especie-campo-extra select:hover {
+  border-color: var(--especie-borde-hover);
+}
+
+.especie-tamano-altura input:focus,
+.especie-campo-extra input:focus,
+.especie-campo-extra select:focus {
+  border-color: var(--especie-acento);
+  box-shadow: 0 0 0 2px var(--especie-acento-suave);
+}
+
+/* ==========================================================================
+   Secciones y opciones generales
+   ========================================================================== */
 
 .especie-form-section h4 {
   margin: 0 0 15px;
-  color: #e8dfcf;
+  color: var(--especie-texto);
   font-size: 15px;
+}
+
+.especie-form-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.especie-form-section-heading h4 {
+  margin: 0;
 }
 
 .especie-form-options {
@@ -23,73 +111,193 @@
   align-items: center;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #454354;
-  border-radius: 8px;
-  background: #171923;
-  color: #e8dfcf;
+  border: 1px solid var(--especie-borde);
+  border-radius: var(--especie-radio-md);
+  background: var(--especie-fondo-input);
+  color: var(--especie-texto);
   font-size: 13px;
   cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.especie-form-options label:hover,
+.especie-form-checkbox:hover {
+  border-color: var(--especie-borde-hover);
 }
 
 .especie-form-options input,
 .especie-form-checkbox input {
-  accent-color: #d8b77b;
+  accent-color: var(--especie-acento);
   cursor: pointer;
 }
 
-.especie-form-section-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 15px;
+.especie-form-hint {
+  color: var(--especie-texto-suave);
+  font-size: 13px;
 }
 
-.especie-form-section-heading h4 {
-  margin: 0;
+@media (max-width: 650px) {
+  .especie-form-options {
+    grid-template-columns: 1fr;
+  }
 }
+
+/* ==========================================================================
+   Botones y rasgos
+   ========================================================================== */
 
 .especie-form-add {
   display: inline-flex;
   align-items: center;
   gap: 7px;
   padding: 9px 12px;
-  border: 1px solid #d8b77b;
-  border-radius: 8px;
+  border: 1px solid var(--especie-acento);
+  border-radius: var(--especie-radio-md);
   background: transparent;
-  color: #d8b77b;
+  color: var(--especie-acento);
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition: background-color 0.2s;
 }
 
-.especie-form-rasgo {
-  margin-top: 12px;
-  padding: 18px;
-  border: 1px solid #454354;
-  border-radius: 10px;
-  background: #1b1d28;
-}
-
-.especie-form-rasgo strong {
-  color: #e8dfcf;
-  font-size: 14px;
+.especie-form-add:hover {
+  background: var(--especie-acento-suave);
 }
 
 .especie-form-delete {
   border: none;
   background: transparent;
-  color: #d67a7a;
+  color: var(--especie-peligro);
   cursor: pointer;
+  transition: color 0.2s;
 }
 
-.especie-form-hint {
-  color: #a4a3b2;
-  font-size: 13px;
+.especie-form-delete:hover {
+  color: var(--especie-peligro-hover);
+}
+
+.especie-form-add:focus-visible,
+.especie-form-delete:focus-visible {
+  outline: 2px solid var(--especie-acento);
+  outline-offset: 2px;
+}
+
+.especie-form-rasgo {
+  margin-top: 12px;
+  padding: 18px;
+  border-radius: var(--especie-radio-lg);
+}
+
+.especie-form-rasgo strong {
+  color: var(--especie-texto);
+  font-size: 14px;
+}
+
+/* ==========================================================================
+   Tamaños compactos
+   ========================================================================== */
+
+.especie-tamanos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.especie-tamano-fila {
+  display: grid;
+  grid-template-columns: minmax(110px, 1fr) 120px 120px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+}
+
+.especie-tamano-nombre {
+  color: var(--especie-texto);
+  font-size: 14px;
+}
+
+.especie-tamano-nombre input {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.especie-tamano-altura {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.especie-tamano-altura span {
+  color: var(--especie-texto-suave);
+  font-size: 11px;
+}
+
+/* Ocultar flechas de los campos numéricos */
+
+.especie-tamano-altura input::-webkit-inner-spin-button,
+.especie-tamano-altura input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.especie-tamano-altura input[type='number'] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 @media (max-width: 650px) {
-  .especie-form-options {
+  .especie-tamano-fila {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .especie-tamano-nombre {
+    grid-column: 1 / -1;
+  }
+}
+
+/* ==========================================================================
+   Campos adicionales
+   ========================================================================== */
+
+.especie-campos-adicionales summary {
+  margin-bottom: 14px;
+  color: var(--especie-texto);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.especie-campo-extra {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 1.2fr auto;
+  align-items: end;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 14px;
+}
+
+.especie-campo-extra .nueva-propuesta-field {
+  min-width: 0;
+  margin: 0;
+}
+
+.especie-campo-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--especie-texto);
+}
+
+.especie-campo-extra .especie-form-delete {
+  align-self: end;
+  padding: 10px;
+}
+
+@media (max-width: 750px) {
+  .especie-campo-extra {
     grid-template-columns: 1fr;
   }
 }

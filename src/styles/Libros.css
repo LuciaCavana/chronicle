@@ -253,3 +253,161 @@
   border-radius: 6px;
   font-size: 12px;
 }
+
+
+
+/* Acciones de libros y propuestas */
+
+.libros-admin-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+
+.libros-admin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #302d29;
+  border: 1px solid #786849;
+  border-radius: 8px;
+  color: #d8b77b;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.libros-admin-button:hover {
+  background: #40392e;
+  border-color: #d8b77b;
+  color: #f0d6a3;
+}
+
+.libros-admin-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Aprobar libro */
+
+.libros-admin-button--approve {
+  background: #26382f;
+  border-color: #50765e;
+  color: #a6d6b3;
+}
+
+.libros-admin-button--approve:hover {
+  background: #304b3b;
+  border-color: #a6d6b3;
+  color: #d2f0d9;
+}
+
+/* Borrar propuesta */
+
+.libros-admin-button--delete {
+  background: #34262a;
+  border-color: #87505a;
+  color: #e5a0a8;
+}
+
+.libros-admin-button--delete:hover {
+  background: #482c32;
+  border-color: #d47d89;
+  color: #ffd1d6;
+}
+
+@media (max-width: 600px) {
+  .libros-item {
+    flex-wrap: wrap;
+  }
+
+  .libros-admin-actions {
+    width: 100%;
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
+
+/* Confirmación personalizada para borrar propuestas */
+
+.libros-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+.libros-modal {
+  width: 100%;
+  max-width: 430px;
+  padding: 28px;
+  background: #222431;
+  border: 1px solid #454052;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.libros-modal h2 {
+  margin: 0 0 28px;
+  color: #e8dfcf;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.libros-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.libros-modal-actions button {
+  min-width: 80px;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.libros-modal-no {
+  background: transparent;
+  border: 1px solid #555263;
+  color: #e8dfcf;
+}
+
+.libros-modal-no:hover {
+  background: #343342;
+}
+
+.libros-modal-si {
+  background: #943f4c;
+  border: 1px solid #943f4c;
+  color: #fff;
+}
+
+.libros-modal-si:hover {
+  background: #b44d5c;
+}
+
+.libros-modal-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

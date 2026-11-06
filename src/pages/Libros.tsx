@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -14,6 +14,8 @@ import {
   EyeOff,
   Eye,
   Shield,
+  Pencil,
+  Trash2,
 } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
@@ -52,8 +54,15 @@ const etiquetasEstado: Record<EstadoLibro, string> = {
 }
 
 export default function Libros() {
-  const [activeTab, setActiveTab] =
-    useState<BooksTab>('catalogo')
+
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const [activeTab, setActiveTab] = useState<BooksTab>(
+    searchParams.get('tab') === 'propuestas'
+      ? 'propuestas'
+      : 'catalogo'
+  )
+
   const [search, setSearch] = useState('')
   const [libros, setLibros] = useState<Libro[]>([])
   const [userId, setUserId] = useState<string | null>(null)
@@ -62,6 +71,7 @@ export default function Libros() {
   const [error, setError] = useState('')
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [mensajeAdmin, setMensajeAdmin] = useState('')
+  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<string | null>(null)
 
   async function cargarLibros() {
     setCargando(true)
@@ -134,10 +144,18 @@ export default function Libros() {
     void cargarLibros()
   }, [])
 
+
   function changeTab(tab: BooksTab) {
     setActiveTab(tab)
     setSearch('')
+
+    if (tab === 'catalogo') {
+      setSearchParams({})
+    } else {
+      setSearchParams({ tab })
+    }
   }
+
 
 
   const librosVisibles = libros.filter((libro) => {
@@ -173,6 +191,57 @@ export default function Libros() {
       )
     )
   })
+
+async function borrarPropuesta(libroId: string) {
+  if (actualizandoId || !userId) return
+
+  const confirmado = window.confirm(
+    '¿Querés borrar esta propuesta?\n\n' +
+    'La propuesta desaparecerá de Mis propuestas, ' +
+    'pero sus datos no se eliminarán de la base de datos.'
+  )
+
+  if (!confirmado) return
+
+
+  setActualizandoId(libroId)
+  setError('')
+
+  try {
+    const { data, error: errorBorrado } = await supabase
+      .from('libros')
+      .update({ estado: 'eliminado' })
+      .eq('id', libroId)
+      .eq('creado_por', userId)
+      .eq('estado', 'pendiente')
+      .select('id')
+      .single()
+
+    if (errorBorrado) throw errorBorrado
+
+    if (!data) {
+      throw new Error('No se pudo borrar la propuesta.')
+    }
+
+    setLibros((actuales) =>
+      actuales.map((libro) =>
+        libro.id === libroId
+          ? { ...libro, estado: 'eliminado' }
+          : libro
+      )
+    )
+  } catch (err) {
+    console.error('Error al borrar propuesta:', err)
+
+    setError(
+      err instanceof Error
+        ? err.message
+        : 'No se pudo borrar la propuesta.'
+    )
+  } finally {
+    setActualizandoId(null)
+  }
+}
 
 async function cambiarEstadoLibro(
   libroId: string,
@@ -413,6 +482,31 @@ async function cambiarEstadoLibro(
                   </div>
                 </div>
                 
+
+{activeTab === 'propuestas' &&
+  libro.estado === 'pendiente' &&
+  libro.creado_por === userId && (
+    <div className="libros-admin-actions">
+      <Link
+        to={`/biblioteca/libros/editar-propuesta/${libro.id}`}
+        className="libros-admin-button"
+      >
+        <Pencil size={16} />
+        Editar
+      </Link>
+
+      <button
+        type="button"
+        className="libros-admin-button libros-admin-button--delete"
+        disabled={actualizandoId !== null}
+        onClick={() => setPropuestaParaBorrar(libro.id)}
+      >
+        <Trash2 size={16} />
+        Borrar
+      </button>
+    </div>
+  )}
+
 {activeTab === 'administracion' && esAdministrador && (
   <div className="libros-admin-actions">
     {libro.estado !== 'publicado' && (
@@ -466,6 +560,49 @@ async function cambiarEstadoLibro(
           </div>
         )}
       </div>
+      
+{propuestaParaBorrar && (
+  <div
+    className="libros-modal-overlay"
+    onClick={() => setPropuestaParaBorrar(null)}
+  >
+    <div
+      className="libros-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="libros-modal-titulo"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <h2 id="libros-modal-titulo">
+        ¿Seguro que querés borrar esta propuesta?
+      </h2>
+
+      <div className="libros-modal-actions">
+        <button
+          type="button"
+          className="libros-modal-no"
+          disabled={actualizandoId !== null}
+          onClick={() => setPropuestaParaBorrar(null)}
+        >
+          No
+        </button>
+
+        <button
+          type="button"
+          className="libros-modal-si"
+          disabled={actualizandoId !== null}
+          onClick={async () => {
+            await borrarPropuesta(propuestaParaBorrar)
+            setPropuestaParaBorrar(null)
+          }}
+        >
+          {actualizandoId !== null ? 'Borrando...' : 'Sí'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </AppLayout>
   )
 }
