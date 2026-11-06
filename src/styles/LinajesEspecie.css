@@ -1,0 +1,176 @@
+
+.linajes-especie {
+  margin: 24px 0;
+  padding-top: 20px;
+  border-top: 1px solid #343342;
+}
+
+.linajes-especie-heading,
+.linajes-especie-form-heading,
+.linajes-especie-beneficios-heading,
+.linajes-especie-card-heading,
+.linajes-especie-beneficio-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linajes-especie h4,
+.linajes-especie h5 {
+  margin: 0;
+  color: #e8dfcf;
+}
+
+.linajes-especie-heading p,
+.linajes-especie-empty {
+  color: #a4a3b2;
+  font-size: 13px;
+}
+
+.linajes-especie-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #d8b77b;
+  border-radius: 8px;
+  background: transparent;
+  color: #d8b77b;
+  cursor: pointer;
+}
+
+.linajes-especie-form,
+.linajes-especie-card {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid #454354;
+  border-radius: 10px;
+  background: #1b1d28;
+}
+
+.linajes-especie-form {
+  display: grid;
+  gap: 16px;
+}
+
+.linajes-especie-form label,
+.linajes-especie-beneficio label {
+  display: grid;
+  gap: 7px;
+  color: #d5cfca;
+  font-size: 13px;
+}
+
+.linajes-especie-form input,
+.linajes-especie-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px;
+  border: 1px solid #454354;
+  border-radius: 8px;
+  background: #171923;
+  color: #e8dfcf;
+  font: inherit;
+}
+
+.linajes-especie-beneficio {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #393a49;
+  border-radius: 8px;
+}
+
+.linajes-especie-beneficio-heading input {
+  max-width: 110px;
+}
+
+.linajes-especie-icon,
+.linajes-especie-delete,
+.linajes-especie-card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: #a4a3b2;
+  cursor: pointer;
+}
+
+.linajes-especie-delete:hover,
+.linajes-especie-card-actions button:last-child:hover {
+  color: #e58b8b;
+}
+
+.linajes-especie-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.linajes-especie-actions button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.linajes-especie-cancel {
+  border: 1px solid #454354;
+  background: transparent;
+  color: #e8dfcf;
+}
+
+.linajes-especie-save {
+  border: none;
+  background: #d8b77b;
+  color: #171923;
+  font-weight: 600;
+}
+
+.linajes-especie-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.linajes-especie-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.linajes-especie-card > p,
+.linajes-especie-card-beneficios p {
+  color: #c6c1c7;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.linajes-especie-count {
+  display: inline-block;
+  margin-top: 8px;
+  color: #d8b77b;
+  font-size: 12px;
+}
+
+.linajes-especie-card-beneficios {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #393a49;
+}
+
+.linajes-especie-card-beneficios strong {
+  color: #d8b77b;
+}
+
+.linajes-especie-expand {
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #d8b77b;
+  cursor: pointer;
+}

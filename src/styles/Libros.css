@@ -192,3 +192,64 @@
   background: #f0d6a3;
   border-color: #f0d6a3;
 }
+
+
+.libros-admin-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+  color: #c8b78a;
+  font-size: 14px;
+}
+
+.libros-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.libros-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.libros-item-icon {
+  flex-shrink: 0;
+  color: #c8b78a;
+}
+
+.libros-item-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.libros-item-info h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.libros-item-info p {
+  margin: 0 0 12px;
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.libros-item-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.libros-item-details span {
+  padding: 4px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  font-size: 12px;
+}

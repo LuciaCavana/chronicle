@@ -8,6 +8,8 @@ import type {
   TamanoEspecie,
 } from '../../types/especie'
 import '../../styles/EspecieForm.css'
+import LinajesEspecie from './LinajesEspecie'
+import type { LinajeEspecie } from '../../types/especie'
 
 type Props = {
   bookTitle: string
@@ -59,6 +61,9 @@ export default function EspecieForm({
   const [pagina, setPagina] = useState(initialData?.pagina ?? '')
   const [rasgos, setRasgos] = useState<RasgoEspecie[]>(
     initialData?.rasgos ?? []
+  )
+  const [linajes, setLinajes] = useState<LinajeEspecie[]>(
+    initialData?.linajes ?? []
   )
 
   
@@ -147,7 +152,7 @@ export default function EspecieForm({
       alcanceVision: visionOscuridad ? alcanceVision : '',
       pagina,
       rasgos,
-      linajes: initialData?.linajes ?? [],
+      linajes,
       transformaciones: initialData?.transformaciones ?? [],
     })
   }
@@ -330,10 +335,12 @@ export default function EspecieForm({
           </div>
         )}
       </div>
-      <RasgosEspecie
-        rasgos={rasgos}
-        onChange={setRasgos}
-      />
+        <RasgosEspecie rasgos={rasgos} onChange={setRasgos} />
+
+        <LinajesEspecie
+          linajes={linajes}
+          onChange={setLinajes}
+        />
 
       <div className="nueva-propuesta-actions">
         <button
