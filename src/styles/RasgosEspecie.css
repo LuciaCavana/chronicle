@@ -122,3 +122,214 @@
     flex-direction: column;
   }
 }
+
+
+
+.rasgos-especie-conjuro-config {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.rasgos-especie-conjuro-config label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rasgos-especie-conjuro-config input,
+.rasgos-especie-conjuro-config select,
+.rasgos-especie-conjuro-config textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 9px;
+  border-radius: 6px;
+}
+
+.rasgos-especie-conjuro-config label:last-child {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 600px) {
+  .rasgos-especie-conjuro-config {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Sección de conjuros otorgados */
+
+.rasgos-especie-conjuros {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.rasgos-especie-conjuros > h5 {
+  margin: 0;
+  color: #d8b675;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* Tarjeta individual */
+
+.rasgos-especie-conjuro {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+  border: 1px solid #414355;
+  border-radius: 12px;
+  background: #1d1e29;
+}
+
+/* Encabezado */
+
+.rasgos-especie-conjuro-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #343644;
+}
+
+.rasgos-especie-conjuro-identidad {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.rasgos-especie-conjuro-icono {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(216, 182, 117, 0.12);
+  color: #d8b675;
+}
+
+.rasgos-especie-conjuro-identidad > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.rasgos-especie-conjuro-identidad strong {
+  font-size: 16px;
+  color: #f2e9d9;
+}
+
+.rasgos-especie-conjuro-tipo {
+  color: #a7a9b8;
+  font-size: 12px;
+}
+
+/* Botón desvincular */
+
+.rasgos-especie-conjuro-eliminar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border: 1px solid #414355;
+  border-radius: 8px;
+  background: transparent;
+  color: #a7a9b8;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.rasgos-especie-conjuro-eliminar:hover {
+  border-color: #c96868;
+  background: rgba(201, 104, 104, 0.1);
+  color: #e38b8b;
+}
+
+/* Configuración */
+
+.rasgos-especie-conjuro-config {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin: 0;
+}
+
+.rasgos-especie-conjuro-config label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  color: #c9cad4;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.rasgos-especie-conjuro-config input,
+.rasgos-especie-conjuro-config select,
+.rasgos-especie-conjuro-config textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid #414355;
+  border-radius: 8px;
+  background: #151620;
+  color: #f2e9d9;
+  font: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.rasgos-especie-conjuro-config input:focus,
+.rasgos-especie-conjuro-config select:focus,
+.rasgos-especie-conjuro-config textarea:focus {
+  border-color: #d8b675;
+}
+
+.rasgos-especie-conjuro-config textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+
+.rasgos-especie-conjuro-config label:last-child {
+  grid-column: 1 / -1;
+}
+
+/* Adaptación a pantallas pequeñas */
+
+@media (max-width: 600px) {
+  .rasgos-especie-conjuro {
+    padding: 15px;
+  }
+
+  .rasgos-especie-conjuro-config {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Botón Vincular conjuro */
+.rasgos-especie-conjuros > .rasgos-especie-add {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  padding: 9px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+/* Separación respecto a Guardar rasgo */
+.rasgos-especie-editor-actions {
+  margin-top: 20px;
+}

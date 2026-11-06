@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import type { Especie } from '../types/especie'
+import type { Conjuro } from '../types/conjuro'
 
 const ESTADO_PENDIENTE = 'pendiente'
 
@@ -13,10 +14,11 @@ export type NuevoLibro = {
   descripcion: string
   categorias: string[]
   especies: Especie[]
+  conjuros: Conjuro[]
 }
 
 export async function guardarLibro(datos: NuevoLibro) {
-  const { data, error } = await supabase.rpc('crear_libro_con_version', {
+  const { data, error } = await supabase.rpc('crear_libro_con_conjuros', {
     p_codigo: datos.codigo,
     p_edicion: datos.edicion,
     p_editorial: datos.editorial,
@@ -26,6 +28,7 @@ export async function guardarLibro(datos: NuevoLibro) {
     p_descripcion: datos.descripcion,
     p_categorias: datos.categorias,
     p_especies: datos.especies,
+    p_conjuros: datos.conjuros,
   })
 
   if (error) throw error
@@ -47,7 +50,10 @@ export async function obtenerLibros() {
         id,
         idioma,
         titulo,
-        descripcion
+        descripcion,
+        categorias,
+        especies,
+        conjuros
       )
     `
     )
@@ -75,7 +81,8 @@ export async function obtenerLibroParaEditar(libroId: string) {
         titulo,
         descripcion,
         categorias,
-        especies
+        especies,
+        conjuros
       )
     `
     )
@@ -161,6 +168,7 @@ export async function actualizarLibro(
       descripcion: datos.descripcion,
       categorias: datos.categorias,
       especies: datos.especies,
+      conjuros: datos.conjuros,
     })
     .eq('id', versionId)
     .eq('libro_id', libroId)

@@ -5,6 +5,7 @@ import LinajesEspecie from './LinajesEspecie'
 import TransformacionesEspecie from './TransformacionesEspecie'
 import RasgosEspecie from './RasgosEspecie'
 import SelectorTipoCriatura from './SelectorTipoCriatura'
+import type { Conjuro } from '../../types/conjuro'
 import type {
   CampoAdicionalEspecie,
   Especie,
@@ -21,6 +22,8 @@ type Props = {
   initialData?: Especie | null
   onSave: (especie: Especie) => void
   onCancel: () => void
+  conjuros: Conjuro[]
+  onCrearConjuro: (conjuro: Conjuro) => void
 }
 
 const tamanosDisponibles = ['Pequeño', 'Mediano', 'Grande']
@@ -58,6 +61,8 @@ export default function EspecieForm({
   initialData,
   onSave,
   onCancel,
+  conjuros,
+  onCrearConjuro,
 }: Props) {
   const [nombre, setNombre] = useState(initialData?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(
@@ -328,7 +333,12 @@ export default function EspecieForm({
         )}
       </div>
 
-      <RasgosEspecie rasgos={rasgos} onChange={setRasgos} />
+      <RasgosEspecie
+        rasgos={rasgos}
+        onChange={setRasgos}
+        conjuros={conjuros}
+        onCrearConjuro={onCrearConjuro}
+      />
 
       <LinajesEspecie linajes={linajes} onChange={setLinajes} />
       <TransformacionesEspecie

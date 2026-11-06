@@ -1,4 +1,4 @@
-
+import type { Conjuro } from '../../types/conjuro'
 import { useState } from 'react'
 import {
   Plus,
@@ -27,6 +27,7 @@ type ContenidoLibroProps = {
   species: { id: string; nombre: string }[]
   onEditSpecies: (id: string) => void
   onDeleteSpecies: (id: string) => void
+  conjuros: Conjuro[]
 }
 
 export default function ContenidoLibro({
@@ -40,6 +41,7 @@ export default function ContenidoLibro({
   species,
   onEditSpecies,
   onDeleteSpecies,
+  conjuros,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
@@ -147,6 +149,24 @@ export default function ContenidoLibro({
                     ))}
                       </div>
                     )}
+                    {category.id === 'conjuros' && conjuros.length > 0 && (
+                    <div className="contenido-libro-species-list">
+                      {conjuros.map(conjuro => (
+                        <div
+                          key={conjuro.id}
+                          className="contenido-libro-species-item"
+                        >
+                          <span className="contenido-libro-species-tag">
+                            {conjuro.nombre}
+                            {' · '}
+                            {conjuro.tipo === 'truco'
+                              ? 'Truco'
+                              : `Nivel ${conjuro.nivel}`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   </div>
                 </div>
                 <button

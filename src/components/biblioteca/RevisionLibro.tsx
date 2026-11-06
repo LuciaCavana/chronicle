@@ -14,6 +14,7 @@ type RevisionLibroProps = {
   descripcion: string
   categorias: Categoria[]
   cantidadEspecies: number
+  cantidadConjuros: number
 }
 
 export default function RevisionLibro({
@@ -26,6 +27,7 @@ export default function RevisionLibro({
   descripcion,
   categorias,
   cantidadEspecies,
+  cantidadConjuros,
 }: RevisionLibroProps) {
   const clasificaciones: Record<string, string> = {
     source: 'Source',
@@ -56,6 +58,29 @@ export default function RevisionLibro({
     advertencias.push('La categoría Especies no tiene elementos cargados.')
   }
 
+
+if (categorias.length === 0) {
+  advertencias.push('No seleccionaste ninguna categoría.')
+}
+
+if (
+  categorias.some((categoria) => categoria.id === 'especies') &&
+  cantidadEspecies === 0
+) {
+  advertencias.push('La categoría Especies no tiene elementos cargados.')
+}
+
+// NUEVO: Advertencia para conjuros
+if (
+  categorias.some((categoria) => categoria.id === 'conjuros') &&
+  cantidadConjuros === 0
+) {
+  advertencias.push(
+    'La categoría Conjuros no tiene elementos cargados.'
+  )
+}
+
+
   return (
     <div className="revision-libro">
       <section className="nueva-propuesta-panel">
@@ -84,8 +109,10 @@ export default function RevisionLibro({
               <li key={categoria.id}>
                 {categoria.label}
                 {categoria.id === 'especies'
-                  ? ` — ${cantidadEspecies} especie(s)`
-                  : ' — Sin elementos cargados'}
+                ? ` — ${cantidadEspecies} especie(s)`
+                : categoria.id === 'conjuros'
+                    ? ` — ${cantidadConjuros} conjuro(s)`
+                    : ' — Sin elementos cargados'}
               </li>
             ))}
           </ul>
@@ -106,6 +133,7 @@ export default function RevisionLibro({
           </p>
         </section>
       )}
+      
     </div>
   )
 }

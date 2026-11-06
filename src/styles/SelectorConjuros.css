@@ -1,0 +1,177 @@
+
+.selector-conjuros-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.selector-conjuros-modal {
+  width: min(100%, 620px);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: #1d1e29;
+  border: 1px solid #414355;
+  border-radius: 12px;
+  padding: 24px;
+  color: #f2e9d9;
+}
+
+.selector-conjuros-header,
+.selector-conjuros-item,
+.selector-conjuros-acciones {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.selector-conjuros-header {
+  margin-bottom: 20px;
+}
+
+.selector-conjuros-header h3 {
+  margin: 0;
+}
+
+.selector-conjuros-header button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.selector-conjuros-busqueda {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #414355;
+  border-radius: 8px;
+  padding: 10px;
+  margin-bottom: 16px;
+}
+
+.selector-conjuros-busqueda input {
+  width: 100%;
+  background: transparent;
+  border: 0;
+  outline: none;
+  color: inherit;
+}
+
+.selector-conjuros-lista {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.selector-conjuros-item {
+  padding: 12px 0;
+  border-bottom: 1px solid #414355;
+}
+
+.selector-conjuros-item p {
+  margin: 5px 0 0;
+  opacity: 0.7;
+  font-size: 13px;
+}
+
+.selector-conjuros-item button,
+.selector-conjuros-crear,
+.selector-conjuros-acciones button {
+  padding: 9px 14px;
+  border: 1px solid #d8b675;
+  border-radius: 8px;
+  background: transparent;
+  color: #d8b675;
+  cursor: pointer;
+}
+
+.selector-conjuros-item button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.selector-conjuros-crear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.selector-conjuros-vacio {
+  text-align: center;
+  padding: 20px;
+  opacity: 0.7;
+}
+
+.selector-conjuros-formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.selector-conjuros-formulario label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.selector-conjuros-formulario input,
+.selector-conjuros-formulario select,
+.selector-conjuros-formulario textarea {
+  width: 100%;
+  padding: 10px;
+  background: #171821;
+  color: #f2e9d9;
+  border: 1px solid #414355;
+  border-radius: 8px;
+}
+
+.selector-conjuros-acciones {
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+
+
+.selector-conjuros-grupo {
+  border: 1px solid #414355;
+  border-radius: 8px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.selector-conjuros-grupo legend {
+  padding: 0 6px;
+}
+
+.selector-conjuros-opciones,
+.selector-conjuros-clases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 18px;
+}
+
+.selector-conjuros-opciones label,
+.selector-conjuros-clases label {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.selector-conjuros-opciones input[type="checkbox"],
+.selector-conjuros-clases input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+
+.selector-conjuros-clases {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}

@@ -1,20 +1,29 @@
 
 export type TipoConjuro = 'truco' | 'conjuro'
 
+
 export type Conjuro = {
   id: string
   nombre: string
   tipo: TipoConjuro
   nivel: number
   escuela: string
+
   tiempoLanzamiento: string
   alcance: string
+
   componentes: string
+  componenteMaterial: string
+
   duracion: string
   concentracion: boolean
   ritual: boolean
+
+  clases: string[]
+
   descripcion: string
 }
+
 
 export type ConjuroOtorgado = {
   id: string

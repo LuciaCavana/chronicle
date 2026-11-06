@@ -582,7 +582,9 @@ export default function TransformacionesEspecie({
           </p>
         )}
 
-        {transformaciones.map(t => (
+        {transformaciones
+        .filter(t => t.id !== editandoId)
+        .map(t => (
           <article className="linajes-especie-card" key={t.id}>
             <div className="linajes-especie-card-heading">
               <h5>{t.nombre}</h5>

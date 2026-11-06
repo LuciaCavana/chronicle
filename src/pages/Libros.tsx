@@ -1,32 +1,30 @@
-
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
+  CheckCircle2,
+  Eye,
+  EyeOff,
   FileText,
   LibraryBig,
-  Plus,
-  Search,
-  RefreshCw,
-  ShieldCheck,
-  CheckCircle2,
-  EyeOff,
-  Eye,
-  Shield,
   Pencil,
+  Plus,
+  RefreshCw,
+  Search,
+  Shield,
+  ShieldCheck,
   Trash2,
+  type LucideIcon,
 } from 'lucide-react'
+
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import '../styles/Libros.css'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'administracion'
-type EstadoLibro =
-  | 'pendiente'
-  | 'publicado'
-  | 'oculto'
-  | 'eliminado'
+
+type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado'
 
 type VersionLibro = {
   id: string
@@ -46,6 +44,12 @@ type Libro = {
   libro_versiones: VersionLibro[]
 }
 
+const tabs: { id: BooksTab; label: string; icon: LucideIcon }[] = [
+  { id: 'catalogo', label: 'Catálogo', icon: LibraryBig },
+  { id: 'propuestas', label: 'Mis propuestas', icon: FileText },
+  { id: 'administracion', label: 'Administración', icon: Shield },
+]
+
 const etiquetasEstado: Record<EstadoLibro, string> = {
   pendiente: 'Pendiente de aprobación',
   publicado: 'Publicado',
@@ -53,25 +57,59 @@ const etiquetasEstado: Record<EstadoLibro, string> = {
   eliminado: 'Eliminado',
 }
 
-export default function Libros() {
+const mensajesEstado: Record<EstadoLibro, string> = {
+  pendiente: 'El libro volvió a estar pendiente.',
+  publicado: 'El libro está publicado.',
+  oculto: 'El libro fue ocultado.',
+  eliminado: 'El libro fue enviado a la papelera.',
+}
 
+export default function Libros() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [activeTab, setActiveTab] = useState<BooksTab>(
-    searchParams.get('tab') === 'propuestas'
-      ? 'propuestas'
-      : 'catalogo'
+    searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
   )
-
   const [search, setSearch] = useState('')
+
   const [libros, setLibros] = useState<Libro[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [esAdministrador, setEsAdministrador] = useState(false)
   const [cargando, setCargando] = useState(true)
   const [error, setError] = useState('')
+
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [mensajeAdmin, setMensajeAdmin] = useState('')
-  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<string | null>(null)
+  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<
+    string | null
+  >(null)
+
+  const librosVisibles = libros.filter((libro) => {
+    if (activeTab === 'catalogo') {
+      return libro.estado === 'publicado'
+    }
+
+    if (activeTab === 'administracion') {
+      return esAdministrador && libro.estado !== 'eliminado'
+    }
+
+    return libro.creado_por === userId && libro.estado !== 'eliminado'
+  })
+
+  const textoBusqueda = search.trim().toLowerCase()
+
+  const librosFiltrados = librosVisibles.filter((libro) => {
+    if (!textoBusqueda) return true
+
+    return (
+      libro.codigo?.toLowerCase().includes(textoBusqueda) ||
+      libro.edicion?.toLowerCase().includes(textoBusqueda) ||
+      libro.editorial?.toLowerCase().includes(textoBusqueda) ||
+      libro.libro_versiones.some((version) =>
+        version.titulo.toLowerCase().includes(textoBusqueda)
+      )
+    )
+  })
 
   async function cargarLibros() {
     setCargando(true)
@@ -102,13 +140,12 @@ export default function Libros() {
 
       if (errorRol) throw errorRol
 
-      setEsAdministrador(
-        rol?.role === 'creator' || rol?.role === 'admin'
-      )
+      setEsAdministrador(rol?.role === 'creator' || rol?.role === 'admin')
 
       const { data, error: errorLibros } = await supabase
         .from('libros')
-        .select(`
+        .select(
+          `
           id,
           codigo,
           edicion,
@@ -122,7 +159,8 @@ export default function Libros() {
             titulo,
             descripcion
           )
-        `)
+        `
+        )
         .order('creado_en', { ascending: false })
 
       if (errorLibros) throw errorLibros
@@ -144,7 +182,6 @@ export default function Libros() {
     void cargarLibros()
   }, [])
 
-
   function changeTab(tab: BooksTab) {
     setActiveTab(tab)
     setSearch('')
@@ -156,141 +193,90 @@ export default function Libros() {
     }
   }
 
+  async function borrarPropuesta(libroId: string) {
+    if (actualizandoId || !userId) return
 
+    setActualizandoId(libroId)
+    setError('')
 
-  const librosVisibles = libros.filter((libro) => {
-    if (activeTab === 'catalogo') {
-      return libro.estado === 'publicado'
-    }
+    try {
+      const { data, error: errorBorrado } = await supabase
+        .from('libros')
+        .update({ estado: 'eliminado' })
+        .eq('id', libroId)
+        .eq('creado_por', userId)
+        .eq('estado', 'pendiente')
+        .select('id')
+        .single()
 
-    if (activeTab === 'administracion') {
-      return (
-        esAdministrador &&
-        libro.estado !== 'eliminado'
+      if (errorBorrado) throw errorBorrado
+
+      if (!data) {
+        throw new Error('No se pudo borrar la propuesta.')
+      }
+
+      setLibros((actuales) =>
+        actuales.map((libro) =>
+          libro.id === libroId ? { ...libro, estado: 'eliminado' } : libro
+        )
       )
-    }
+    } catch (err) {
+      console.error('Error al borrar propuesta:', err)
 
-    return (
-      libro.creado_por === userId &&
-      libro.estado !== 'eliminado'
-    )
-  })
-
-
-  const librosFiltrados = librosVisibles.filter((libro) => {
-    const texto = search.trim().toLowerCase()
-
-    if (!texto) return true
-
-    return (
-      libro.codigo?.toLowerCase().includes(texto) ||
-      libro.edicion?.toLowerCase().includes(texto) ||
-      libro.editorial?.toLowerCase().includes(texto) ||
-      libro.libro_versiones.some((version) =>
-        version.titulo.toLowerCase().includes(texto)
+      setError(
+        err instanceof Error ? err.message : 'No se pudo borrar la propuesta.'
       )
-    )
-  })
-
-async function borrarPropuesta(libroId: string) {
-  if (actualizandoId || !userId) return
-  setActualizandoId(libroId)
-  setError('')
-
-  try {
-    const { data, error: errorBorrado } = await supabase
-      .from('libros')
-      .update({ estado: 'eliminado' })
-      .eq('id', libroId)
-      .eq('creado_por', userId)
-      .eq('estado', 'pendiente')
-      .select('id')
-      .single()
-
-    if (errorBorrado) throw errorBorrado
-
-    if (!data) {
-      throw new Error('No se pudo borrar la propuesta.')
+    } finally {
+      setActualizandoId(null)
     }
-
-    setLibros((actuales) =>
-      actuales.map((libro) =>
-        libro.id === libroId
-          ? { ...libro, estado: 'eliminado' }
-          : libro
-      )
-    )
-  } catch (err) {
-    console.error('Error al borrar propuesta:', err)
-
-    setError(
-      err instanceof Error
-        ? err.message
-        : 'No se pudo borrar la propuesta.'
-    )
-  } finally {
-    setActualizandoId(null)
   }
-}
 
-async function cambiarEstadoLibro(
-  libroId: string,
-  nuevoEstado: EstadoLibro
-) {
-  if (!esAdministrador || actualizandoId) return
+  async function cambiarEstadoLibro(
+    libroId: string,
+    nuevoEstado: EstadoLibro
+  ) {
+    if (!esAdministrador || actualizandoId) return
 
-  setActualizandoId(libroId)
-  setMensajeAdmin('')
-  setError('')
+    setActualizandoId(libroId)
+    setMensajeAdmin('')
+    setError('')
 
-  try {
-    const { data, error: errorCambio } = await supabase
-      .from('libros')
-      .update({ estado: nuevoEstado })
-      .eq('id', libroId)
-      .select('id, estado')
-      .single()
+    try {
+      const { data, error: errorCambio } = await supabase
+        .from('libros')
+        .update({ estado: nuevoEstado })
+        .eq('id', libroId)
+        .select('id, estado')
+        .single()
 
-    if (errorCambio) throw errorCambio
+      if (errorCambio) throw errorCambio
 
-    if (!data) {
-      throw new Error('No se pudo actualizar el libro.')
-    }
+      if (!data) {
+        throw new Error('No se pudo actualizar el libro.')
+      }
 
-    setLibros((actuales) =>
-      actuales.map((libro) =>
-        libro.id === libroId
-          ? { ...libro, estado: data.estado as EstadoLibro }
-          : libro
+      setLibros((actuales) =>
+        actuales.map((libro) =>
+          libro.id === libroId
+            ? { ...libro, estado: data.estado as EstadoLibro }
+            : libro
+        )
       )
-    )
 
-    const mensajes: Record<EstadoLibro, string> = {
-      pendiente: 'El libro volvió a estar pendiente.',
-      publicado: 'El libro está publicado.',
-      oculto: 'El libro fue ocultado.',
-      eliminado: 'El libro fue enviado a la papelera.',
+      setMensajeAdmin(mensajesEstado[nuevoEstado])
+    } catch (err) {
+      console.error('Error al actualizar libro:', err)
+
+      setError(
+        err instanceof Error ? err.message : 'No se pudo modificar el libro.'
+      )
+    } finally {
+      setActualizandoId(null)
     }
-
-    setMensajeAdmin(mensajes[nuevoEstado])
-  } catch (err) {
-    console.error('Error al actualizar libro:', err)
-    setError(
-      err instanceof Error
-        ? err.message
-        : 'No se pudo modificar el libro.'
-    )
-  } finally {
-    setActualizandoId(null)
   }
-}
-
 
   return (
-    <AppLayout
-      title="Libros"
-      subtitle="Explorá los libros de Chronicle"
-    >
+    <AppLayout title="Libros" subtitle="Explorá los libros de Chronicle">
       <div className="libros">
         <Link to="/biblioteca" className="libros-back">
           <ArrowLeft size={18} />
@@ -298,57 +284,28 @@ async function cambiarEstadoLibro(
         </Link>
 
         <div className="libros-tabs">
-          <button
-            type="button"
-            className={`libros-tab ${
-              activeTab === 'catalogo'
-                ? 'libros-tab--active'
-                : ''
-            }`}
-            onClick={() => changeTab('catalogo')}
-          >
-            <LibraryBig size={18} />
-            Catálogo
-          </button>
-
-          <button
-            type="button"
-            className={`libros-tab ${
-              activeTab === 'propuestas'
-                ? 'libros-tab--active'
-                : ''
-            }`}
-            onClick={() => changeTab('propuestas')}
-          >
-            <FileText size={18} />
-            Mis propuestas
-          </button>
-          
-          {esAdministrador && (
-            <button
-              type="button"
-              className={`libros-tab ${
-                activeTab === 'administracion'
-                  ? 'libros-tab--active'
-                  : ''
-              }`}
-              onClick={() => changeTab('administracion')}
-            >
-              <Shield size={18} />
-              Administración
-            </button>
-          )}
-
+          {tabs
+            .filter((tab) => tab.id !== 'administracion' || esAdministrador)
+            .map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                type="button"
+                className={`libros-tab ${
+                  activeTab === id ? 'libros-tab--active' : ''
+                }`}
+                onClick={() => changeTab(id)}
+              >
+                <Icon size={18} />
+                {label}
+              </button>
+            ))}
         </div>
 
         {activeTab === 'propuestas' && (
           <div className="libros-propuestas-header">
             <div>
               <h2>Mis propuestas</h2>
-              <p>
-                Gestioná los libros que querés incorporar
-                a Chronicle.
-              </p>
+              <p>Gestioná los libros que querés incorporar a Chronicle.</p>
             </div>
 
             <Link
@@ -366,9 +323,7 @@ async function cambiarEstadoLibro(
           <input
             type="search"
             value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
+            onChange={(event) => setSearch(event.target.value)}
             placeholder={
               activeTab === 'catalogo'
                 ? 'Buscar libros...'
@@ -381,22 +336,22 @@ async function cambiarEstadoLibro(
         {esAdministrador && (
           <div className="libros-admin-info">
             <ShieldCheck size={18} />
-            <span>
-              Tenés permisos de administración.
-            </span>
+            <span>Tenés permisos de administración.</span>
           </div>
         )}
-          {mensajeAdmin && (
-            <p className="libros-admin-message" role="status">
-              {mensajeAdmin}
-            </p>
-          )}
 
-          {error && (
-            <p className="libros-admin-error" role="alert">
-              {error}
-            </p>
-          )}
+        {mensajeAdmin && (
+          <p className="libros-admin-message" role="status">
+            {mensajeAdmin}
+          </p>
+        )}
+
+        {error && (
+          <p className="libros-admin-error" role="alert">
+            {error}
+          </p>
+        )}
+
         {cargando ? (
           <div className="libros-empty">
             <RefreshCw size={32} />
@@ -416,28 +371,20 @@ async function cambiarEstadoLibro(
               <>
                 <BookOpen size={46} strokeWidth={1.4} />
                 <h2>No hay libros disponibles</h2>
-                <p>
-                  Los libros publicados aparecerán
-                  en este catálogo.
-                </p>
+                <p>Los libros publicados aparecerán en este catálogo.</p>
               </>
             ) : (
               <>
                 <FileText size={46} strokeWidth={1.4} />
                 <h2>No se encontraron propuestas</h2>
-                <p>
-                  Podés crear una desde Nueva propuesta.
-                </p>
+                <p>Podés crear una desde Nueva propuesta.</p>
               </>
             )}
           </div>
         ) : (
           <div className="libros-lista">
             {librosFiltrados.map((libro) => (
-              <article
-                key={libro.id}
-                className="libros-item"
-              >
+              <article key={libro.id} className="libros-item">
                 <div className="libros-item-icon">
                   <BookOpen size={24} />
                 </div>
@@ -450,15 +397,11 @@ async function cambiarEstadoLibro(
 
                   <p>
                     {libro.editorial || 'Sin editorial'}
-                    {libro.edicion
-                      ? ` · Edición ${libro.edicion}`
-                      : ''}
+                    {libro.edicion ? ` · Edición ${libro.edicion}` : ''}
                   </p>
 
                   <div className="libros-item-details">
-                    {libro.codigo && (
-                      <span>{libro.codigo}</span>
-                    )}
+                    {libro.codigo && <span>{libro.codigo}</span>}
 
                     {libro.libro_versiones.map((version) => (
                       <span key={version.id}>
@@ -466,133 +409,124 @@ async function cambiarEstadoLibro(
                       </span>
                     ))}
 
-                    <span>
-                      {etiquetasEstado[libro.estado]}
-                    </span>
+                    <span>{etiquetasEstado[libro.estado]}</span>
                   </div>
                 </div>
-                
 
-{activeTab === 'propuestas' &&
-  libro.estado === 'pendiente' &&
-  libro.creado_por === userId && (
-    <div className="libros-admin-actions">
-      <Link
-        to={`/biblioteca/libros/editar-propuesta/${libro.id}`}
-        className="libros-admin-button"
-      >
-        <Pencil size={16} />
-        Editar
-      </Link>
+                {activeTab === 'propuestas' &&
+                  libro.estado === 'pendiente' &&
+                  libro.creado_por === userId && (
+                    <div className="libros-admin-actions">
+                      <Link
+                        to={`/biblioteca/libros/editar-propuesta/${libro.id}`}
+                        className="libros-admin-button"
+                      >
+                        <Pencil size={16} />
+                        Editar
+                      </Link>
 
-      <button
-        type="button"
-        className="libros-admin-button libros-admin-button--delete"
-        disabled={actualizandoId !== null}
-        onClick={() => setPropuestaParaBorrar(libro.id)}
-      >
-        <Trash2 size={16} />
-        Borrar
-      </button>
-    </div>
-  )}
+                      <button
+                        type="button"
+                        className="libros-admin-button libros-admin-button--delete"
+                        disabled={actualizandoId !== null}
+                        onClick={() => setPropuestaParaBorrar(libro.id)}
+                      >
+                        <Trash2 size={16} />
+                        Borrar
+                      </button>
+                    </div>
+                  )}
 
-{activeTab === 'administracion' && esAdministrador && (
-  <div className="libros-admin-actions">
-    {libro.estado !== 'publicado' && (
-      <button
-        type="button"
-        className="libros-admin-button libros-admin-button--approve"
-        disabled={actualizandoId !== null}
-        onClick={() =>
-          cambiarEstadoLibro(libro.id, 'publicado')
-        }
-      >
-        <CheckCircle2 size={16} />
-        {libro.estado === 'pendiente'
-          ? 'Aprobar'
-          : 'Publicar'}
-      </button>
-    )}
+                {activeTab === 'administracion' && esAdministrador && (
+                  <div className="libros-admin-actions">
+                    {libro.estado !== 'publicado' && (
+                      <button
+                        type="button"
+                        className="libros-admin-button libros-admin-button--approve"
+                        disabled={actualizandoId !== null}
+                        onClick={() =>
+                          cambiarEstadoLibro(libro.id, 'publicado')
+                        }
+                      >
+                        <CheckCircle2 size={16} />
+                        {libro.estado === 'pendiente' ? 'Aprobar' : 'Publicar'}
+                      </button>
+                    )}
 
-    {libro.estado === 'publicado' && (
-      <button
-        type="button"
-        className="libros-admin-button"
-        disabled={actualizandoId !== null}
-        onClick={() =>
-          cambiarEstadoLibro(libro.id, 'oculto')
-        }
-      >
-        <EyeOff size={16} />
-        Ocultar
-      </button>
-    )}
+                    {libro.estado === 'publicado' && (
+                      <button
+                        type="button"
+                        className="libros-admin-button"
+                        disabled={actualizandoId !== null}
+                        onClick={() => cambiarEstadoLibro(libro.id, 'oculto')}
+                      >
+                        <EyeOff size={16} />
+                        Ocultar
+                      </button>
+                    )}
 
-    {libro.estado === 'oculto' && (
-      <button
-        type="button"
-        className="libros-admin-button"
-        disabled={actualizandoId !== null}
-        onClick={() =>
-          cambiarEstadoLibro(libro.id, 'pendiente')
-        }
-      >
-        <Eye size={16} />
-        Volver a pendiente
-      </button>
-    )}
-  </div>
-)}
-
+                    {libro.estado === 'oculto' && (
+                      <button
+                        type="button"
+                        className="libros-admin-button"
+                        disabled={actualizandoId !== null}
+                        onClick={() =>
+                          cambiarEstadoLibro(libro.id, 'pendiente')
+                        }
+                      >
+                        <Eye size={16} />
+                        Volver a pendiente
+                      </button>
+                    )}
+                  </div>
+                )}
               </article>
             ))}
           </div>
         )}
       </div>
-      
-{propuestaParaBorrar && (
-  <div
-    className="libros-modal-overlay"
-    onClick={() => setPropuestaParaBorrar(null)}
-  >
-    <div
-      className="libros-modal"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="libros-modal-titulo"
-      onClick={(event) => event.stopPropagation()}
-    >
-      <h2 id="libros-modal-titulo">
-        ¿Seguro que querés borrar esta propuesta?
-      </h2>
 
-      <div className="libros-modal-actions">
-        <button
-          type="button"
-          className="libros-modal-no"
-          disabled={actualizandoId !== null}
+      {propuestaParaBorrar && (
+        <div
+          className="libros-modal-overlay"
           onClick={() => setPropuestaParaBorrar(null)}
         >
-          No
-        </button>
+          <div
+            className="libros-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="libros-modal-titulo"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="libros-modal-titulo">
+              ¿Seguro que querés borrar esta propuesta?
+            </h2>
 
-        <button
-          type="button"
-          className="libros-modal-si"
-          disabled={actualizandoId !== null}
-          onClick={async () => {
-            await borrarPropuesta(propuestaParaBorrar)
-            setPropuestaParaBorrar(null)
-          }}
-        >
-          {actualizandoId !== null ? 'Borrando...' : 'Sí'}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="libros-modal-actions">
+              <button
+                type="button"
+                className="libros-modal-no"
+                disabled={actualizandoId !== null}
+                onClick={() => setPropuestaParaBorrar(null)}
+              >
+                No
+              </button>
 
+              <button
+                type="button"
+                className="libros-modal-si"
+                disabled={actualizandoId !== null}
+                onClick={async () => {
+                  await borrarPropuesta(propuestaParaBorrar)
+                  setPropuestaParaBorrar(null)
+                }}
+              >
+                {actualizandoId !== null ? 'Borrando...' : 'Sí'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppLayout>
   )
 }
