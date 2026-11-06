@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 
 import LinajesEspecie from './LinajesEspecie'
+import TransformacionesEspecie from './TransformacionesEspecie'
 import RasgosEspecie from './RasgosEspecie'
 import SelectorTipoCriatura from './SelectorTipoCriatura'
 import type {
@@ -10,6 +11,7 @@ import type {
   LinajeEspecie,
   RasgoEspecie,
   TamanoEspecie,
+  TransformacionEspecie,
 } from '../../types/especie'
 import '../../styles/EspecieForm.css'
 
@@ -84,6 +86,10 @@ export default function EspecieForm({
   const [linajes, setLinajes] = useState<LinajeEspecie[]>(
     initialData?.linajes ?? []
   )
+  const [transformaciones, setTransformaciones] =
+    useState<TransformacionEspecie[]>(
+      initialData?.transformaciones ?? []
+    )
   const [camposAdicionales, setCamposAdicionales] = useState<
     CampoAdicionalEspecie[]
   >(initialData?.camposAdicionales ?? [])
@@ -159,7 +165,7 @@ export default function EspecieForm({
         ...campo,
         nombre: campo.nombre.trim(),
       })),
-      transformaciones: initialData?.transformaciones ?? [],
+      transformaciones,
     })
   }
 
@@ -325,6 +331,10 @@ export default function EspecieForm({
       <RasgosEspecie rasgos={rasgos} onChange={setRasgos} />
 
       <LinajesEspecie linajes={linajes} onChange={setLinajes} />
+      <TransformacionesEspecie
+        transformaciones={transformaciones}
+        onChange={setTransformaciones}
+      />
 
       <details className="especie-campos-adicionales">
         <summary>Campos adicionales ({camposAdicionales.length})</summary>
