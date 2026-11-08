@@ -97,9 +97,12 @@ export default function Libros() {
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [mensajeAdmin, setMensajeAdmin] = useState('')
-  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<
-    string | null
-  >(null)
+
+  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
+    id: string
+    origen: 'nueva' | 'anterior'
+  } | null>(null)
+
 
   const librosVisibles = libros.filter((libro) => {
     if (activeTab === 'catalogo') {
@@ -233,43 +236,73 @@ export default function Libros() {
     }
   }
 
-  async function borrarPropuesta(libroId: string) {
-    if (actualizandoId || !userId) return
 
-    setActualizandoId(libroId)
-    setError('')
+async function borrarPropuesta(
+  id: string,
+  origen: 'nueva' | 'anterior'
+): Promise<boolean> {
+  if (actualizandoId || !userId) return false
 
-    try {
-      const { data, error: errorBorrado } = await supabase
+  setActualizandoId(id)
+  setError('')
+
+  try {
+    if (origen === 'nueva') {
+      const { data, error } = await supabase
+        .from('propuestas')
+        .delete()
+        .eq('id', id)
+        .eq('autor_id', userId)
+        .eq('estado', 'borrador')
+        .select('id')
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) {
+        throw new Error('No se encontró un borrador que puedas borrar.')
+      }
+
+      setPropuestasNuevas((actuales) =>
+        actuales.filter((propuesta) => propuesta.id !== id)
+      )
+    } else {
+      const { data, error } = await supabase
         .from('libros')
         .update({ estado: 'eliminado' })
-        .eq('id', libroId)
+        .eq('id', id)
         .eq('creado_por', userId)
         .eq('estado', 'pendiente')
         .select('id')
-        .single()
+        .maybeSingle()
 
-      if (errorBorrado) throw errorBorrado
-
+      if (error) throw error
       if (!data) {
-        throw new Error('No se pudo borrar la propuesta.')
+        throw new Error('No se encontró una propuesta que puedas borrar.')
       }
 
       setLibros((actuales) =>
         actuales.map((libro) =>
-          libro.id === libroId ? { ...libro, estado: 'eliminado' } : libro
+          libro.id === id ? { ...libro, estado: 'eliminado' } : libro
         )
       )
-    } catch (err) {
-      console.error('Error al borrar propuesta:', err)
-
-      setError(
-        err instanceof Error ? err.message : 'No se pudo borrar la propuesta.'
-      )
-    } finally {
-      setActualizandoId(null)
     }
+
+    return true
+  } catch (err) {
+    console.error('Error al borrar propuesta:', err)
+
+    setError(
+      err instanceof Error
+        ? err.message
+        : 'No se pudo borrar la propuesta.'
+    )
+
+    return false
+  } finally {
+    setActualizandoId(null)
   }
+}
+
 
   async function cambiarEstadoLibro(
     libroId: string,
@@ -479,6 +512,22 @@ export default function Libros() {
                         <Pencil size={16} />
                         Editar
                       </Link>
+                      
+                      <button
+                        type="button"
+                        className="libros-admin-button libros-admin-button--delete"
+                        disabled={actualizandoId !== null}
+                        onClick={() =>
+                          setPropuestaParaBorrar({
+                            id: propuesta.id,
+                            origen: 'nueva'
+                          })
+                        }
+                      >
+                        <Trash2 size={16} />
+                        Borrar
+                      </button>
+
                     </div>
                   )}
 
@@ -531,7 +580,9 @@ export default function Libros() {
                         type="button"
                         className="libros-admin-button libros-admin-button--delete"
                         disabled={actualizandoId !== null}
-                        onClick={() => setPropuestaParaBorrar(libro.id)}
+                        onClick={() =>
+                          setPropuestaParaBorrar({ id: libro.id, origen: 'anterior' })
+                        }
                       >
                         <Trash2 size={16} />
                         Borrar
@@ -618,10 +669,18 @@ export default function Libros() {
                 type="button"
                 className="libros-modal-si"
                 disabled={actualizandoId !== null}
-                onClick={async () => {
-                  await borrarPropuesta(propuestaParaBorrar)
-                  setPropuestaParaBorrar(null)
-                }}
+
+              onClick={async () => {
+                if (!propuestaParaBorrar) return
+
+                const borrado = await borrarPropuesta(
+                  propuestaParaBorrar.id,
+                  propuestaParaBorrar.origen
+                )
+
+                if (borrado) setPropuestaParaBorrar(null)
+              }}
+
               >
                 {actualizandoId !== null ? 'Borrando...' : 'Sí'}
               </button>

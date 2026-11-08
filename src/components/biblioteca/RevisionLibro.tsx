@@ -45,19 +45,8 @@ export default function RevisionLibro({
     it: 'Italiano',
   }
 
-  const advertencias: string[] = []
 
-  if (categorias.length === 0) {
-    advertencias.push('No seleccionaste ninguna categoría.')
-  }
-
-  if (
-    categorias.some((categoria) => categoria.id === 'especies') &&
-    cantidadEspecies === 0
-  ) {
-    advertencias.push('La categoría Especies no tiene elementos cargados.')
-  }
-
+const advertencias: string[] = []
 
 if (categorias.length === 0) {
   advertencias.push('No seleccionaste ninguna categoría.')
@@ -67,10 +56,11 @@ if (
   categorias.some((categoria) => categoria.id === 'especies') &&
   cantidadEspecies === 0
 ) {
-  advertencias.push('La categoría Especies no tiene elementos cargados.')
+  advertencias.push(
+    'La categoría Especies no tiene elementos cargados.'
+  )
 }
 
-// NUEVO: Advertencia para conjuros
 if (
   categorias.some((categoria) => categoria.id === 'conjuros') &&
   cantidadConjuros === 0
