@@ -26,6 +26,22 @@ type BooksTab = 'catalogo' | 'propuestas' | 'administracion'
 
 type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado'
 
+type PropuestaNueva = {
+  id: string
+  tipo: 'libro_nuevo' | 'modificacion' | 'traduccion'
+  estado: string
+  titulo: string
+  idioma: string
+  autor_id: string
+  creado_en: string
+  metadatos_libro: {
+    codigo?: string
+    edicion?: string
+    editorial?: string
+    clasificacion?: string
+  }
+}
+
 type VersionLibro = {
   id: string
   idioma: string
@@ -73,6 +89,7 @@ export default function Libros() {
   const [search, setSearch] = useState('')
 
   const [libros, setLibros] = useState<Libro[]>([])
+  const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [esAdministrador, setEsAdministrador] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -166,6 +183,29 @@ export default function Libros() {
       if (errorLibros) throw errorLibros
 
       setLibros((data ?? []) as Libro[])
+      
+      const { data: propuestas, error: errorPropuestas } =
+        await supabase
+          .from('propuestas')
+          .select(`
+            id,
+            tipo,
+            estado,
+            titulo,
+            idioma,
+            autor_id,
+            creado_en,
+            metadatos_libro
+          `)
+          .eq('autor_id', usuario.id)
+          .order('creado_en', { ascending: false })
+
+      if (errorPropuestas) throw errorPropuestas
+
+      setPropuestasNuevas(
+        (propuestas ?? []) as PropuestaNueva[]
+      )
+
     } catch (err) {
       console.error('Error al cargar libros:', err)
       setError(
@@ -365,7 +405,18 @@ export default function Libros() {
               Reintentar
             </button>
           </div>
-        ) : librosFiltrados.length === 0 ? (
+        ) : librosFiltrados.length === 0 &&
+        !(activeTab === 'propuestas' &&
+          propuestasNuevas.some((propuesta) => {
+            if (!textoBusqueda) return true
+
+            return (
+              propuesta.titulo.toLowerCase().includes(textoBusqueda) ||
+              propuesta.metadatos_libro?.codigo
+                ?.toLowerCase()
+                .includes(textoBusqueda)
+            )
+          })) ? (
           <div className="libros-empty">
             {activeTab === 'catalogo' ? (
               <>
@@ -383,6 +434,57 @@ export default function Libros() {
           </div>
         ) : (
           <div className="libros-lista">
+                      
+            {activeTab === 'propuestas' &&
+              propuestasNuevas
+                .filter((propuesta) => {
+                  if (!textoBusqueda) return true
+
+                  return (
+                    propuesta.titulo.toLowerCase().includes(textoBusqueda) ||
+                    propuesta.metadatos_libro?.codigo
+                      ?.toLowerCase()
+                      .includes(textoBusqueda)
+                  )
+                })
+                .map((propuesta) => (
+                  <article
+                    key={`propuesta-${propuesta.id}`}
+                    className="libros-item"
+                  >
+                    <div className="libros-item-icon">
+                      <FileText size={24} />
+                    </div>
+
+                    <div className="libros-item-info">
+                      <h3>{propuesta.titulo}</h3>
+
+                      <p>
+                        {propuesta.metadatos_libro?.editorial ||
+                          'Sin editorial'}
+                      </p>
+
+                      <div className="libros-item-details">
+                        <span>{propuesta.idioma.toUpperCase()}</span>
+                        <span>{propuesta.estado}</span>
+                      </div>
+                    </div>
+                                      
+                  {propuesta.estado === 'borrador' && (
+                    <div className="libros-admin-actions">
+                      <Link
+                        to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
+                        className="libros-admin-button"
+                      >
+                        <Pencil size={16} />
+                        Editar
+                      </Link>
+                    </div>
+                  )}
+
+                  </article>
+                ))}
+
             {librosFiltrados.map((libro) => (
               <article key={libro.id} className="libros-item">
                 <div className="libros-item-icon">

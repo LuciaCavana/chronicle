@@ -36,6 +36,47 @@ export async function guardarLibro(datos: NuevoLibro) {
   return data as string
 }
 
+export async function guardarPropuesta(datos: NuevoLibro) {
+  const { data: usuarioData, error: usuarioError } =
+    await supabase.auth.getUser()
+
+  if (usuarioError) throw usuarioError
+
+  const usuarioId = usuarioData.user?.id
+
+  if (!usuarioId) {
+    throw new Error('Tenés que iniciar sesión.')
+  }
+
+  const { data, error } = await supabase
+    .from('propuestas')
+    .insert({
+      tipo: 'libro_nuevo',
+      estado: 'borrador',
+      autor_id: usuarioId,
+      idioma: datos.idioma,
+      titulo: datos.titulo,
+      descripcion: datos.descripcion,
+      categorias: datos.categorias,
+      contenido: {
+        especies: datos.especies,
+        conjuros: datos.conjuros,
+      },
+      metadatos_libro: {
+        codigo: datos.codigo,
+        edicion: datos.edicion,
+        editorial: datos.editorial,
+        clasificacion: datos.clasificacion,
+      },
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+
+  return data.id as string
+}
+
 export async function obtenerLibros() {
   const { data, error } = await supabase
     .from('libros')
@@ -176,4 +217,99 @@ export async function actualizarLibro(
   if (errorActualizarVersion) throw errorActualizarVersion
 
   return libroId
+}
+
+
+export async function obtenerPropuestaParaEditar(
+  propuestaId: string
+) {
+  const { data: usuarioData, error: usuarioError } =
+    await supabase.auth.getUser()
+
+  if (usuarioError) throw usuarioError
+
+  const usuarioId = usuarioData.user?.id
+
+  if (!usuarioId) {
+    throw new Error('Tenés que iniciar sesión.')
+  }
+
+  const { data, error } = await supabase
+    .from('propuestas')
+    .select(`
+      id,
+      tipo,
+      estado,
+      autor_id,
+      idioma,
+      titulo,
+      descripcion,
+      categorias,
+      contenido,
+      metadatos_libro,
+      row_version
+    `)
+    .eq('id', propuestaId)
+    .eq('autor_id', usuarioId)
+    .eq('estado', 'borrador')
+    .single()
+
+  if (error) throw error
+
+  return data
+}
+
+
+export async function actualizarPropuesta(
+  propuestaId: string,
+  datos: NuevoLibro,
+  versionActual: number
+) {
+  const { data: usuarioData, error: usuarioError } =
+    await supabase.auth.getUser()
+
+  if (usuarioError) throw usuarioError
+
+  const usuarioId = usuarioData.user?.id
+
+  if (!usuarioId) {
+    throw new Error('Tenés que iniciar sesión.')
+  }
+
+  const { data, error } = await supabase
+    .from('propuestas')
+    .update({
+      idioma: datos.idioma,
+      titulo: datos.titulo,
+      descripcion: datos.descripcion,
+      categorias: datos.categorias,
+      contenido: {
+        especies: datos.especies,
+        conjuros: datos.conjuros,
+      },
+      metadatos_libro: {
+        codigo: datos.codigo,
+        edicion: datos.edicion,
+        editorial: datos.editorial,
+        clasificacion: datos.clasificacion,
+      },
+      row_version: versionActual + 1,
+      actualizado_en: new Date().toISOString(),
+    })
+    .eq('id', propuestaId)
+    .eq('autor_id', usuarioId)
+    .eq('estado', 'borrador')
+    .eq('row_version', versionActual)
+    .select('id, row_version')
+    .maybeSingle()
+
+  if (error) throw error
+
+  if (!data) {
+    throw new Error(
+      'No se pudo actualizar el borrador. Es posible que haya cambiado en otra sesión.'
+    )
+  }
+
+  return data
 }
