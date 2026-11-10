@@ -26,6 +26,22 @@ type BooksTab = 'catalogo' | 'propuestas' | 'administracion'
 
 type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado'
 
+type PropuestaNueva = {
+  id: string
+  tipo: 'libro_nuevo' | 'modificacion' | 'traduccion'
+  estado: string
+  titulo: string
+  idioma: string
+  autor_id: string
+  creado_en: string
+  metadatos_libro: {
+    codigo?: string
+    edicion?: string
+    editorial?: string
+    clasificacion?: string
+  }
+}
+
 type VersionLibro = {
   id: string
   idioma: string
@@ -73,6 +89,7 @@ export default function Libros() {
   const [search, setSearch] = useState('')
 
   const [libros, setLibros] = useState<Libro[]>([])
+  const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [esAdministrador, setEsAdministrador] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -80,9 +97,12 @@ export default function Libros() {
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [mensajeAdmin, setMensajeAdmin] = useState('')
-  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<
-    string | null
-  >(null)
+
+  const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
+    id: string
+    origen: 'nueva' | 'anterior'
+  } | null>(null)
+
 
   const librosVisibles = libros.filter((libro) => {
     if (activeTab === 'catalogo') {
@@ -166,6 +186,29 @@ export default function Libros() {
       if (errorLibros) throw errorLibros
 
       setLibros((data ?? []) as Libro[])
+      
+      const { data: propuestas, error: errorPropuestas } =
+        await supabase
+          .from('propuestas')
+          .select(`
+            id,
+            tipo,
+            estado,
+            titulo,
+            idioma,
+            autor_id,
+            creado_en,
+            metadatos_libro
+          `)
+          .eq('autor_id', usuario.id)
+          .order('creado_en', { ascending: false })
+
+      if (errorPropuestas) throw errorPropuestas
+
+      setPropuestasNuevas(
+        (propuestas ?? []) as PropuestaNueva[]
+      )
+
     } catch (err) {
       console.error('Error al cargar libros:', err)
       setError(
@@ -193,43 +236,73 @@ export default function Libros() {
     }
   }
 
-  async function borrarPropuesta(libroId: string) {
-    if (actualizandoId || !userId) return
 
-    setActualizandoId(libroId)
-    setError('')
+async function borrarPropuesta(
+  id: string,
+  origen: 'nueva' | 'anterior'
+): Promise<boolean> {
+  if (actualizandoId || !userId) return false
 
-    try {
-      const { data, error: errorBorrado } = await supabase
+  setActualizandoId(id)
+  setError('')
+
+  try {
+    if (origen === 'nueva') {
+      const { data, error } = await supabase
+        .from('propuestas')
+        .delete()
+        .eq('id', id)
+        .eq('autor_id', userId)
+        .eq('estado', 'borrador')
+        .select('id')
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) {
+        throw new Error('No se encontró un borrador que puedas borrar.')
+      }
+
+      setPropuestasNuevas((actuales) =>
+        actuales.filter((propuesta) => propuesta.id !== id)
+      )
+    } else {
+      const { data, error } = await supabase
         .from('libros')
         .update({ estado: 'eliminado' })
-        .eq('id', libroId)
+        .eq('id', id)
         .eq('creado_por', userId)
         .eq('estado', 'pendiente')
         .select('id')
-        .single()
+        .maybeSingle()
 
-      if (errorBorrado) throw errorBorrado
-
+      if (error) throw error
       if (!data) {
-        throw new Error('No se pudo borrar la propuesta.')
+        throw new Error('No se encontró una propuesta que puedas borrar.')
       }
 
       setLibros((actuales) =>
         actuales.map((libro) =>
-          libro.id === libroId ? { ...libro, estado: 'eliminado' } : libro
+          libro.id === id ? { ...libro, estado: 'eliminado' } : libro
         )
       )
-    } catch (err) {
-      console.error('Error al borrar propuesta:', err)
-
-      setError(
-        err instanceof Error ? err.message : 'No se pudo borrar la propuesta.'
-      )
-    } finally {
-      setActualizandoId(null)
     }
+
+    return true
+  } catch (err) {
+    console.error('Error al borrar propuesta:', err)
+
+    setError(
+      err instanceof Error
+        ? err.message
+        : 'No se pudo borrar la propuesta.'
+    )
+
+    return false
+  } finally {
+    setActualizandoId(null)
   }
+}
+
 
   async function cambiarEstadoLibro(
     libroId: string,
@@ -365,7 +438,18 @@ export default function Libros() {
               Reintentar
             </button>
           </div>
-        ) : librosFiltrados.length === 0 ? (
+        ) : librosFiltrados.length === 0 &&
+        !(activeTab === 'propuestas' &&
+          propuestasNuevas.some((propuesta) => {
+            if (!textoBusqueda) return true
+
+            return (
+              propuesta.titulo.toLowerCase().includes(textoBusqueda) ||
+              propuesta.metadatos_libro?.codigo
+                ?.toLowerCase()
+                .includes(textoBusqueda)
+            )
+          })) ? (
           <div className="libros-empty">
             {activeTab === 'catalogo' ? (
               <>
@@ -383,6 +467,73 @@ export default function Libros() {
           </div>
         ) : (
           <div className="libros-lista">
+                      
+            {activeTab === 'propuestas' &&
+              propuestasNuevas
+                .filter((propuesta) => {
+                  if (!textoBusqueda) return true
+
+                  return (
+                    propuesta.titulo.toLowerCase().includes(textoBusqueda) ||
+                    propuesta.metadatos_libro?.codigo
+                      ?.toLowerCase()
+                      .includes(textoBusqueda)
+                  )
+                })
+                .map((propuesta) => (
+                  <article
+                    key={`propuesta-${propuesta.id}`}
+                    className="libros-item"
+                  >
+                    <div className="libros-item-icon">
+                      <FileText size={24} />
+                    </div>
+
+                    <div className="libros-item-info">
+                      <h3>{propuesta.titulo}</h3>
+
+                      <p>
+                        {propuesta.metadatos_libro?.editorial ||
+                          'Sin editorial'}
+                      </p>
+
+                      <div className="libros-item-details">
+                        <span>{propuesta.idioma.toUpperCase()}</span>
+                        <span>{propuesta.estado}</span>
+                      </div>
+                    </div>
+                                      
+                  {propuesta.estado === 'borrador' && (
+                    <div className="libros-admin-actions">
+                      <Link
+                        to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
+                        className="libros-admin-button"
+                      >
+                        <Pencil size={16} />
+                        Editar
+                      </Link>
+                      
+                      <button
+                        type="button"
+                        className="libros-admin-button libros-admin-button--delete"
+                        disabled={actualizandoId !== null}
+                        onClick={() =>
+                          setPropuestaParaBorrar({
+                            id: propuesta.id,
+                            origen: 'nueva'
+                          })
+                        }
+                      >
+                        <Trash2 size={16} />
+                        Borrar
+                      </button>
+
+                    </div>
+                  )}
+
+                  </article>
+                ))}
+
             {librosFiltrados.map((libro) => (
               <article key={libro.id} className="libros-item">
                 <div className="libros-item-icon">
@@ -429,7 +580,9 @@ export default function Libros() {
                         type="button"
                         className="libros-admin-button libros-admin-button--delete"
                         disabled={actualizandoId !== null}
-                        onClick={() => setPropuestaParaBorrar(libro.id)}
+                        onClick={() =>
+                          setPropuestaParaBorrar({ id: libro.id, origen: 'anterior' })
+                        }
                       >
                         <Trash2 size={16} />
                         Borrar
@@ -516,10 +669,18 @@ export default function Libros() {
                 type="button"
                 className="libros-modal-si"
                 disabled={actualizandoId !== null}
-                onClick={async () => {
-                  await borrarPropuesta(propuestaParaBorrar)
-                  setPropuestaParaBorrar(null)
-                }}
+
+              onClick={async () => {
+                if (!propuestaParaBorrar) return
+
+                const borrado = await borrarPropuesta(
+                  propuestaParaBorrar.id,
+                  propuestaParaBorrar.origen
+                )
+
+                if (borrado) setPropuestaParaBorrar(null)
+              }}
+
               >
                 {actualizandoId !== null ? 'Borrando...' : 'Sí'}
               </button>

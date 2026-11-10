@@ -63,12 +63,23 @@ function AppRoutes() {
       
       <Route
         path="/biblioteca/libros/editar-propuesta/:libroId"
+        
         element={
           <ProtectedRoute>
             <NuevaPropuesta />
           </ProtectedRoute>
         }
       />
+      
+      <Route
+        path="/biblioteca/libros/editar-borrador/:propuestaId"
+        element={
+          <ProtectedRoute>
+            <NuevaPropuesta />
+          </ProtectedRoute>
+        }
+      />
+
 
       <Route
         path="/home"

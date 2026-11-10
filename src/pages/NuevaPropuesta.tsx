@@ -8,11 +8,15 @@ import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import RevisionLibro from '../components/biblioteca/RevisionLibro'
+
 import {
   actualizarLibro,
-  guardarLibro,
+  guardarPropuesta,
   obtenerLibroParaEditar,
+  obtenerPropuestaParaEditar,
+  actualizarPropuesta,
 } from '../services/libros'
+
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
 
@@ -50,8 +54,16 @@ const clasificaciones = [
 
 export default function NuevaPropuesta() {
   const navigate = useNavigate()
-  const { libroId } = useParams<{ libroId: string }>()
-  const modoEdicion = Boolean(libroId)
+
+  const { libroId, propuestaId } = useParams<{
+    libroId: string
+    propuestaId: string
+  }>()
+
+  const modoEdicionAnterior = Boolean(libroId)
+  const modoEdicionBorrador = Boolean(propuestaId)
+  const modoEdicion = modoEdicionAnterior || modoEdicionBorrador
+
 
   // Tipo de propuesta
   const [tipoPropuesta, setTipoPropuesta] = useState<TipoPropuesta>('nuevo')
@@ -80,15 +92,15 @@ export default function NuevaPropuesta() {
   const [cargandoLibro, setCargandoLibro] = useState(modoEdicion)
   const [errorCarga, setErrorCarga] = useState('')
   const [versionId, setVersionId] = useState<string | null>(null)
+  const [rowVersion, setRowVersion] = useState<number | null>(null)
 
   // Guardado
   const [guardando, setGuardando] = useState(false)
   const [errorGuardado, setErrorGuardado] = useState('')
 
   useEffect(() => {
-    if (!libroId) return
+    if (!libroId && !propuestaId) return
 
-    const id = libroId
     let cancelado = false
 
     async function cargarLibro() {
@@ -96,8 +108,46 @@ export default function NuevaPropuesta() {
       setVersionId(null)
       setErrorCarga('')
 
-      try {
-        const libro = await obtenerLibroParaEditar(id)
+
+  try {
+    if (propuestaId) {
+      const propuesta = await obtenerPropuestaParaEditar(propuestaId)
+
+      if (cancelado) return
+
+      const metadatos = propuesta.metadatos_libro as {
+        codigo?: string
+        edicion?: string
+        editorial?: string
+        clasificacion?: string
+      }
+
+      const contenido = propuesta.contenido as {
+        especies?: Especie[]
+        conjuros?: Conjuro[]
+      }
+
+      setTitle(propuesta.titulo ?? '')
+      setBookCode(metadatos.codigo ?? '')
+      setEdition(metadatos.edicion ?? '')
+      setPublisher(metadatos.editorial ?? '')
+      setBookType(metadatos.clasificacion ?? '')
+      setDescription(propuesta.descripcion ?? '')
+      setIdioma(propuesta.idioma ?? 'es')
+      setSelectedCategories(propuesta.categorias ?? [])
+      setEspecies(contenido.especies ?? [])
+      setConjuros(contenido.conjuros ?? [])
+      setRowVersion(propuesta.row_version)
+      setTipoPropuesta('nuevo')
+      setCurrentStep(1)
+
+      return
+    }
+
+    if (!libroId) return
+
+    const libro = await obtenerLibroParaEditar(libroId)
+
 
         if (cancelado) return
 
@@ -142,8 +192,7 @@ export default function NuevaPropuesta() {
     return () => {
       cancelado = true
     }
-  }, [libroId])
-
+  }, [libroId, propuestaId])
   const activeCategories = categories.filter((category) =>
     selectedCategories.includes(category.id)
   )
@@ -199,10 +248,24 @@ export default function NuevaPropuesta() {
       return
     }
 
-    if (modoEdicion && (!libroId || !versionId)) {
-      setErrorGuardado('No se pudo identificar la propuesta que querés editar.')
+
+    if (modoEdicionAnterior && (!libroId || !versionId)) {
+      setErrorGuardado(
+        'No se pudo identificar la propuesta que querés editar.'
+      )
       return
     }
+
+    if (
+      modoEdicionBorrador &&
+      (!propuestaId || rowVersion === null)
+    ) {
+      setErrorGuardado(
+        'No se pudo identificar el borrador que querés editar.'
+      )
+      return
+    }
+
 
     setGuardando(true)
     setErrorGuardado('')
@@ -221,11 +284,14 @@ export default function NuevaPropuesta() {
         conjuros,
       }
 
-      if (modoEdicion && libroId && versionId) {
+      if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
+        await actualizarPropuesta(propuestaId, datos, rowVersion)
+      } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
       } else {
-        await guardarLibro(datos)
+        await guardarPropuesta(datos)
       }
+
 
       navigate('/biblioteca/libros?tab=propuestas')
     } catch (error) {
@@ -560,10 +626,12 @@ export default function NuevaPropuesta() {
             <button
               type="button"
               className="nueva-propuesta-next"
+ 
               disabled={
                 guardando ||
                 cargandoLibro ||
-                (modoEdicion && !versionId) ||
+                (modoEdicionAnterior && !versionId) ||
+                (modoEdicionBorrador && rowVersion === null) ||
                 tipoPropuesta !== 'nuevo'
               }
               onClick={handleGuardarLibro}
