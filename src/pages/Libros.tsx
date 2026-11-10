@@ -382,14 +382,6 @@ async function borrarPropuesta(
             </div>
 
             <Link
-              to="/biblioteca/libros/editor"
-              className="libros-new-button"
-            >
-              <BookOpen size={18} />
-              Editor de libros
-            </Link>
-
-            <Link
               to="/biblioteca/libros/nueva-propuesta"
               className="libros-new-button"
             >
