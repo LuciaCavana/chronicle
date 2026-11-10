@@ -42,3 +42,43 @@
 .clase-form__resultado span { display: grid; gap: 4px; }
 .clase-form__resultado small { color: #a4a3b2; }
 .clase-form__inline label { max-width: 110px; }
+
+/* Casillas uniformes, sin alterar los campos de texto */
+.clase-form__checks label,
+.clase-form label.clase-form__resultado {
+  min-height: 42px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  background: #171923;
+  border: 1px solid #343342;
+  border-radius: 8px;
+  transition: border-color .15s ease, background .15s ease;
+}
+.clase-form__checks label:hover,
+.clase-form label.clase-form__resultado:hover { border-color: #786849; }
+.clase-form__checks label:has(input:checked),
+.clase-form label.clase-form__resultado:has(input:checked) {
+  background: #302b27;
+  border-color: #d8b77b;
+}
+.clase-form__checks input[type='checkbox'],
+.clase-form__resultado input[type='checkbox'] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 0;
+  border: 1px solid #787384;
+  border-radius: 4px;
+  background: #171923;
+  cursor: pointer;
+}
+.clase-form__checks input[type='checkbox']:checked,
+.clase-form__resultado input[type='checkbox']:checked {
+  background: #d8b77b;
+  border-color: #d8b77b;
+  box-shadow: inset 0 0 0 4px #171923;
+}
+.clase-form__checks label:focus-within,
+.clase-form__resultado:focus-within { outline: 2px solid #d8b77b; outline-offset: 2px; }
+.clase-form__fieldset:disabled .clase-form__checks label { opacity: .6; cursor: not-allowed; }
