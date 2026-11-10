@@ -28,6 +28,10 @@ type ContenidoLibroProps = {
   onEditSpecies: (id: string) => void
   onDeleteSpecies: (id: string) => void
   conjuros: Conjuro[]
+  clases?: { id: string; nombre: string }[]
+  onAddClass?: () => void
+  onEditClass?: (id: string) => void
+  onDeleteClass?: (id: string) => void
 }
 
 export default function ContenidoLibro({
@@ -42,6 +46,10 @@ export default function ContenidoLibro({
   onEditSpecies,
   onDeleteSpecies,
   conjuros,
+  clases = [],
+  onAddClass,
+  onEditClass,
+  onDeleteClass,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
@@ -149,6 +157,20 @@ export default function ContenidoLibro({
                     ))}
                       </div>
                     )}
+                    {category.id === 'clases' && clases.length > 0 && (
+                      <div className="contenido-libro-species-list">
+                        {clases.map(clase => (
+                          <div className="contenido-libro-species-item" key={clase.id}>
+                            <button type="button" className="contenido-libro-species-tag" onClick={() => onEditClass?.(clase.id)}>
+                              {clase.nombre || 'Clase sin nombre'} <Pencil size={13} />
+                            </button>
+                            <button type="button" className="contenido-libro-species-delete" onClick={() => {
+                              if (window.confirm(`¿Eliminar la clase "${clase.nombre}"?`)) onDeleteClass?.(clase.id)
+                            }} aria-label={`Eliminar ${clase.nombre}`}><Trash2 size={15} /></button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     {category.id === 'conjuros' && conjuros.length > 0 && (
                     <div className="contenido-libro-species-list">
                       {conjuros.map(conjuro => (
@@ -172,15 +194,17 @@ export default function ContenidoLibro({
                 <button
                   type="button"
                   className="contenido-libro-add"
-                  disabled={category.id !== 'especies'}
+                  disabled={category.id !== 'especies' && category.id !== 'clases'}
                   title={
                     category.id === 'especies'
                       ? 'Agregar especie'
-                      : 'Próximamente'
+                      : category.id === 'clases' ? 'Agregar clase' : 'Próximamente'
                   }
                   onClick={() => {
                     if (category.id === 'especies') {
                       onAddSpecies()
+                    } else if (category.id === 'clases') {
+                      onAddClass?.()
                     }
                   }}
                 >

@@ -7,6 +7,8 @@ import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
+import ClaseForm from '../components/biblioteca/ClaseForm'
+import type { Elemento } from '../services/chronicleLibros'
 import RevisionLibro from '../components/biblioteca/RevisionLibro'
 
 import {
@@ -82,6 +84,8 @@ export default function NuevaPropuesta() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [especies, setEspecies] = useState<Especie[]>([])
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
+  const [clases, setClases] = useState<Elemento[]>([])
+  const [editingClassId, setEditingClassId] = useState<string | null>(null)
   const [showEspecieForm, setShowEspecieForm] = useState(false)
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
 
@@ -125,6 +129,7 @@ export default function NuevaPropuesta() {
       const contenido = propuesta.contenido as {
         especies?: Especie[]
         conjuros?: Conjuro[]
+        clases?: Elemento[]
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -137,6 +142,7 @@ export default function NuevaPropuesta() {
       setSelectedCategories(propuesta.categorias ?? [])
       setEspecies(contenido.especies ?? [])
       setConjuros(contenido.conjuros ?? [])
+      setClases(contenido.clases ?? [])
       setRowVersion(propuesta.row_version)
       setTipoPropuesta('nuevo')
       setCurrentStep(1)
@@ -170,6 +176,7 @@ export default function NuevaPropuesta() {
         setSelectedCategories(version.categorias ?? [])
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
+        setClases([])
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -243,6 +250,18 @@ export default function NuevaPropuesta() {
       return
     }
 
+    if (clases.some(clase => !clase.nombre.trim())) {
+      setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
+      setCurrentStep(2)
+      return
+    }
+
+    if (modoEdicionAnterior && clases.length > 0) {
+      setErrorGuardado('La edición de libros del sistema anterior todavía no admite guardar clases. Usá un borrador de propuesta.')
+      setCurrentStep(2)
+      return
+    }
+
     if (!title.trim() || !bookType || !idioma) {
       setErrorGuardado('Completá los campos obligatorios.')
       return
@@ -282,6 +301,7 @@ export default function NuevaPropuesta() {
         categorias: selectedCategories,
         especies,
         conjuros,
+        clases,
       }
 
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
@@ -517,7 +537,15 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {showEspecieForm ? (
+            {editingClassId !== null ? (
+              <section className="nueva-propuesta-panel">
+                <h3>Editar clase</h3>
+                <div className="nueva-propuesta-field"><label>Nombre de la clase *</label><input value={clases.find(c => c.id === editingClassId)?.nombre ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, nombre: e.target.value } : c))} /></div>
+                <div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={clases.find(c => c.id === editingClassId)?.descripcion ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, descripcion: e.target.value } : c))} /></div>
+                <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
+                <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
+              </section>
+            ) : showEspecieForm ? (
               <EspecieForm
                 bookTitle={title}
                 bookCode={bookCode}
@@ -541,7 +569,16 @@ export default function NuevaPropuesta() {
                   id: especie.id,
                   nombre: especie.nombre,
                 }))}
+                clases={clases.map(c => ({ id: c.id, nombre: c.nombre }))}
+                onAddClass={() => {
+                  const id = crypto.randomUUID()
+                  setClases(actuales => [...actuales, { id, tipo: 'clase', nombre: '', descripcion: '', datos: {} }])
+                  setEditingClassId(id)
+                }}
+                onEditClass={setEditingClassId}
+                onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
                 categoryItemCounts={{
+                  clases: clases.length,
                   especies: especies.length,
                   conjuros: conjuros.length,
                 }}
@@ -565,6 +602,7 @@ export default function NuevaPropuesta() {
             categorias={activeCategories}
             cantidadEspecies={especies.length}
             cantidadConjuros={conjuros.length}
+            cantidadClases={clases.length}
           />
         )}
 
@@ -608,7 +646,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && (
+          {currentStep === 2 && !showEspecieForm && editingClassId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"

@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase'
 import type { Especie } from '../types/especie'
 import type { Conjuro } from '../types/conjuro'
+import type { Elemento } from './chronicleLibros'
 
 const ESTADO_PENDIENTE = 'pendiente'
 
@@ -15,6 +16,7 @@ export type NuevoLibro = {
   categorias: string[]
   especies: Especie[]
   conjuros: Conjuro[]
+  clases: Elemento[]
 }
 
 export async function guardarLibro(datos: NuevoLibro) {
@@ -61,6 +63,7 @@ export async function guardarPropuesta(datos: NuevoLibro) {
       contenido: {
         especies: datos.especies,
         conjuros: datos.conjuros,
+        clases: datos.clases,
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -286,6 +289,7 @@ export async function actualizarPropuesta(
       contenido: {
         especies: datos.especies,
         conjuros: datos.conjuros,
+        clases: datos.clases,
       },
       metadatos_libro: {
         codigo: datos.codigo,
