@@ -250,6 +250,18 @@ export default function NuevaPropuesta() {
       return
     }
 
+    if (clases.some(clase => !clase.nombre.trim())) {
+      setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
+      setCurrentStep(2)
+      return
+    }
+
+    if (modoEdicionAnterior && clases.length > 0) {
+      setErrorGuardado('La edición de libros del sistema anterior todavía no admite guardar clases. Usá un borrador de propuesta.')
+      setCurrentStep(2)
+      return
+    }
+
     if (!title.trim() || !bookType || !idioma) {
       setErrorGuardado('Completá los campos obligatorios.')
       return
@@ -590,6 +602,7 @@ export default function NuevaPropuesta() {
             categorias={activeCategories}
             cantidadEspecies={especies.length}
             cantidadConjuros={conjuros.length}
+            cantidadClases={clases.length}
           />
         )}
 
