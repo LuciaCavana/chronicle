@@ -623,7 +623,13 @@ export default function NuevaPropuesta() {
               className="nueva-propuesta-cancel"
               onClick={() => {
                 setErrorGuardado('')
-                setCurrentStep((paso) => Math.max(1, paso - 1))
+                if (currentStep === 2 && editingClassId !== null) {
+                  setEditingClassId(null)
+                } else if (currentStep === 2 && showEspecieForm) {
+                  cerrarFormularioEspecie()
+                } else {
+                  setCurrentStep((paso) => Math.max(1, paso - 1))
+                }
               }}
             >
               Anterior
@@ -651,6 +657,10 @@ export default function NuevaPropuesta() {
               type="button"
               className="nueva-propuesta-next"
               onClick={() => {
+                if (clases.some(clase => !clase.nombre.trim())) {
+                  setErrorGuardado('Todas las clases deben tener un nombre. Editá o eliminá las clases incompletas.')
+                  return
+                }
                 setErrorGuardado('')
                 setCurrentStep(3)
               }}
