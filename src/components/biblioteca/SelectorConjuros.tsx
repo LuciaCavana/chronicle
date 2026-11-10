@@ -36,7 +36,7 @@ const [componenteMaterial, setComponenteMaterial] = useState('')
 const [duracion, setDuracion] = useState('')
 const [concentracion, setConcentracion] = useState(false)
 const [ritual, setRitual] = useState(false)
-const [clases, setClases] = useState<string[]>([])
+const [clases] = useState<string[]>([])
 
 
   const [error, setError] = useState('')

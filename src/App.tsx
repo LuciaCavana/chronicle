@@ -10,6 +10,7 @@ import ResetPassword from './pages/auth/ResetPassword'
 import Biblioteca from './pages/Biblioteca'
 import Libros from './pages/Libros'
 import NuevaPropuesta from './pages/NuevaPropuesta'
+import MotorLibros from './pages/MotorLibros'
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -51,6 +52,10 @@ function AppRoutes() {
             <Libros />
           </ProtectedRoute>
         }
+      />
+      <Route
+        path="/biblioteca/libros/editor"
+        element={<ProtectedRoute><MotorLibros /></ProtectedRoute>}
       />
       <Route
         path="/biblioteca/libros/nueva-propuesta"

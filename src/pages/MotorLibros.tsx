@@ -5,6 +5,8 @@ import {
   enviarLibroMotor, guardarLibroMotor, listarLibrosMotor, resolverLibroMotor, soyAdminMotor,
   type LibroMotor, type Elemento, type Capitulo, type LibroEntrada,
 } from '../services/chronicleLibros'
+import '../styles/MotorLibros.css'
+import ClaseForm from '../components/biblioteca/ClaseForm'
 
 const tipos: Elemento['tipo'][] = ['clase','subclase','especie','trasfondo','dote','objeto','conjuro','regla','transformacion','otro']
 const nuevo: LibroEntrada = { titulo:'', idioma:'es', metadatos:{}, contenido:{capitulos:[],elementos:[]} }
@@ -50,7 +52,7 @@ export default function MotorLibros() {
   }
   const editable = !seleccionado || (seleccionado.autor_id===usuario && ['borrador','rechazado'].includes(seleccionado.estado))
   return <AppLayout title="Motor de libros" subtitle="Borradores, capítulos, contenido y aprobación administrativa">
-    <main style={{maxWidth:1000,margin:'0 auto',padding:20,display:'grid',gap:18}}>
+    <main className="motor-libros">
       {error && <p role="alert" style={{color:'#ff8f8f'}}>{error}</p>}
       {mensaje && <p role="status">{mensaje}</p>}
       <section><h2>Biblioteca y propuestas</h2>
@@ -75,10 +77,17 @@ export default function MotorLibros() {
           <label>Tipo <select value={e.tipo} onChange={ev=>cambiarElemento(i,{...e,tipo:ev.target.value as Elemento['tipo']})}>{tipos.map(t=><option key={t}>{t}</option>)}</select></label>
           <label>Nombre <input value={e.nombre} onChange={ev=>cambiarElemento(i,{...e,nombre:ev.target.value})}/></label>
           <label>Descripción <textarea value={e.descripcion} onChange={ev=>cambiarElemento(i,{...e,descripcion:ev.target.value})}/></label>
+          {e.tipo === 'clase' && (
+            <ClaseForm
+              elemento={e}
+              onChange={valor => cambiarElemento(i, valor)}
+              disabled={!editable || ocupado}
+            />
+          )}
           <button type="button" onClick={()=>setForm(f=>({...f,contenido:{...f.contenido,elementos:f.contenido.elementos.filter(x=>x.id!==e.id)}}))}>Quitar elemento</button>
         </fieldset>)}
         {editable && <button type="button" disabled={ocupado} onClick={()=>setForm(f=>({...f,contenido:{...f.contenido,elementos:[...f.contenido.elementos,{id:uid(),tipo:'otro',nombre:'',descripcion:'',datos:{}}]}}))}>Agregar elemento</button>}
-        {editable && <button type="button" disabled={ocupado} onClick={()=>void ejecutar(async()=>{const r=await guardarLibroMotor(form,id,revision);setId(r.id);setRevision(r.revision);setSeleccionado(null)})}>Guardar borrador</button>}
+        {editable && <button type="button" disabled={ocupado} onClick={()=>void ejecutar(async()=>{const r=await guardarLibroMotor(form,id,revision);setId(r.id);setRevision(r.revision);const actualizados=await listarLibrosMotor();setSeleccionado(actualizados.find(x=>x.id===r.id) ?? null)})}>Guardar borrador</button>}
         {id && revision!==null && seleccionado && seleccionado.autor_id===usuario && ['borrador','rechazado'].includes(seleccionado.estado) &&
           <button type="button" disabled={ocupado} onClick={()=>void ejecutar(async()=>{await enviarLibroMotor(id,revision);setSeleccionado(null)})}>Enviar a aprobación</button>}
         {admin && seleccionado?.estado==='pendiente' && <div>

@@ -1,0 +1,44 @@
+.clase-form { margin-top: 14px; color: #e8dfcf; }
+.clase-form__fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 18px; }
+.clase-form__panel { padding: 20px; border: 1px solid #343342; border-radius: 12px; background: #222431; display: grid; gap: 14px; }
+.clase-form__panel h4 { margin: 0; font-size: 16px; color: #e8dfcf; }
+.clase-form__grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+.clase-form label { display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: #d5cfca; min-width: 0; }
+.clase-form input:not([type='checkbox']), .clase-form textarea, .clase-form select { width: 100%; min-width: 0; box-sizing: border-box; padding: 11px 12px; background: #171923; color: #e8dfcf; border: 1px solid #454354; border-radius: 8px; font: inherit; }
+.clase-form input:focus, .clase-form textarea:focus, .clase-form select:focus { outline: 1px solid #d8b77b; border-color: #d8b77b; }
+.clase-form textarea { resize: vertical; }
+.clase-form__hint { margin: 0; font-size: 13px; color: #a4a3b2; line-height: 1.5; }
+.clase-form__checks { display: flex; flex-wrap: wrap; gap: 12px 18px; }
+.clase-form__checks label { flex-direction: row; align-items: center; cursor: pointer; }
+.clase-form__checks input { accent-color: #d8b77b; }
+.clase-form__heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.clase-form button { padding: 9px 12px; background: #302d29; color: #d8b77b; border: 1px solid #786849; border-radius: 8px; font: inherit; cursor: pointer; }
+.clase-form button:hover:not(:disabled) { border-color: #d8b77b; background: #40392e; }
+.clase-form button:disabled { cursor: not-allowed; opacity: .55; }
+.clase-form__item { padding: 14px; display: grid; gap: 12px; background: #171923; border: 1px solid #343342; border-radius: 8px; }
+.clase-form button.clase-form__danger { justify-self: start; color: #e5a0a8; border-color: #87505a; background: #34262a; }
+.clase-form__niveles { display: grid; grid-template-columns: repeat(10, minmax(0,1fr)); gap: 6px; }
+.clase-form button.clase-form__nivel { padding: 9px 0; }
+.clase-form button.clase-form__nivel--activo { background: #d8b77b; color: #171923; border-color: #d8b77b; font-weight: 700; }
+.clase-form__nivel-info { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 10px; color: #d8b77b; font-size: 13px; }
+@media (max-width: 720px) { .clase-form__grid { grid-template-columns: 1fr; } .clase-form__niveles { grid-template-columns: repeat(5,minmax(0,1fr)); } .clase-form__panel { padding: 14px; } }
+
+/* Controles dinámicos para competencias y equipo */
+.clase-form__inline { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 10px 0; }
+.clase-form__inline input { flex: 1; min-width: 160px; }
+.clase-form__inline span { flex: 1; overflow-wrap: anywhere; }
+.clase-form__lista { margin: 14px 0 22px; }
+.clase-form__checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0 18px; }
+.clase-form__checks label { display: flex; flex-direction: row; align-items: center; gap: 8px; }
+.clase-form__checks input[type='checkbox'] { width: auto; flex: 0 0 auto; accent-color: #d8b77b; }
+.clase-form__item .clase-form__item { margin: 12px 0; }
+@media (max-width: 600px) { .clase-form__inline { align-items: stretch; } .clase-form__inline input { min-width: 0; width: 100%; } }
+
+.clase-form__overlay { position: fixed; inset: 0; z-index: 2000; display: grid; place-items: center; padding: 20px; background: rgba(0,0,0,.72); }
+.clase-form__modal { width: min(620px,100%); max-height: 88vh; overflow-y: auto; display: grid; gap: 15px; padding: 24px; border: 1px solid #786849; border-radius: 14px; background: #222431; box-shadow: 0 18px 70px #0009; }
+.clase-form__modal input:not([type='checkbox']), .clase-form__modal textarea { width: 100%; min-width: 0; box-sizing: border-box; padding: 11px 12px; background: #171923; color: #e8dfcf; border: 1px solid #454354; border-radius: 8px; font: inherit; }
+.clase-form__resultados { max-height: 280px; overflow: auto; display: grid; gap: 8px; }
+.clase-form label.clase-form__resultado { display: flex; flex-direction: row; align-items: center; padding: 10px; border: 1px solid #343342; border-radius: 8px; cursor: pointer; }
+.clase-form__resultado span { display: grid; gap: 4px; }
+.clase-form__resultado small { color: #a4a3b2; }
+.clase-form__inline label { max-width: 110px; }
