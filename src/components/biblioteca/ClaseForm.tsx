@@ -7,6 +7,7 @@ import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type Co
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
 type Nivel = { nivel: number; bonificadorCompetencia: number; notas: string }
+type ColumnaProgresion = { id: string; nombre: string }
 type DatosClase = {
   dadoGolpe: number
   caracteristicaPrincipal: string
@@ -22,6 +23,8 @@ type DatosClase = {
   objetosCatalogo: ObjetoCatalogo[]
   recursos: Recurso[]
   progresion: Nivel[]
+  columnasProgresion: ColumnaProgresion[]
+  celdasProgresion: Record<string, Record<string, string>>
   rasgos: Rasgo[]
 }
 
@@ -59,6 +62,12 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
     objetosCatalogo: normalizarCatalogo(valor.objetosCatalogo),
     recursos: Array.isArray(valor.recursos) ? valor.recursos as Recurso[] : [],
     progresion: Array.isArray(valor.progresion) && valor.progresion.length === 20 ? valor.progresion as Nivel[] : progresionInicial(),
+    columnasProgresion: Array.isArray(valor.columnasProgresion)
+      ? (valor.columnasProgresion as ColumnaProgresion[]).filter(c => typeof c?.id === 'string' && typeof c?.nombre === 'string')
+      : [{ id: 'competencia', nombre: 'Bonificador de competencia' }, { id: 'rasgos', nombre: 'Rasgos' }, { id: 'recursos', nombre: 'Recursos' }, { id: 'notas', nombre: 'Notas' }],
+    celdasProgresion: valor.celdasProgresion && typeof valor.celdasProgresion === 'object' && !Array.isArray(valor.celdasProgresion)
+      ? valor.celdasProgresion as Record<string, Record<string, string>>
+      : {},
     rasgos: Array.isArray(valor.rasgos) ? valor.rasgos as Rasgo[] : [],
   }
 }
@@ -108,8 +117,16 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
   const [nombreObjeto, setNombreObjeto] = useState('')
   const [descripcionObjeto, setDescripcionObjeto] = useState('')
   const actualizar = (cambios: Partial<DatosClase>) => onChange({ ...elemento, datos: { ...elemento.datos, ...datos, ...cambios } })
-  const actualizarNivel = (notas: string) => actualizar({
-    progresion: datos.progresion.map(n => n.nivel === nivelActivo ? { ...n, notas } : n),
+  const cambiarCelda = (nivelNumero: number, columnaId: string, texto: string) => actualizar({
+    celdasProgresion: {
+      ...datos.celdasProgresion,
+      [nivelNumero]: { ...(datos.celdasProgresion[nivelNumero] ?? {}), [columnaId]: texto },
+    },
+  })
+  const eliminarColumna = (id: string) => actualizar({
+    columnasProgresion: datos.columnasProgresion.filter(c => c.id !== id),
+    celdasProgresion: Object.fromEntries(Object.entries(datos.celdasProgresion).map(([nivelNumero, celdas]) =>
+      [nivelNumero, Object.fromEntries(Object.entries(celdas).filter(([clave]) => clave !== id))])),
   })
   const alternarPrincipal = (nombre: string) => {
     const actuales = datos.caracteristicasPrincipales
@@ -185,7 +202,6 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     setNombreObjeto(''); setDescripcionObjeto(''); setNuevoObjeto(false)
   }
   const rasgosNivel = datos.rasgos.filter(r => r.nivel === nivelActivo)
-  const nivel = datos.progresion.find(n => n.nivel === nivelActivo)
 
   return (
     <div className="clase-form">
@@ -309,14 +325,35 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
         </section>
 
         <section className="clase-form__panel">
-          <h4>Progresión de nivel 1 a 20</h4>
-          <div className="clase-form__niveles" role="group" aria-label="Seleccionar nivel">
+          <div className="clase-form__heading">
+            <h4>Tabla de progresión (niveles 1 a 20)</h4>
+            <button type="button" onClick={() => actualizar({ columnasProgresion: [...datos.columnasProgresion, { id: nuevoId(), nombre: 'Nueva columna' }] })}>+ Agregar columna</button>
+          </div>
+          <p className="clase-form__hint">Podés cambiar los nombres, agregar o quitar columnas y escribir cualquier contenido. La columna Nivel identifica cada fila.</p>
+          <div className="clase-form__tabla-scroll">
+            <table className="clase-form__tabla">
+              <thead><tr>
+                <th scope="col">Nivel</th>
+                {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}>
+                  <div className="clase-form__columna-cabecera">
+                    <input aria-label="Nombre de columna" value={columna.nombre} onChange={e => actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === columna.id ? { ...c, nombre: e.target.value } : c) })} />
+                    <button type="button" className="clase-form__danger" aria-label={`Eliminar columna ${columna.nombre}`} title="Eliminar columna" onClick={() => eliminarColumna(columna.id)}>×</button>
+                  </div>
+                </th>)}
+              </tr></thead>
+              <tbody>{datos.progresion.map(fila => <tr key={fila.nivel}>
+                <th scope="row">{fila.nivel}</th>
+                {datos.columnasProgresion.map(columna => <td key={columna.id}>
+                  <input aria-label={`Nivel ${fila.nivel}, ${columna.nombre}`}
+                    value={datos.celdasProgresion[fila.nivel]?.[columna.id] ?? (columna.id === 'competencia' ? `+${fila.bonificadorCompetencia}` : columna.id === 'notas' ? fila.notas : '')}
+                    onChange={e => cambiarCelda(fila.nivel, columna.id, e.target.value)} />
+                </td>)}
+              </tr>)}</tbody>
+            </table>
+          </div>
+          <div className="clase-form__niveles" role="group" aria-label="Seleccionar nivel para características">
             {datos.progresion.map(n => <button key={n.nivel} type="button" className={n.nivel === nivelActivo ? 'clase-form__nivel clase-form__nivel--activo' : 'clase-form__nivel'} aria-pressed={n.nivel === nivelActivo} onClick={() => setNivelActivo(n.nivel)}>{n.nivel}</button>)}
           </div>
-          <div className="clase-form__nivel-info">
-            <strong>Nivel {nivelActivo}</strong><span>Bonificador de competencia: +{nivel?.bonificadorCompetencia ?? 2}</span>
-          </div>
-          <label>Notas de progresión<textarea rows={3} value={nivel?.notas ?? ''} onChange={e => actualizarNivel(e.target.value)} placeholder="Ej. Mejora de característica, espacios de conjuro, dados adicionales..." /></label>
           <div className="clase-form__heading"><h4>Características del nivel {nivelActivo}</h4><button type="button" onClick={() => actualizar({ rasgos: [...datos.rasgos, { id: nuevoId(), nivel: nivelActivo, nombre: '', descripcion: '' }] })}>+ Característica</button></div>
           {rasgosNivel.length === 0 && <p className="clase-form__hint">No hay características cargadas para este nivel.</p>}
           {rasgosNivel.map(r => <div className="clase-form__item" key={r.id}>
