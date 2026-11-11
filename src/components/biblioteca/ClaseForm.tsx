@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
@@ -66,7 +66,8 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
 type CampoNumeroProps = { value: number; min: number; max?: number; onChange: (valor: number) => void }
 function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
   const [texto, setTexto] = useState(String(value))
-  useEffect(() => { setTexto(String(value)) }, [value])
+  const editando = useRef(false)
+  useEffect(() => { if (!editando.current) setTexto(String(value)) }, [value])
   const ajustar = (valor: number) => Math.max(min, Math.min(max ?? Number.MAX_SAFE_INTEGER, Math.floor(valor)))
   const cambiar = (nuevo: string) => {
     if (!/^\\d*$/.test(nuevo)) return
@@ -76,8 +77,9 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
   return (
     <div className="clase-form__numero">
       <input type="text" inputMode="numeric" pattern="[0-9]*" value={texto}
+        onFocus={() => { editando.current = true }}
         onChange={e => cambiar(e.target.value)}
-        onBlur={() => { const normalizado = texto === '' ? min : ajustar(Number(texto)); onChange(normalizado); setTexto(String(normalizado)) }} />
+        onBlur={() => { editando.current = false; const normalizado = texto === '' ? min : ajustar(Number(texto)); onChange(normalizado); setTexto(String(normalizado)) }} />
       <div className="clase-form__numero-controles">
         <button type="button" aria-label="Aumentar" disabled={value >= (max ?? Number.MAX_SAFE_INTEGER)} onClick={() => { const nuevo = ajustar((texto === '' ? min : Number(texto)) + 1); onChange(nuevo); setTexto(String(nuevo)) }}>+</button>
         <button type="button" aria-label="Disminuir" disabled={value <= min} onClick={() => { const nuevo = ajustar((texto === '' ? min : Number(texto)) - 1); onChange(nuevo); setTexto(String(nuevo)) }}>−</button>
