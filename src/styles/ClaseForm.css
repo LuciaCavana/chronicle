@@ -115,3 +115,16 @@
 .clase-form__select { position: relative; display: block; width: 100%; }
 .clase-form .clase-form__select select { width: 100%; appearance: none !important; -webkit-appearance: none !important; background-image: none !important; padding-right: 46px; }
 .clase-form__select > svg { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #d8b77b; pointer-events: none; }
+
+
+/* Tabla de progresión flexible */
+.clase-form__tabla-scroll { width: 100%; overflow-x: auto; margin: 12px 0 20px; }
+.clase-form__tabla { border-collapse: collapse; width: 100%; min-width: 620px; }
+.clase-form__tabla th, .clase-form__tabla td { border: 1px solid #454354; padding: 7px; vertical-align: middle; }
+.clase-form__tabla th { background: #242331; color: #e8dfcf; text-align: left; }
+.clase-form__tabla tbody th { min-width: 58px; text-align: center; }
+.clase-form__tabla td { min-width: 150px; }
+.clase-form__tabla input { box-sizing: border-box; width: 100%; min-width: 110px; background: #171923; border: 1px solid #454354; border-radius: 6px; padding: 9px; color: #e8dfcf; font: inherit; }
+.clase-form__columna-cabecera { display: flex; gap: 5px; align-items: center; min-width: 170px; }
+.clase-form__columna-cabecera input { min-width: 110px; }
+.clase-form__columna-cabecera button { flex: none; padding: 5px 9px; }
