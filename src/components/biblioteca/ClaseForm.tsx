@@ -86,7 +86,7 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
     <div className="clase-form__numero">
       <input type="text" inputMode="numeric" pattern="[0-9]*" value={texto}
         onFocus={() => setEnEdicion(true)}
-        onChange={e => { if (/^\\d*$/.test(e.target.value)) setTexto(e.target.value) }}
+        onChange={e => { if (/^\d*$/.test(e.target.value)) setTexto(e.target.value) }}
         onBlur={confirmar} />
       <div className="clase-form__numero-controles">
         <button type="button" aria-label="Aumentar" onMouseDown={e => e.preventDefault()} onClick={() => paso(1)}>+</button>
