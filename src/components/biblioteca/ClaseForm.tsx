@@ -235,7 +235,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           {datos.equipoOpciones.flatMap(grupo => grupo.opciones.map(opcion => ({ grupo, opcion }))).map(({ grupo, opcion }, indice) => (
             <div className="clase-form__item" key={opcion.id}>
               <div className="clase-form__heading">
-                <strong>Opción {indice + 1}</strong>
+                <strong>Opción {String.fromCharCode(65 + indice)}</strong>
                 <button type="button" className="clase-form__danger" onClick={() => {
                   const opciones = datos.equipoOpciones.flatMap(g => g.opciones).filter(o => o.id !== opcion.id)
                   const elegir = Math.max(1, Math.min(opciones.length, datos.equipoOpciones.reduce((total, g) => total + g.elegir, 0)))
