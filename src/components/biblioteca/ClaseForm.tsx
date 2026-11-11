@@ -45,7 +45,7 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
     caracteristicasPrincipales: Array.isArray(valor.caracteristicasPrincipales)
       ? valor.caracteristicasPrincipales.filter((v): v is string => typeof v === 'string' && caracteristicas.includes(v))
       : typeof valor.caracteristicaPrincipal === 'string'
-        ? caracteristicas.filter(c => valor.caracteristicaPrincipal.toLocaleLowerCase('es').includes(c.toLocaleLowerCase('es')))
+        ? caracteristicas.filter(c => String(valor.caracteristicaPrincipal).toLocaleLowerCase('es').includes(c.toLocaleLowerCase('es')))
         : [],
     salvaciones: Array.isArray(valor.salvaciones) ? valor.salvaciones.filter((v): v is string => typeof v === 'string') : [],
     armaduras: typeof valor.armaduras === 'string' ? valor.armaduras : '',
