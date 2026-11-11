@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
@@ -66,23 +67,30 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
 type CampoNumeroProps = { value: number; min: number; max?: number; onChange: (valor: number) => void }
 function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
   const [texto, setTexto] = useState(String(value))
-  const editando = useRef(false)
-  useEffect(() => { if (!editando.current) setTexto(String(value)) }, [value])
-  const ajustar = (valor: number) => Math.max(min, Math.min(max ?? Number.MAX_SAFE_INTEGER, Math.floor(valor)))
-  const cambiar = (nuevo: string) => {
-    if (!/^\\d*$/.test(nuevo)) return
-    setTexto(nuevo)
-    if (nuevo !== '') onChange(ajustar(Number(nuevo)))
+  const [enEdicion, setEnEdicion] = useState(false)
+  useEffect(() => { if (!enEdicion) setTexto(String(value)) }, [value, enEdicion])
+  const ajustar = (numero: number) => Math.max(min, Math.min(max ?? Number.MAX_SAFE_INTEGER, Math.floor(numero)))
+  const confirmar = () => {
+    const nuevo = texto === '' ? min : ajustar(Number(texto))
+    setEnEdicion(false)
+    setTexto(String(nuevo))
+    if (nuevo !== value) onChange(nuevo)
+  }
+  const paso = (incremento: number) => {
+    const nuevo = ajustar((texto === '' ? value : Number(texto)) + incremento)
+    setEnEdicion(false)
+    setTexto(String(nuevo))
+    if (nuevo !== value) onChange(nuevo)
   }
   return (
     <div className="clase-form__numero">
       <input type="text" inputMode="numeric" pattern="[0-9]*" value={texto}
-        onFocus={() => { editando.current = true }}
-        onChange={e => cambiar(e.target.value)}
-        onBlur={() => { editando.current = false; const normalizado = texto === '' ? min : ajustar(Number(texto)); onChange(normalizado); setTexto(String(normalizado)) }} />
+        onFocus={() => setEnEdicion(true)}
+        onChange={e => { if (/^\\d*$/.test(e.target.value)) setTexto(e.target.value) }}
+        onBlur={confirmar} />
       <div className="clase-form__numero-controles">
-        <button type="button" aria-label="Aumentar" disabled={value >= (max ?? Number.MAX_SAFE_INTEGER)} onClick={() => { const nuevo = ajustar((texto === '' ? min : Number(texto)) + 1); onChange(nuevo); setTexto(String(nuevo)) }}>+</button>
-        <button type="button" aria-label="Disminuir" disabled={value <= min} onClick={() => { const nuevo = ajustar((texto === '' ? min : Number(texto)) - 1); onChange(nuevo); setTexto(String(nuevo)) }}>−</button>
+        <button type="button" aria-label="Aumentar" onMouseDown={e => e.preventDefault()} onClick={() => paso(1)}>+</button>
+        <button type="button" aria-label="Disminuir" onMouseDown={e => e.preventDefault()} onClick={() => paso(-1)}>−</button>
       </div>
     </div>
   )
@@ -186,9 +194,12 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           <h4>Datos generales</h4>
           <div className="clase-form__grid">
             <label>Dado de golpe
-              <select value={datos.dadoGolpe} onChange={e => actualizar({ dadoGolpe: Number(e.target.value) })}>
-                {[4, 6, 8, 10, 12].map(d => <option key={d} value={d}>d{d}</option>)}
-              </select>
+              <span className="clase-form__select">
+                <select value={datos.dadoGolpe} onChange={e => actualizar({ dadoGolpe: Number(e.target.value) })} style={{ appearance: 'none', WebkitAppearance: 'none', backgroundImage: 'none' }}>
+                  {[4, 6, 8, 10, 12].map(d => <option key={d} value={d}>d{d}</option>)}
+                </select>
+                <ChevronDown size={18} aria-hidden="true" />
+              </span>
             </label>
             <div>
               <p className="clase-form__hint">Característica principal (podés elegir varias)</p>
