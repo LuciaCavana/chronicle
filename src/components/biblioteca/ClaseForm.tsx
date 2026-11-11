@@ -220,26 +220,42 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <input aria-label="Nueva habilidad" placeholder="Habilidad Homebrew" value={habilidadNueva} onChange={e => setHabilidadNueva(e.target.value)} />
             <button type="button" onClick={() => agregarPersonalizada('habilidades', habilidadNueva, setHabilidadNueva)}>Agregar</button>
           </div>
-          <h4>Equipo inicial: grupos de elección</h4>
-          <p className="clase-form__hint">Cada opción contiene un paquete de objetos con cantidades y/o una cantidad de oro (po). El jugador elige la cantidad indicada de opciones de cada grupo.</p>
-          {datos.equipoOpciones.map((grupo, gi) => <div className="clase-form__item" key={grupo.id}>
-            <div className="clase-form__heading"><strong>Grupo {gi + 1}</strong><button type="button" className="clase-form__danger" onClick={() => actualizar({ equipoOpciones: datos.equipoOpciones.filter(g => g.id !== grupo.id) })}>Eliminar grupo</button></div>
-            <label>Cuántas opciones puede elegir
-              <input type="number" min={1} max={Math.max(1, grupo.opciones.length)} value={grupo.elegir} onChange={e => actualizarGrupo(grupo.id, { elegir: Math.max(1, Math.min(grupo.opciones.length || 1, Math.floor(Number(e.target.value) || 1))) })} />
+          <h4>Equipo inicial</h4>
+          <p className="clase-form__hint">Agregá opciones de equipamiento con objetos, cantidades y/o monedas de oro. No necesitás crear grupos.</p>
+          {datos.equipoOpciones.length > 0 && (
+            <label>Cuántas opciones puede elegir el personaje
+              <input type="number" min={1} max={Math.max(1, datos.equipoOpciones.reduce((total, grupo) => total + grupo.opciones.length, 0))}
+                value={Math.min(datos.equipoOpciones.reduce((total, grupo) => total + grupo.opciones.length, 0), datos.equipoOpciones.reduce((total, grupo) => total + grupo.elegir, 0))}
+                onChange={e => {
+                  const opciones = datos.equipoOpciones.flatMap(grupo => grupo.opciones)
+                  actualizar({ equipoOpciones: [{ id: datos.equipoOpciones[0].id, elegir: Math.max(1, Math.min(opciones.length, Math.floor(Number(e.target.value) || 1))), opciones }] })
+                }} />
             </label>
-            {grupo.opciones.map((opcion, oi) => <div className="clase-form__item" key={opcion.id}>
-              <div className="clase-form__heading"><strong>Opción {String.fromCharCode(65 + oi)}</strong><button type="button" className="clase-form__danger" onClick={() => actualizarGrupo(grupo.id, { opciones: grupo.opciones.filter(o => o.id !== opcion.id), elegir: Math.min(grupo.elegir, Math.max(1, grupo.opciones.length - 1)) })}>Quitar opción</button></div>
+          )}
+          {datos.equipoOpciones.flatMap(grupo => grupo.opciones.map(opcion => ({ grupo, opcion }))).map(({ grupo, opcion }, indice) => (
+            <div className="clase-form__item" key={opcion.id}>
+              <div className="clase-form__heading">
+                <strong>Opción {indice + 1}</strong>
+                <button type="button" className="clase-form__danger" onClick={() => {
+                  const opciones = datos.equipoOpciones.flatMap(g => g.opciones).filter(o => o.id !== opcion.id)
+                  const elegir = Math.max(1, Math.min(opciones.length, datos.equipoOpciones.reduce((total, g) => total + g.elegir, 0)))
+                  actualizar({ equipoOpciones: opciones.length ? [{ id: datos.equipoOpciones[0].id, elegir, opciones }] : [] })
+                }}>Eliminar opción</button>
+              </div>
               {opcion.objetos.map(item => <div key={item.objetoId} className="clase-form__inline">
                 <span>{datos.objetosCatalogo.find(o => o.id === item.objetoId)?.nombre ?? `Objeto anterior (${item.objetoId})`}</span>
                 <label>Cantidad<input type="number" min={1} value={item.cantidad} onChange={e => actualizarOpcion(grupo.id, opcion.id, { objetos: opcion.objetos.map(o => o.objetoId === item.objetoId ? { ...o, cantidad: Math.max(1, Math.floor(Number(e.target.value) || 1)) } : o) })} /></label>
                 <button type="button" onClick={() => actualizarOpcion(grupo.id, opcion.id, { objetos: opcion.objetos.filter(o => o.objetoId !== item.objetoId) })}>Quitar</button>
               </div>)}
-              <button type="button" onClick={() => { setSelector({ tipo: 'equipo', grupoId: grupo.id, opcionId: opcion.id }); setBusqueda('') }}>Seleccionar objetos del paquete</button>
+              <button type="button" onClick={() => { setSelector({ tipo: 'equipo', grupoId: grupo.id, opcionId: opcion.id }); setBusqueda('') }}>Seleccionar objetos</button>
               <label>Oro (po)<input type="number" min={0} step={1} value={opcion.oro} onChange={e => actualizarOpcion(grupo.id, opcion.id, { oro: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} /></label>
-            </div>)}
-            <button type="button" onClick={() => actualizarGrupo(grupo.id, { opciones: [...grupo.opciones, { id: nuevoId(), objetos: [], oro: 0 }] })}>+ Opción</button>
-          </div>)}
-          <button type="button" onClick={() => actualizar({ equipoOpciones: [...datos.equipoOpciones, { id: nuevoId(), elegir: 1, opciones: [{ id: nuevoId(), objetos: [], oro: 0 }] }] })}>+ Grupo de equipamiento</button>
+            </div>
+          ))}
+          <button type="button" onClick={() => {
+            const opciones = datos.equipoOpciones.flatMap(grupo => grupo.opciones)
+            const nueva = { id: nuevoId(), objetos: [], oro: 0 }
+            actualizar({ equipoOpciones: [{ id: datos.equipoOpciones[0]?.id ?? nuevoId(), elegir: datos.equipoOpciones.length ? Math.max(1, Math.min(opciones.length + 1, datos.equipoOpciones.reduce((total, grupo) => total + grupo.elegir, 0))) : 1, opciones: [...opciones, nueva] }] })
+          }}>+ Agregar opción de equipamiento</button>
         </section>
 
         <section className="clase-form__panel">
