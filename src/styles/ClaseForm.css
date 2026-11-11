@@ -82,3 +82,14 @@
 .clase-form__checks label:focus-within,
 .clase-form__resultado:focus-within { outline: 2px solid #d8b77b; outline-offset: 2px; }
 .clase-form__fieldset:disabled .clase-form__checks label { opacity: .6; cursor: not-allowed; }
+
+
+/* Campos numéricos: escritura libre y controles integrados con el tema Chronicle */
+.clase-form__numero { display: flex; align-items: stretch; width: 100%; min-width: 0; border: 1px solid #454354; border-radius: 8px; overflow: hidden; background: #171923; transition: border-color .15s ease; }
+.clase-form__numero:focus-within { border-color: #d8b77b; outline: 1px solid #d8b77b; }
+.clase-form .clase-form__numero input:not([type='checkbox']) { flex: 1; width: 100%; min-width: 0; border: 0; outline: none; border-radius: 0; background: transparent; }
+.clase-form .clase-form__numero input:focus { outline: none; border: 0; }
+.clase-form__numero-controles { display: flex; flex-direction: column; width: 34px; flex: 0 0 34px; border-left: 1px solid #454354; }
+.clase-form .clase-form__numero-controles button { flex: 1; display: grid; place-items: center; min-height: 20px; padding: 0; border: 0; border-radius: 0; background: #302d29; color: #d8b77b; font-size: 16px; font-weight: 700; line-height: 1; }
+.clase-form .clase-form__numero-controles button + button { border-top: 1px solid #454354; }
+.clase-form .clase-form__numero-controles button:hover:not(:disabled) { background: #4a3d2d; border-color: #454354; }
