@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
-import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo } from '../../lib/catalogosReglas'
+import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
 
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
@@ -9,6 +9,7 @@ type Nivel = { nivel: number; bonificadorCompetencia: number; notas: string }
 type DatosClase = {
   dadoGolpe: number
   caracteristicaPrincipal: string
+  caracteristicasPrincipales: string[]
   salvaciones: string[]
   armaduras: string
   armas: string
@@ -41,6 +42,11 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
   return {
     dadoGolpe: typeof valor.dadoGolpe === 'number' ? valor.dadoGolpe : 8,
     caracteristicaPrincipal: typeof valor.caracteristicaPrincipal === 'string' ? valor.caracteristicaPrincipal : '',
+    caracteristicasPrincipales: Array.isArray(valor.caracteristicasPrincipales)
+      ? valor.caracteristicasPrincipales.filter((v): v is string => typeof v === 'string' && caracteristicas.includes(v))
+      : typeof valor.caracteristicaPrincipal === 'string'
+        ? caracteristicas.filter(c => valor.caracteristicaPrincipal.toLocaleLowerCase('es').includes(c.toLocaleLowerCase('es')))
+        : [],
     salvaciones: Array.isArray(valor.salvaciones) ? valor.salvaciones.filter((v): v is string => typeof v === 'string') : [],
     armaduras: typeof valor.armaduras === 'string' ? valor.armaduras : '',
     armas: typeof valor.armas === 'string' ? valor.armas : '',
@@ -71,6 +77,11 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
   const actualizarNivel = (notas: string) => actualizar({
     progresion: datos.progresion.map(n => n.nivel === nivelActivo ? { ...n, notas } : n),
   })
+  const alternarPrincipal = (nombre: string) => {
+    const actuales = datos.caracteristicasPrincipales
+    const nuevas = actuales.includes(nombre) ? actuales.filter(c => c !== nombre) : [...actuales, nombre]
+    actualizar({ caracteristicasPrincipales: nuevas, caracteristicaPrincipal: nuevas.join(' o ') })
+  }
   const alternarSalvacion = (nombre: string) => actualizar({
     salvaciones: datos.salvaciones.includes(nombre)
       ? datos.salvaciones.filter(v => v !== nombre)
@@ -93,12 +104,16 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     actualizarCompetencias({ habilidadesOpciones: nueva, habilidadesCantidad: Math.min(datos.competencias.habilidadesCantidad, nueva.length) })
   }
   const agregarPersonalizada = (tipo: 'armaduras' | 'armas' | 'habilidades', texto: string, limpiar: (v: string) => void) => {
-    const valor = texto.trim()
-    if (!valor) return
+    const nombre = texto.trim().replace(/\\s+/g, ' ')
+    if (!nombre) return
+    const valor = nombre.charAt(0).toLocaleUpperCase('es') + nombre.slice(1)
     const campo = tipo === 'armaduras' ? 'armadurasPersonalizadas' : tipo === 'armas' ? 'armasPersonalizadas' : 'habilidadesPersonalizadas'
+    const base = tipo === 'armaduras' ? ARMADURAS_BASE : tipo === 'armas' ? ARMAS_BASE : HABILIDADES_BASE
+    const comparar = (v: string) => (tipo === 'armas' ? normalizarCategoriaArma(v) : v).toLocaleLowerCase('es')
+    const canonico = tipo === 'armas' ? normalizarCategoriaArma(valor) : valor
     const existentes = datos.competencias[campo]
-    if (!existentes.includes(valor) && !(tipo === 'armaduras' ? ARMADURAS_BASE : tipo === 'armas' ? ARMAS_BASE : HABILIDADES_BASE).includes(valor)) {
-      actualizarCompetencias({ [campo]: [...existentes, valor] })
+    if (![...base, ...existentes].some(v => comparar(v) === comparar(canonico))) {
+      actualizarCompetencias({ [campo]: [...existentes, canonico] })
     }
     limpiar('')
   }
@@ -149,20 +164,23 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                 {[4, 6, 8, 10, 12].map(d => <option key={d} value={d}>d{d}</option>)}
               </select>
             </label>
-            <label>Característica principal
-              <input value={datos.caracteristicaPrincipal} onChange={e => actualizar({ caracteristicaPrincipal: e.target.value })} placeholder="Ej. Fuerza o Destreza" />
-            </label>
+            <div>
+              <p className="clase-form__hint">Característica principal (podés elegir varias)</p>
+              <div className="clase-form__checks">
+                {caracteristicas.map(c => <label key={c}><input type="checkbox" checked={datos.caracteristicasPrincipales.includes(c)} onChange={() => alternarPrincipal(c)} />{c}</label>)}
+              </div>
+            </div>
           </div>
-          <p className="clase-form__hint">Competencias en tiradas de salvación</p>
+          <p className="clase-form__hint">Competencia en tiradas de salvación</p>
           <div className="clase-form__checks">
             {caracteristicas.map(c => <label key={c}><input type="checkbox" checked={datos.salvaciones.includes(c)} onChange={() => alternarSalvacion(c)} />{c}</label>)}
           </div>
           <div className="clase-form__grid">
-            <label>Herramientas (descripción)
+            <label>Competencia con herramientas
               <textarea rows={2} value={datos.herramientas} onChange={e => actualizar({ herramientas: e.target.value })} />
             </label>
           </div>
-          <h4>Competencias con armaduras</h4>
+          <h4>Competencia con armaduras</h4>
           <div className="clase-form__checks">
             {[...ARMADURAS_BASE, ...datos.competencias.armadurasPersonalizadas].map(a =>
               <label key={a}><input type="checkbox" checked={datos.competencias.armaduras.includes(a)} onChange={() => cambiarCompetenciaLista('armaduras', a)} />{a}</label>
@@ -172,7 +190,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <input aria-label="Nueva categoría de armadura" placeholder="Nueva categoría Homebrew" value={armaduraNueva} onChange={e => setArmaduraNueva(e.target.value)} />
             <button type="button" onClick={() => agregarPersonalizada('armaduras', armaduraNueva, setArmaduraNueva)}>Agregar</button>
           </div>
-          <h4>Competencias con armas</h4>
+          <h4>Competencia con armas</h4>
           <p className="clase-form__hint">Elegí categorías y, si corresponde, armas específicas. El nombre de cada arma específica debe coincidir con el identificador del catálogo de objetos.</p>
           <div className="clase-form__checks">
             {[...ARMAS_BASE, ...datos.competencias.armasPersonalizadas].map(a =>
@@ -202,7 +220,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <input aria-label="Nueva habilidad" placeholder="Habilidad Homebrew" value={habilidadNueva} onChange={e => setHabilidadNueva(e.target.value)} />
             <button type="button" onClick={() => agregarPersonalizada('habilidades', habilidadNueva, setHabilidadNueva)}>Agregar</button>
           </div>
-          <h4>Equipamiento inicial: grupos de elección</h4>
+          <h4>Equipo inicial: grupos de elección</h4>
           <p className="clase-form__hint">Cada opción contiene un paquete de objetos con cantidades y/o una cantidad de oro (po). El jugador elige la cantidad indicada de opciones de cada grupo.</p>
           {datos.equipoOpciones.map((grupo, gi) => <div className="clase-form__item" key={grupo.id}>
             <div className="clase-form__heading"><strong>Grupo {gi + 1}</strong><button type="button" className="clase-form__danger" onClick={() => actualizar({ equipoOpciones: datos.equipoOpciones.filter(g => g.id !== grupo.id) })}>Eliminar grupo</button></div>
