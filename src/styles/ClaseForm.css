@@ -109,3 +109,9 @@
 }
 .clase-form select:hover { border-color: #a68a5b; }
 .clase-form select option { background: #171923; color: #e8dfcf; }
+
+
+/* Flecha dibujada por React, independiente del estilo nativo del navegador */
+.clase-form__select { position: relative; display: block; width: 100%; }
+.clase-form .clase-form__select select { width: 100%; appearance: none !important; -webkit-appearance: none !important; background-image: none !important; padding-right: 46px; }
+.clase-form__select > svg { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: #d8b77b; pointer-events: none; }
