@@ -1,6 +1,6 @@
 /** Catálogos iniciales extensibles. Las entradas Homebrew se guardan en cada libro. */
 export const ARMADURAS_BASE = ['Ligera', 'Media', 'Pesada', 'Escudos']
-export const ARMAS_BASE = ['Simple', 'Marcial']
+export const ARMAS_BASE = ['Sencillas', 'Marciales', 'Improvisadas']
 export const HABILIDADES_BASE = ['Acrobacias', 'Arcanos', 'Atletismo', 'Engaño', 'Historia', 'Interpretación', 'Intimidación', 'Investigación', 'Juego de manos', 'Medicina', 'Naturaleza', 'Percepción', 'Perspicacia', 'Persuasión', 'Religión', 'Sigilo', 'Supervivencia', 'Trato con animales']
 export type CompetenciasClase = {
   armaduras: string[]
@@ -17,6 +17,15 @@ export type ItemEquipo = { objetoId: string; cantidad: number }
 export type OpcionEquipo = { id: string; objetos: ItemEquipo[]; oro: number }
 export type GrupoEquipo = { id: string; elegir: number; opciones: OpcionEquipo[] }
 const strings = (v: unknown): string[] => Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
+const equivalenciasArmas: Record<string, string> = {
+  simple: 'Sencillas', simples: 'Sencillas', sencilla: 'Sencillas', sencillas: 'Sencillas',
+  marcial: 'Marciales', marciales: 'Marciales',
+  improvisada: 'Improvisadas', improvisadas: 'Improvisadas',
+}
+export function normalizarCategoriaArma(valor: string): string {
+  const nombre = valor.trim().replace(/\\s+/g, ' ')
+  return equivalenciasArmas[nombre.toLocaleLowerCase('es')] ?? nombre
+}
 const record = (v: unknown): Record<string, unknown> => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : {}
 export function normalizarCompetencias(datos: Record<string, unknown>): CompetenciasClase {
   const c = record(datos.competencias)
@@ -24,7 +33,7 @@ export function normalizarCompetencias(datos: Record<string, unknown>): Competen
   const cantidad = typeof c.habilidadesCantidad === 'number' && Number.isFinite(c.habilidadesCantidad) ? Math.floor(c.habilidadesCantidad) : 0
   return {
     armaduras: strings(c.armaduras), armadurasPersonalizadas: strings(c.armadurasPersonalizadas),
-    armasCategorias: strings(c.armasCategorias), armasPersonalizadas: strings(c.armasPersonalizadas),
+    armasCategorias: [...new Set(strings(c.armasCategorias).map(normalizarCategoriaArma))], armasPersonalizadas: [...new Set(strings(c.armasPersonalizadas).map(normalizarCategoriaArma))],
     armasEspecificas: strings(c.armasEspecificas), habilidadesCantidad: Math.max(0, Math.min(cantidad, opciones.length)),
     habilidadesOpciones: opciones, habilidadesPersonalizadas: strings(c.habilidadesPersonalizadas),
   }
@@ -72,7 +81,7 @@ export function validarHabilidades(permitidas: string[], cantidad: number, elegi
   return elegidas.length === cantidad && new Set(elegidas).size === elegidas.length && elegidas.every(id => permitidas.includes(id))
 }
 export function tieneCompetenciaArma(competencias: CompetenciasClase, arma: { id: string; categoria: string }): boolean {
-  return competencias.armasCategorias.includes(arma.categoria) || competencias.armasEspecificas.includes(arma.id)
+  return competencias.armasCategorias.includes(normalizarCategoriaArma(arma.categoria)) || competencias.armasEspecificas.includes(arma.id)
 }
 export function tieneCompetenciaArmadura(competencias: CompetenciasClase, categoria: string): boolean {
   return competencias.armaduras.includes(categoria)
