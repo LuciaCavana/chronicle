@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
@@ -60,6 +60,30 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
     progresion: Array.isArray(valor.progresion) && valor.progresion.length === 20 ? valor.progresion as Nivel[] : progresionInicial(),
     rasgos: Array.isArray(valor.rasgos) ? valor.rasgos as Rasgo[] : [],
   }
+}
+
+
+type CampoNumeroProps = { value: number; min: number; max?: number; onChange: (valor: number) => void }
+function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
+  const [texto, setTexto] = useState(String(value))
+  useEffect(() => { setTexto(String(value)) }, [value])
+  const ajustar = (valor: number) => Math.max(min, Math.min(max ?? Number.MAX_SAFE_INTEGER, Math.floor(valor)))
+  const cambiar = (nuevo: string) => {
+    if (!/^\\d*$/.test(nuevo)) return
+    setTexto(nuevo)
+    if (nuevo !== '') onChange(ajustar(Number(nuevo)))
+  }
+  return (
+    <div className="clase-form__numero">
+      <input type="text" inputMode="numeric" pattern="[0-9]*" value={texto}
+        onChange={e => cambiar(e.target.value)}
+        onBlur={() => { const normalizado = texto === '' ? min : ajustar(Number(texto)); onChange(normalizado); setTexto(String(normalizado)) }} />
+      <div className="clase-form__numero-controles">
+        <button type="button" aria-label="Aumentar" disabled={value >= (max ?? Number.MAX_SAFE_INTEGER)} onClick={() => { const nuevo = ajustar((texto === '' ? min : Number(texto)) + 1); onChange(nuevo); setTexto(String(nuevo)) }}>+</button>
+        <button type="button" aria-label="Disminuir" disabled={value <= min} onClick={() => { const nuevo = ajustar((texto === '' ? min : Number(texto)) - 1); onChange(nuevo); setTexto(String(nuevo)) }}>−</button>
+      </div>
+    </div>
+  )
 }
 
 export default function ClaseForm({ elemento, onChange, disabled = false }: Props) {
@@ -209,7 +233,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           </div>
           <h4>Habilidades que puede elegir el personaje</h4>
           <label>Cantidad de elecciones
-            <input type="number" min={0} max={datos.competencias.habilidadesOpciones.length} value={datos.competencias.habilidadesCantidad} onChange={e => actualizarCompetencias({ habilidadesCantidad: Math.max(0, Math.min(datos.competencias.habilidadesOpciones.length, Number(e.target.value) || 0)) })} />
+            <CampoNumero min={0} max={datos.competencias.habilidadesOpciones.length} value={datos.competencias.habilidadesCantidad} onChange={valor => actualizarCompetencias({ habilidadesCantidad: valor })} />
           </label>
           <div className="clase-form__checks">
             {[...HABILIDADES_BASE, ...datos.competencias.habilidadesPersonalizadas].map(h =>
@@ -224,11 +248,11 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           <p className="clase-form__hint">Agregá opciones de equipamiento con objetos, cantidades y/o monedas de oro. No necesitás crear grupos.</p>
           {datos.equipoOpciones.length > 0 && (
             <label>Cuántas opciones puede elegir el personaje
-              <input type="number" min={1} max={Math.max(1, datos.equipoOpciones.reduce((total, grupo) => total + grupo.opciones.length, 0))}
+              <CampoNumero min={1} max={Math.max(1, datos.equipoOpciones.reduce((total, grupo) => total + grupo.opciones.length, 0))}
                 value={Math.min(datos.equipoOpciones.reduce((total, grupo) => total + grupo.opciones.length, 0), datos.equipoOpciones.reduce((total, grupo) => total + grupo.elegir, 0))}
-                onChange={e => {
+                onChange={valor => {
                   const opciones = datos.equipoOpciones.flatMap(grupo => grupo.opciones)
-                  actualizar({ equipoOpciones: [{ id: datos.equipoOpciones[0].id, elegir: Math.max(1, Math.min(opciones.length, Math.floor(Number(e.target.value) || 1))), opciones }] })
+                  actualizar({ equipoOpciones: [{ id: datos.equipoOpciones[0].id, elegir: valor, opciones }] })
                 }} />
             </label>
           )}
@@ -244,11 +268,11 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               </div>
               {opcion.objetos.map(item => <div key={item.objetoId} className="clase-form__inline">
                 <span>{datos.objetosCatalogo.find(o => o.id === item.objetoId)?.nombre ?? `Objeto anterior (${item.objetoId})`}</span>
-                <label>Cantidad<input type="number" min={1} value={item.cantidad} onChange={e => actualizarOpcion(grupo.id, opcion.id, { objetos: opcion.objetos.map(o => o.objetoId === item.objetoId ? { ...o, cantidad: Math.max(1, Math.floor(Number(e.target.value) || 1)) } : o) })} /></label>
+                <label>Cantidad<CampoNumero min={1} value={item.cantidad} onChange={valor => actualizarOpcion(grupo.id, opcion.id, { objetos: opcion.objetos.map(o => o.objetoId === item.objetoId ? { ...o, cantidad: valor } : o) })} /></label>
                 <button type="button" onClick={() => actualizarOpcion(grupo.id, opcion.id, { objetos: opcion.objetos.filter(o => o.objetoId !== item.objetoId) })}>Quitar</button>
               </div>)}
               <button type="button" onClick={() => { setSelector({ tipo: 'equipo', grupoId: grupo.id, opcionId: opcion.id }); setBusqueda('') }}>Seleccionar objetos</button>
-              <label>Oro (po)<input type="number" min={0} step={1} value={opcion.oro} onChange={e => actualizarOpcion(grupo.id, opcion.id, { oro: Math.max(0, Math.floor(Number(e.target.value) || 0)) })} /></label>
+              <label>Oro (po)<CampoNumero min={0} value={opcion.oro} onChange={valor => actualizarOpcion(grupo.id, opcion.id, { oro: valor })} /></label>
             </div>
           ))}
           <button type="button" onClick={() => {
