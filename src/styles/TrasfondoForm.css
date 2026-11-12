@@ -31,3 +31,8 @@
 .trasfondo-aumentos { margin-top:16px; padding:14px; border:1px solid #454354; border-radius:8px; }
 .trasfondo-aumentos .trasfondo-check { display:flex; align-items:center; gap:10px; margin:8px 0; }
 .trasfondo-aumentos .trasfondo-hint { margin:12px 0; }
+
+/* Separación visible entre las casillas y sus textos, incluso con estilos globales de formularios. */
+.trasfondo-form .trasfondo-check { column-gap:16px; }
+.trasfondo-form .trasfondo-check > input[type="checkbox"] { flex:0 0 auto; margin:0 6px 0 0; width:16px; height:16px; }
+.trasfondo-form .trasfondo-aumentos .trasfondo-check { column-gap:16px; padding:12px 14px; line-height:1.5; }
