@@ -14,6 +14,7 @@ type Version = {
   categorias: unknown
   especies: unknown
   conjuros: unknown
+  clases: unknown
 }
 type LibroPublicado = {
   id: string
@@ -35,6 +36,31 @@ function TextoSeguro({ valor }: { valor: unknown }) {
   // El contenido enriquecido se presenta como texto hasta disponer de un renderizador HTML seguro.
   const limpio = contenido.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   return <p className="lector-libro__texto">{limpio}</p>
+}
+function ClasesDesplegables({ seccion }: { seccion: Seccion }) {
+  return <section id={seccion.id} className="lector-libro__seccion">
+    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>{seccion.titulo}</h2></div>
+    <div className="lector-libro__clases">
+      {seccion.elementos.map((clase, indice) => (
+        <details className="lector-libro__clase" key={texto(clase.id) || indice}>
+          <summary className="lector-libro__clase-resumen">
+            <span className="lector-libro__clase-insignia"><BookOpen size={20}/></span>
+            <span className="lector-libro__clase-titulo">{tituloElemento(clase, indice)}</span>
+            <ChevronRight className="lector-libro__clase-flecha" size={20}/>
+          </summary>
+          <div className="lector-libro__clase-contenido">
+            <TextoSeguro valor={clase.descripcion || clase.texto || clase.resumen}/>
+            {lista(clase.rasgos).length > 0 && <div className="lector-libro__rasgos">
+              {lista(clase.rasgos).map((rasgo, j) => <div key={texto(rasgo.id) || j}>
+                <strong>{tituloElemento(rasgo, j)}</strong>
+                <TextoSeguro valor={rasgo.descripcion}/>
+              </div>)}
+            </div>}
+          </div>
+        </details>
+      ))}
+    </div>
+  </section>
 }
 function SeccionContenido({ seccion }: { seccion: Seccion }) {
   return <section id={seccion.id} className="lector-libro__seccion">
@@ -59,7 +85,7 @@ export default function LectorLibro() {
     async function cargar() {
       setCargando(true);setError('')
       const {data,error:fallo}=await supabase.from('libros')
-        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros)')
+        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases)')
         .eq('id',libroId ?? '').eq('estado','publicado').maybeSingle()
       if(!activo)return
       if(fallo)setError('No se pudo cargar el libro publicado.')
@@ -73,6 +99,7 @@ export default function LectorLibro() {
   const version=libro?.libro_versiones.find(v=>v.id===versionId) ?? libro?.libro_versiones[0]
   const secciones:Seccion[] = version ? [
     {id:'especies',titulo:'Especies',elementos:lista(version.especies)},
+    {id:'clases',titulo:'Clases',elementos:lista(version.clases)},
     {id:'conjuros',titulo:'Conjuros',elementos:lista(version.conjuros)}
   ] : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
@@ -108,7 +135,7 @@ export default function LectorLibro() {
               <TextoSeguro valor={version.descripcion || 'Un nuevo mundo de aventuras te espera entre estas páginas.'}/>
               {categorias.length>0 && <div className="lector-libro__categorias">{categorias.map(c=><span key={c}>{c}</span>)}</div>}
             </section>
-            {secciones.filter(s=>s.elementos.length>0).map(s=><SeccionContenido key={s.id} seccion={s}/>)}
+            {secciones.filter(s=>s.elementos.length>0).map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : <SeccionContenido key={s.id} seccion={s}/>)}
             {secciones.every(s=>s.elementos.length===0) && <p className="lector-libro__vacio">Este libro todavía no tiene entradas estructuradas disponibles para leer.</p>}
             <footer className="lector-libro__pie">✦ <span>Chronicle · Fin del contenido disponible</span> ✦</footer>
           </div>
