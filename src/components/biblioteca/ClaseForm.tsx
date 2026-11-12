@@ -402,7 +402,6 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <div className="clase-form__menu-contextual" role="menu"
               style={{ left: Math.max(8, Math.min(menuFila.x, window.innerWidth - 245)), top: Math.max(8, Math.min(menuFila.y, window.innerHeight - 130)) }}
               onClick={e => e.stopPropagation()}>
-              <button type="button" role="menuitem" onClick={() => agregarFila(menuFila.nivel)}>Agregar fila debajo</button>
               <button type="button" role="menuitem" className="clase-form__menu-eliminar" onClick={() => { eliminarFila(menuFila.nivel); setMenuFila(null) }}>Eliminar fila</button>
             </div>
           </div>}
@@ -435,7 +434,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           <div className="clase-form__tabla-scroll">
             <table className="clase-form__tabla">
               <thead><tr>
-                <th scope="col">Nivel</th>
+                <th scope="col"><div className="clase-form__cabecera-nivel"><span>Nivel</span><button type="button" className="clase-form__agregar-fila" onClick={() => agregarFila()} title="Agregar fila" aria-label="Agregar fila">+ Agregar fila</button></div></th>
                 {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}
                   className={columnaArrastrada === columna.id ? 'clase-form__columna--arrastrada' : ''}
                   onDragOver={e => { if (columnaArrastrada) e.preventDefault() }}
@@ -454,16 +453,11 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               <tbody>{datos.progresion.map(fila => <tr key={fila.nivel}
                 className={filaArrastrada === fila.nivel ? 'clase-form__fila--arrastrada' : ''}
                 onDragOver={e => { if (filaArrastrada !== null) e.preventDefault() }}
-                onDrop={e => { if (filaArrastrada !== null) { e.preventDefault(); moverFila(fila.nivel) } }}>
-                <th scope="row" onContextMenu={e => { e.preventDefault(); setMenuFila({ nivel: fila.nivel, x: e.clientX, y: e.clientY }) }}>
-                  <div className="clase-form__nivel-fila">
-                    <button type="button" className="clase-form__arrastrar-fila" draggable aria-label={`Arrastrar fila del nivel ${fila.nivel}`}
-                      title="Arrastrar para reordenar; clic derecho para opciones"
-                      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(fila.nivel)); setFilaArrastrada(fila.nivel) }}
-                      onDragEnd={() => setFilaArrastrada(null)}><GripVertical size={16} /></button>
-                    <span>{fila.nivel}</span>
-                  </div>
-                </th>
+                onDrop={e => { if (filaArrastrada !== null) { e.preventDefault(); moverFila(fila.nivel) } }}
+                onContextMenu={e => { e.preventDefault(); setMenuFila({ nivel: fila.nivel, x: e.clientX, y: e.clientY }) }}>
+                <th scope="row" draggable title="Arrastrar el nivel para reordenar la fila; clic derecho para eliminar"
+                  onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(fila.nivel)); setFilaArrastrada(fila.nivel) }}
+                  onDragEnd={() => setFilaArrastrada(null)}>{fila.nivel}</th>
                 {datos.columnasProgresion.map(columna => <td key={columna.id}
                   onContextMenu={e => {
                     if (columna.tipo !== 'caracteristicas') return
