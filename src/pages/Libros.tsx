@@ -170,7 +170,6 @@ export default function Libros() {
           .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,revision_resultante_id')
           .eq('estado', 'borrador')
           .eq('tipo', 'libro_nuevo')
-          .is('revision_resultante_id', null)
           .order('creado_en', { ascending: false })
         if (errorBorradores) throw errorBorradores
         setBorradoresAdministracion((borradores ?? []) as PropuestaNueva[])
@@ -374,8 +373,7 @@ async function borrarPropuesta(
         p_propuesta_id: propuestaId,
       })
       if (errorAprobacion) throw errorAprobacion
-      setBorradoresAdministracion(actuales => actuales.filter(p => p.id !== propuestaId))
-      setMensajeAdmin('El borrador fue aprobado y publicado correctamente.')
+      setMensajeAdmin('Los cambios del borrador se aprobaron y se sincronizaron con el libro publicado.')
       await cargarLibros()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo aprobar el borrador.')
@@ -514,7 +512,7 @@ async function borrarPropuesta(
                     <h3>{propuesta.titulo || 'Libro sin título'}</h3>
                     <p>{propuesta.metadatos_libro?.editorial || 'Sin editorial'}</p>
                     <div className="libros-item-details">
-                      <span>Borrador</span>
+                      <span>{propuesta.revision_resultante_id ? 'Borrador con copia publicada' : 'Borrador sin publicar'}</span>
                       <span>{propuesta.idioma.toUpperCase()}</span>
                       {propuesta.metadatos_libro?.codigo && <span>{propuesta.metadatos_libro.codigo}</span>}
                     </div>
@@ -523,7 +521,7 @@ async function borrarPropuesta(
                     <button type="button" className="libros-admin-button libros-admin-button--approve"
                       disabled={actualizandoId !== null}
                       onClick={() => void aprobarBorrador(propuesta.id)}>
-                      <CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? 'Publicando...' : 'Aprobar y publicar'}
+                      <CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? 'Guardando...' : propuesta.revision_resultante_id ? 'Aprobar cambios' : 'Aprobar y publicar'}
                     </button>
                   </div>
                 </article>
