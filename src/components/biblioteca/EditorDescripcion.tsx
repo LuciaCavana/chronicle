@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { Baseline, Highlighter, Copy, X } from 'lucide-react'
 import '../../styles/EditorDescripcion.css'
 
-const PREDEFINIDOS = ['#FFFFFF', '#E9C46A', '#EF7777', '#7FC9F2', '#9CDBA2', '#C6A1F5', '#F3A86C', '#202020']
+const PREDEFINIDOS = ['#FFFFFF', '#E9C46A', '#EF7777', '#7FC9F2', '#9CDBA2', '#C6A1F5', '#F3A86C', '#202020', '#E8DFCF']
 type Props = { value: string; onChange: (value: string) => void }
 
 function hsvAHex(h: number, s: number, v: number) {
@@ -48,15 +49,17 @@ export function EditorDescripcion({value,onChange}:Props) {
   const [tipo,setTipo]=useState<'letra'|'fondo'|null>(null)
   const [h,setH]=useState(0),[s,setS]=useState(0.8),[v,setV]=useState(0.8)
   const [hex,setHex]=useState('#CC3333')
+  const [copiado,setCopiado]=useState(false)
   const color=hsvAHex(h,s,v)
   useEffect(()=>{if(editable.current && editable.current.innerHTML!==normalizar(value)) editable.current.innerHTML=limpiarHtml(normalizar(value))},[]) // solo al montar; no interrumpe el cursor
   const emitir=()=>onChange(limpiarHtml(editable.current?.innerHTML || ''))
   const guardarSeleccion=()=>{const sel=window.getSelection();if(sel?.rangeCount && editable.current?.contains(sel.anchorNode)) seleccion.current=sel.getRangeAt(0).cloneRange()}
   const restaurarSeleccion=()=>{editable.current?.focus();if(seleccion.current){const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(seleccion.current)}}
   const ejecutar=(cmd:string,arg?:string)=>{restaurarSeleccion();document.execCommand(cmd,false,arg);guardarSeleccion();emitir()}
-  const aplicarColor=(valor:string)=>{ejecutar(tipo==='fondo'?'hiliteColor':'foreColor',valor)}
-  const cambiarHue=(e:React.PointerEvent<HTMLDivElement>)=>{const rect=e.currentTarget.getBoundingClientRect();setH(Math.min(359.99,Math.max(0,(e.clientX-rect.left)/rect.width*360)))}
-  const cambiarSV=(e:React.PointerEvent<HTMLDivElement>)=>{const rect=e.currentTarget.getBoundingClientRect();setS(Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)));setV(1-Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height)))}
+  const aplicarColor=(valor:string)=>{if(tipo) ejecutar(tipo==='fondo'?'hiliteColor':'foreColor',valor)}
+  const actualizarColor=(hh:number,ss:number,vv:number)=>{setH(hh);setS(ss);setV(vv);const nuevo=hsvAHex(hh,ss,vv);setHex(nuevo);aplicarColor(nuevo)}
+  const cambiarHue=(e:React.PointerEvent<HTMLDivElement>)=>{const rect=e.currentTarget.getBoundingClientRect();actualizarColor(Math.min(359.99,Math.max(0,(e.clientX-rect.left)/rect.width*360)),s,v)}
+  const cambiarSV=(e:React.PointerEvent<HTMLDivElement>)=>{const rect=e.currentTarget.getBoundingClientRect();actualizarColor(h,Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)),1-Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height)))}
   const arrastrar=(e:React.PointerEvent<HTMLDivElement>,fn:(e:React.PointerEvent<HTMLDivElement>)=>void)=>{e.currentTarget.setPointerCapture(e.pointerId);fn(e)}
   return <div className="editor-descripcion">
     <div className="editor-descripcion__barra" onMouseDown={e=>e.preventDefault()}>
@@ -67,11 +70,11 @@ export function EditorDescripcion({value,onChange}:Props) {
       <button type="button" title="Lista numerada" onClick={()=>ejecutar('insertOrderedList')}>1. Lista</button>
       <button type="button" title="Deshacer" onClick={()=>ejecutar('undo')}>↶</button>
       <button type="button" title="Rehacer" onClick={()=>ejecutar('redo')}>↷</button>
-      <button type="button" title="Color de letra" aria-expanded={tipo==='letra'} onClick={()=>{guardarSeleccion();setTipo(tipo==='letra'?null:'letra')}}>A <span style={{color}}>▰</span></button>
-      <button type="button" title="Color de fondo" aria-expanded={tipo==='fondo'} onClick={()=>{guardarSeleccion();setTipo(tipo==='fondo'?null:'fondo')}}>▣ Fondo</button>
+      <button type="button" title="Color de letra" aria-expanded={tipo==='letra'} onClick={()=>{guardarSeleccion();setCopiado(false);setTipo(tipo==='letra'?null:'letra')}}><Baseline size={18} color={color}/></button>
+      <button type="button" title="Color de fondo" aria-expanded={tipo==='fondo'} onClick={()=>{guardarSeleccion();setCopiado(false);setTipo(tipo==='fondo'?null:'fondo')}}><Highlighter size={18} color={color}/></button>
     </div>
-    {tipo && <div className="editor-descripcion__selector" onMouseDown={e=>e.preventDefault()}>
-      <strong>{tipo==='letra'?'Color de letra':'Color de fondo'}</strong>
+    {tipo && <div className="editor-descripcion__selector" role="dialog" aria-label="Selector de color" onMouseDown={e=>{if(!(e.target instanceof HTMLInputElement))e.preventDefault()}}>
+      <div className="editor-descripcion__selector-titulo"><strong>{tipo==='letra'?'Color de letra':'Color de fondo'}</strong><button type="button" title="Cerrar selector" onClick={()=>setTipo(null)}><X size={16}/></button></div>
       <div className="editor-descripcion__cuadro" style={{backgroundColor:`hsl(${h},100%,50%)`}} onPointerDown={e=>arrastrar(e,cambiarSV)} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))cambiarSV(e)}}>
         <div className="editor-descripcion__blanco"/><div className="editor-descripcion__negro"/>
         <div className="editor-descripcion__cursor" style={{left:`${s*100}%`,top:`${(1-v)*100}%`}}/>
@@ -79,9 +82,9 @@ export function EditorDescripcion({value,onChange}:Props) {
       <div className="editor-descripcion__espectro" onPointerDown={e=>arrastrar(e,cambiarHue)} onPointerMove={e=>{if(e.currentTarget.hasPointerCapture(e.pointerId))cambiarHue(e)}}>
         <div className="editor-descripcion__marcador" style={{left:`${h/360*100}%`}}/>
       </div>
-      <div className="editor-descripcion__predefinidos">{PREDEFINIDOS.map(c=><button key={c} type="button" title={c} style={{background:c}} onClick={()=>{const [hh,ss,vv]=hexAHsv(c);setH(hh);setS(ss);setV(vv);setHex(c);aplicarColor(c)}} />)}</div>
-      <div className="editor-descripcion__hex"><span style={{background:color}}/><input aria-label="Color hexadecimal" value={hex} onChange={e=>{const val=e.target.value;setHex(val);if(/^#[0-9a-fA-F]{6}$/.test(val)){const [hh,ss,vv]=hexAHsv(val);setH(hh);setS(ss);setV(vv)}}}/><button type="button" onClick={()=>aplicarColor(color)}>Aplicar color</button><button type="button" onClick={()=>setTipo(null)}>Cerrar</button></div>
-      <button type="button" onClick={()=>ejecutar('removeFormat')}>Quitar formato seleccionado</button>
+      <div className="editor-descripcion__predefinidos">{PREDEFINIDOS.map(c=><button key={c} type="button" title={c} style={{background:c}} onClick={()=>{const [hh,ss,vv]=hexAHsv(c);actualizarColor(hh,ss,vv)}} />)}</div>
+      <div className="editor-descripcion__hex"><span style={{background:color}}/><input aria-label="Color hexadecimal" value={hex} onChange={e=>{const val=e.target.value;setHex(val);if(/^#[0-9a-fA-F]{6}$/.test(val)){const [hh,ss,vv]=hexAHsv(val);actualizarColor(hh,ss,vv)}}}/><button type="button" title="Copiar color hexadecimal" onClick={()=>{void navigator.clipboard.writeText(color).then(()=>setCopiado(true)).catch(()=>setCopiado(false))}}><Copy size={15}/>{copiado?" Copiado":" Copiar color"}</button></div>
+
     </div>}
     <div ref={editable} className="editor-descripcion__contenido" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Descripción de la característica" onInput={emitir} onPaste={e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));emitir()}} onKeyUp={guardarSeleccion} onMouseUp={guardarSeleccion} onBlur={guardarSeleccion}/>
   </div>
