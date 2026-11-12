@@ -84,3 +84,18 @@
 .lector-libro__rasgo-encabezado strong{font-size:16px}
 .lector-libro__rasgo-encabezado span{color:#c1a77d;font-size:12px}
 @media(max-width:600px){.lector-libro__datos-grid{grid-template-columns:1fr}.lector-libro__tabla th,.lector-libro__tabla td{padding:8px}.lector-libro__clase-bloque h4{font-size:20px}}
+
+/* Características interactivas dentro de la progresión */
+.lector-libro__rasgo-enlace{font:inherit;font-size:12px;color:#9bc7ff;background:transparent;border:0;border-bottom:1px solid transparent;cursor:pointer;padding:3px 1px;text-align:left;line-height:1.45}
+.lector-libro__rasgo-enlace:hover{color:#c7e1ff;border-bottom-color:currentColor}
+.lector-libro__rasgo-enlace:focus-visible{outline:2px solid #d8b77b;outline-offset:3px;border-radius:2px}
+.lector-libro__modal-capa{position:fixed;inset:0;z-index:1100;display:flex;align-items:center;justify-content:center;padding:20px;background:#07080bc9}
+.lector-libro__modal-rasgo{position:relative;width:min(100%,720px);max-height:min(80vh,700px);overflow-y:auto;background:#232323;color:#e5e2df;border:1px solid #73634a;border-top:5px solid #a78448;box-shadow:0 18px 70px #000a;padding:26px 30px 24px}
+.lector-libro__modal-cabecera{display:flex;align-items:baseline;justify-content:space-between;gap:15px;flex-wrap:wrap;padding-right:35px}
+.lector-libro__modal-cabecera h3{font-family:Georgia,serif;font-variant:small-caps;font-weight:500;font-size:clamp(24px,4vw,34px);color:#e4a64a;margin:0}
+.lector-libro__modal-cabecera span{color:#c9ad7f;font-size:13px;white-space:nowrap}
+.lector-libro__modal-cuerpo{padding-top:14px;font-size:15px;line-height:1.75}
+.lector-libro__modal-cuerpo .lector-libro__texto{margin:0}
+.lector-libro__modal-cerrar{position:absolute;right:13px;top:12px;display:grid;place-items:center;width:34px;height:34px;background:transparent;border:1px solid #635d54;border-radius:6px;color:#e4d7c2;cursor:pointer}
+.lector-libro__modal-cerrar:hover{background:#393431}
+@media(max-width:600px){.lector-libro__modal-rasgo{padding:22px 18px}.lector-libro__modal-cabecera{display:block}.lector-libro__modal-cabecera span{display:block;margin-top:8px}}
