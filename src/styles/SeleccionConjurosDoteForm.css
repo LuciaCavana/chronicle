@@ -96,3 +96,45 @@
   .dote-magia-eleccion { grid-template-columns: minmax(0, 1fr); }
   .dote-magia-eleccion .dote-magia-button { justify-self: start; margin-bottom: 0; }
 }
+
+/* Casillas personalizadas: evita que estilos globales de inputs oculten su apariencia. */
+.dote-magia .dote-magia-toggle > input[type="checkbox"],
+.dote-magia .dote-magia-option > input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  box-sizing: border-box;
+  display: inline-grid;
+  place-content: center;
+  flex: 0 0 18px;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  padding: 0;
+  margin: 1px 8px 0 0;
+  border: 1.5px solid #b8a784;
+  border-radius: 4px;
+  background: #171923;
+  cursor: pointer;
+}
+.dote-magia .dote-magia-toggle > input[type="checkbox"]::before,
+.dote-magia .dote-magia-option > input[type="checkbox"]::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  transform: scale(0);
+  transition: transform .12s ease;
+  background: #171923;
+  clip-path: polygon(14% 45%, 0 60%, 42% 100%, 100% 18%, 85% 5%, 40% 72%);
+}
+.dote-magia .dote-magia-toggle > input[type="checkbox"]:checked,
+.dote-magia .dote-magia-option > input[type="checkbox"]:checked {
+  border-color: #d8b77b;
+  background: #d8b77b;
+}
+.dote-magia .dote-magia-toggle > input[type="checkbox"]:checked::before,
+.dote-magia .dote-magia-option > input[type="checkbox"]:checked::before { transform: scale(1); }
+.dote-magia .dote-magia-toggle:has(> input:checked),
+.dote-magia .dote-magia-option:has(> input:checked) {
+  border-color: #d8b77b;
+  background: rgba(216,183,123,.09);
+}
