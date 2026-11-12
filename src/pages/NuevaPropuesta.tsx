@@ -612,6 +612,7 @@ export default function NuevaPropuesta() {
             cantidadEspecies={especies.length}
             cantidadConjuros={conjuros.length}
             cantidadClases={clases.length}
+            cantidadSubclases={subclases.length}
           />
         )}
 
