@@ -16,6 +16,8 @@ export type Trasfondo = {
   descripcion: string
   caracteristicas: string[]
   doteOrigenId: string | null
+  /** Lista fijada por el trasfondo para dotes con elección de magia. */
+  listaConjurosFijada?: string
   competenciasHabilidades: string[]
   competenciasHerramientas: string[]
   opcionesEquipo: OpcionEquipoInicial[]
