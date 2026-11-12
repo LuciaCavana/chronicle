@@ -15,6 +15,7 @@ type Version = {
   especies: unknown
   conjuros: unknown
   clases: unknown
+  subclases: unknown
 }
 type LibroPublicado = {
   id: string
@@ -160,6 +161,22 @@ function ClasesDesplegables({ seccion }: { seccion: Seccion }) {
     </div>
   </section>
 }
+function SubclasesDesplegables({ seccion, clases }: { seccion: Seccion; clases: Registro[] }) {
+  return <section id={seccion.id} className="lector-libro__seccion">
+    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>Subclases</h2></div>
+    <div className="lector-libro__clases">{seccion.elementos.map((subclase,i) => {
+      const datos=valorObjeto(subclase.datos)
+      const clase=clases.find(c => texto(c.id)===texto(datos.claseId))
+      const rasgos=lista(datos.rasgos).sort((a,b)=>Number(a.nivel||0)-Number(b.nivel||0))
+      return <details className="lector-libro__clase" key={texto(subclase.id)||i}>
+        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><BookOpen size={20}/></span><span className="lector-libro__clase-titulo">{tituloElemento(subclase,i)} · {clase ? tituloElemento(clase,0) : 'Clase no disponible'}</span><ChevronRight className="lector-libro__clase-flecha" size={20}/></summary>
+        <div className="lector-libro__clase-contenido"><TextoSeguro valor={subclase.descripcion}/>
+          {rasgos.length>0 && <section className="lector-libro__clase-bloque"><h4>Características de subclase</h4><div className="lector-libro__rasgos">{rasgos.map((rasgo,j)=><article className="lector-libro__rasgo" key={texto(rasgo.id)||j}><div className="lector-libro__rasgo-encabezado"><strong>Nivel {mostrar(rasgo.nivel)}: {tituloElemento(rasgo,j)}</strong></div><TextoSeguro valor={rasgo.descripcion}/></article>)}</div></section>}
+        </div>
+      </details>
+    })}</div>
+  </section>
+}
 function SeccionContenido({ seccion }: { seccion: Seccion }) {
   return <section id={seccion.id} className="lector-libro__seccion">
     <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>{seccion.titulo}</h2></div>
@@ -183,7 +200,7 @@ export default function LectorLibro() {
     async function cargar() {
       setCargando(true);setError('')
       const {data,error:fallo}=await supabase.from('libros')
-        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases)')
+        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases,subclases)')
         .eq('id',libroId ?? '').eq('estado','publicado').maybeSingle()
       if(!activo)return
       if(fallo)setError('No se pudo cargar el libro publicado.')
@@ -198,6 +215,7 @@ export default function LectorLibro() {
   const secciones:Seccion[] = version ? [
     {id:'especies',titulo:'Especies',elementos:lista(version.especies)},
     {id:'clases',titulo:'Clases',elementos:lista(version.clases)},
+    {id:'subclases',titulo:'Subclases',elementos:lista(version.subclases)},
     {id:'conjuros',titulo:'Conjuros',elementos:lista(version.conjuros)}
   ] : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
@@ -233,7 +251,7 @@ export default function LectorLibro() {
               <TextoSeguro valor={version.descripcion || 'Un nuevo mundo de aventuras te espera entre estas páginas.'}/>
               {categorias.length>0 && <div className="lector-libro__categorias">{categorias.map(c=><span key={c}>{c}</span>)}</div>}
             </section>
-            {secciones.filter(s=>s.elementos.length>0).map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : <SeccionContenido key={s.id} seccion={s}/>)}
+            {secciones.filter(s=>s.elementos.length>0).map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : s.id === 'subclases' ? <SubclasesDesplegables key={s.id} seccion={s} clases={lista(version.clases)}/> : <SeccionContenido key={s.id} seccion={s}/>)}
             {secciones.every(s=>s.elementos.length===0) && <p className="lector-libro__vacio">Este libro todavía no tiene entradas estructuradas disponibles para leer.</p>}
             <footer className="lector-libro__pie">✦ <span>Chronicle · Fin del contenido disponible</span> ✦</footer>
           </div>
