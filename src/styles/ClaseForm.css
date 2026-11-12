@@ -144,3 +144,12 @@
 .clase-form__vinculos { display: flex; flex-direction: column; gap: 6px; min-width: 160px; }
 .clase-form__vinculo { display: flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; }
 .clase-form__tabla .clase-form__vinculo input[type="checkbox"] { width: 16px; min-width: 16px; height: 16px; accent-color: #d8b77b; }
+
+
+/* Características vinculadas: etiquetas limpias, sin casillas */
+.clase-form__vinculos { align-items: flex-start; gap: 7px; }
+.clase-form__rasgo-etiqueta { display: block; max-width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid #796441; background: #302b2d; color: #f0d59d; font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; cursor: context-menu; }
+.clase-form__rasgo-agregar { border: 1px dashed #76674e; border-radius: 6px; background: transparent; color: #d8b77b; padding: 5px 9px; cursor: pointer; font-size: 12px; }
+.clase-form__rasgo-agregar:hover { background: #3b3440; }
+.clase-form__rasgo-opcion { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 12px; border: 1px solid #63543f; border-radius: 6px; background: #242331; color: #e8dfcf; cursor: pointer; }
+.clase-form__rasgo-opcion:hover { background: #383243; }
