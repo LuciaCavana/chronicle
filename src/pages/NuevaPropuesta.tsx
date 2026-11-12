@@ -7,6 +7,8 @@ import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
+import DoteForm from '../components/biblioteca/DoteForm'
+import type { Dote } from '../types/trasfondo'
 import ConjuroForm from '../components/biblioteca/ConjuroForm'
 import ClaseForm from '../components/biblioteca/ClaseForm'
 import SubclaseForm from '../components/biblioteca/SubclaseForm'
@@ -87,6 +89,9 @@ export default function NuevaPropuesta() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [especies, setEspecies] = useState<Especie[]>([])
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
+  const [dotes, setDotes] = useState<Dote[]>([])
+  const [editingDoteId, setEditingDoteId] = useState<string | null>(null)
+  const [showDoteForm, setShowDoteForm] = useState(false)
   const [editingConjuroId, setEditingConjuroId] = useState<string | null>(null)
   const [showConjuroForm, setShowConjuroForm] = useState(false)
   const [clases, setClases] = useState<Elemento[]>([])
@@ -138,6 +143,7 @@ export default function NuevaPropuesta() {
       const contenido = propuesta.contenido as {
         especies?: Especie[]
         conjuros?: Conjuro[]
+        dotes?: Dote[]
         clases?: Elemento[]
         subclases?: Elemento[]
         objetos?: Elemento[]
@@ -153,6 +159,7 @@ export default function NuevaPropuesta() {
       setSelectedCategories(propuesta.categorias ?? [])
       setEspecies(contenido.especies ?? [])
       setConjuros(contenido.conjuros ?? [])
+      setDotes(contenido.dotes ?? [])
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
       setObjetos(contenido.objetos ?? [])
@@ -189,6 +196,7 @@ export default function NuevaPropuesta() {
         setSelectedCategories(version.categorias ?? [])
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
+        setDotes([]) // Las versiones publicadas aún no almacenan dotes.
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
         setObjetos((version.objetos ?? []) as Elemento[])
@@ -251,6 +259,12 @@ export default function NuevaPropuesta() {
 
   function eliminarEspecie(id: string) {
     setEspecies((actuales) => actuales.filter((especie) => especie.id !== id))
+  }
+
+  function guardarDote(dote: Dote) {
+    setDotes(actuales => actuales.some(d => d.id === dote.id) ? actuales.map(d => d.id === dote.id ? dote : d) : [...actuales, dote])
+    setShowDoteForm(false)
+    setEditingDoteId(null)
   }
 
   function guardarConjuro(conjuro: Conjuro) {
@@ -318,6 +332,7 @@ export default function NuevaPropuesta() {
         categorias: selectedCategories,
         especies,
         conjuros,
+        dotes,
         clases,
         subclases,
         objetos,
@@ -568,6 +583,8 @@ export default function NuevaPropuesta() {
                 <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
+            ) : showDoteForm ? (
+              <DoteForm key={editingDoteId ?? 'nueva'} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
             ) : showConjuroForm ? (
               <ConjuroForm key={editingConjuroId ?? 'nuevo'} initialData={conjuros.find(c => c.id === editingConjuroId)} conjuros={conjuros} onSave={guardarConjuro} onCancel={() => { setShowConjuroForm(false); setEditingConjuroId(null) }} />
             ) : showEspecieForm ? (
@@ -666,6 +683,8 @@ export default function NuevaPropuesta() {
                 if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
                 } else if (currentStep === 2 && editingClassId !== null) {
                   setEditingClassId(null)
+                } else if (currentStep === 2 && showDoteForm) {
+                  setShowDoteForm(false); setEditingDoteId(null)
                 } else if (currentStep === 2 && showConjuroForm) {
                   setShowConjuroForm(false); setEditingConjuroId(null)
                 } else if (currentStep === 2 && showEspecieForm) {
@@ -695,7 +714,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && !showConjuroForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
+          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
