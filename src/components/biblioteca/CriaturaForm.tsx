@@ -1,0 +1,62 @@
+import { useState } from 'react'
+import type { Conjuro } from '../../types/conjuro'
+import type { Criatura, RasgoCriatura, SeccionCriatura } from '../../types/criatura'
+import '../../styles/CriaturaForm.css'
+
+type Props = { initialData?: Criatura; criaturas: Criatura[]; conjuros: Conjuro[]; onSave: (criatura: Criatura) => void; onCancel: () => void }
+const atributos = [['fuerza','Fuerza'],['destreza','Destreza'],['constitucion','Constitución'],['inteligencia','Inteligencia'],['sabiduria','Sabiduría'],['carisma','Carisma']] as const
+const secciones = [['rasgos','Rasgos'],['acciones','Acciones'],['acciones_adicionales','Acciones adicionales'],['reacciones','Reacciones'],['acciones_legendarias','Acciones legendarias'],['acciones_guarida','Acciones de guarida'],['efectos_regionales','Efectos regionales']] as const
+const vacio = (): Criatura => ({
+  id: crypto.randomUUID(), nombre:'', fuente:{libro:'',pagina:undefined}, tamano:'Mediano', tipo:'Humanoide', alineamiento:'Sin alineamiento', invocacion:false,
+  variantes:[], ca:{valor:''}, iniciativa:{valor:''}, pg:{valor:''},
+  velocidades:[{id:crypto.randomUUID(),tipo:'Caminar',valor:'30 pies'}],
+  caracteristicas:{fuerza:{puntuacion:10},destreza:{puntuacion:10},constitucion:{puntuacion:10},inteligencia:{puntuacion:10},sabiduria:{puntuacion:10},carisma:{puntuacion:10}},
+  habilidades:[], resistencias:'', inmunidadesDano:'', inmunidadesEstados:'', vulnerabilidades:'', sentidos:'', idiomas:'', desafio:'', experiencia:'', competencia:'', habitat:'', tesoro:'',
+  secciones:{rasgos:[],acciones:[],acciones_adicionales:[],reacciones:[],acciones_legendarias:[],acciones_guarida:[],efectos_regionales:[]}
+})
+const nuevaEntrada = (): RasgoCriatura => ({id:crypto.randomUUID(),nombre:'',descripcion:''})
+export default function CriaturaForm({initialData,criaturas,conjuros,onSave,onCancel}:Props) {
+  const [c,setC] = useState<Criatura>(()=> initialData ? {...vacio(),...initialData, secciones:{...vacio().secciones,...initialData.secciones}} : vacio())
+  const [error,setError] = useState('')
+  const update = (patch:Partial<Criatura>) => setC(v=>({...v,...patch}))
+  const texto = (label:string, key:keyof Criatura, placeholder='') => <div className="nueva-propuesta-field"><label>{label}</label><input value={String(c[key] ?? '')} placeholder={placeholder} onChange={e=>update({[key]:e.target.value})}/></div>
+  const campoValor = (label:string,key:'ca'|'iniciativa'|'pg',placeholder:string) => <div className="nueva-propuesta-field"><label>{label}</label><input value={c[key].valor} placeholder={placeholder} onChange={e=>update({[key]:{...c[key],valor:e.target.value}})}/></div>
+  const modificarSeccion = (key:SeccionCriatura, entries:RasgoCriatura[])=>update({secciones:{...c.secciones,[key]:entries}})
+  function guardar() {
+    if (!c.nombre.trim()) {setError('Ingresá el nombre de la criatura.');return}
+    if (criaturas.some(x=>x.id!==c.id && x.nombre.trim().toLocaleLowerCase('es')===c.nombre.trim().toLocaleLowerCase('es'))) {setError('Ya existe una criatura con ese nombre.');return}
+    if (!c.ca.valor.trim() || !c.pg.valor.trim()) {setError('Completá la CA y los puntos de golpe.');return}
+    if (c.invocacion && c.conjuroInvocacionId && !conjuros.some(x=>x.id===c.conjuroInvocacionId)) {setError('El conjuro vinculado no existe.');return}
+    if (c.invocacion && c.nivelConjuroBase !== undefined && (!Number.isInteger(c.nivelConjuroBase)||c.nivelConjuroBase<1||c.nivelConjuroBase>9)) {setError('El nivel base del conjuro debe estar entre 1 y 9.');return}
+    if (c.velocidades.some(v=>!v.tipo.trim()||!v.valor.trim()) || c.habilidades.some(h=>!h.nombre.trim()||!h.bonificador.trim()) || Object.values(c.secciones).some(lista=>lista.some(x=>!x.nombre.trim()||!x.descripcion.trim()))) {setError('Completá las velocidades, habilidades y entradas de acciones o rasgos agregadas.');return}
+    onSave({...c,nombre:c.nombre.trim(),conjuroInvocacionId:c.invocacion ? c.conjuroInvocacionId : undefined,nivelConjuroBase:c.invocacion ? c.nivelConjuroBase : undefined})
+  }
+  return <section className="nueva-propuesta-panel criatura-form">
+    <h3>{initialData?'Editar monstruo o criatura':'Agregar monstruo o criatura'}</h3>
+    <p className="criatura-ayuda">Admite valores fijos o expresiones textuales (por ejemplo, «11 + nivel del conjuro»). Las expresiones se almacenan sin ejecutarse automáticamente.</p>
+    {texto('Nombre *','nombre','Ej.: Espíritu elemental')}
+    <div className="criatura-grid">
+      <div className="nueva-propuesta-field"><label>Tamaño</label><select value={c.tamano} onChange={e=>update({tamano:e.target.value})}>{['Diminuto','Pequeño','Mediano','Grande','Enorme','Gargantuesco'].map(x=><option key={x}>{x}</option>)}</select></div>
+      {texto('Tipo de criatura','tipo','Elemental, Dragón, Feérico...')}
+      {texto('Subtipo','subtipo','Metálico, Gith...')}
+      {texto('Alineamiento','alineamiento','Neutral')}
+      <div className="nueva-propuesta-field"><label>Libro de origen</label><input value={c.fuente?.libro??''} onChange={e=>update({fuente:{...c.fuente,libro:e.target.value}})} placeholder="PHB 2024"/></div>
+      <div className="nueva-propuesta-field"><label>Página</label><input type="number" min={1} value={c.fuente?.pagina??''} onChange={e=>update({fuente:{libro:c.fuente?.libro??'',pagina:e.target.value?Number(e.target.value):undefined}})}/></div>
+    </div>
+    <fieldset><legend>Invocación y variantes</legend>
+      <label className="criatura-check"><input type="checkbox" checked={c.invocacion} onChange={e=>update({invocacion:e.target.checked})}/>Esta criatura puede ser invocada por un conjuro</label>
+      {c.invocacion && <div className="criatura-grid"><div className="nueva-propuesta-field"><label>Conjuro que la invoca</label><select value={c.conjuroInvocacionId??''} onChange={e=>update({conjuroInvocacionId:e.target.value||undefined})}><option value="">Sin vincular todavía</option>{conjuros.map(x=><option key={x.id} value={x.id}>{x.nombre}</option>)}</select></div><div className="nueva-propuesta-field"><label>Nivel base del conjuro</label><input type="number" min={1} max={9} value={c.nivelConjuroBase??''} onChange={e=>update({nivelConjuroBase:e.target.value?Number(e.target.value):undefined})}/></div></div>}
+      <div className="nueva-propuesta-field"><label>Variantes (una por línea)</label><textarea rows={3} value={c.variantes.join('\n')} onChange={e=>update({variantes:e.target.value.split('\n').map(x=>x.trim()).filter(Boolean)})} placeholder="Aire\nTierra\nFuego\nAgua"/></div>
+    </fieldset>
+    <fieldset><legend>Defensas e iniciativa</legend><div className="criatura-grid">{campoValor('Clase de armadura (CA) *','ca','22 o 11 + nivel del conjuro')}{campoValor('Iniciativa','iniciativa','+16 (26)')}{campoValor('Puntos de golpe (PG) *','pg','546 (28d20 + 252) o 50 + 10 por nivel sobre 4')}</div></fieldset>
+    <fieldset><legend>Velocidades</legend>{c.velocidades.map(v=><div className="criatura-fila" key={v.id}><div className="nueva-propuesta-field"><label>Movimiento</label><select value={v.tipo} onChange={e=>update({velocidades:c.velocidades.map(x=>x.id===v.id?{...x,tipo:e.target.value}:x)})}>{['Caminar','Volar','Nadar','Excavar','Trepar','Otro'].map(x=><option key={x}>{x}</option>)}</select></div><div className="nueva-propuesta-field"><label>Velocidad</label><input value={v.valor} onChange={e=>update({velocidades:c.velocidades.map(x=>x.id===v.id?{...x,valor:e.target.value}:x)})} placeholder="40 pies"/></div><div className="nueva-propuesta-field"><label>Condición / variante</label><input value={v.condicion??''} onChange={e=>update({velocidades:c.velocidades.map(x=>x.id===v.id?{...x,condicion:e.target.value}:x)})} placeholder="Solo aire, flotar..."/></div><button className="criatura-quitar" type="button" onClick={()=>update({velocidades:c.velocidades.filter(x=>x.id!==v.id)})}>Quitar</button></div>)}<button className="criatura-agregar" type="button" onClick={()=>update({velocidades:[...c.velocidades,{id:crypto.randomUUID(),tipo:'Caminar',valor:''}]})}>+ Velocidad</button></fieldset>
+    <fieldset><legend>Características y salvaciones</legend><div className="criatura-atributos">{atributos.map(([key,label])=><div className="criatura-atributo" key={key}><strong>{label}</strong><label>Puntuación<input type="number" min={1} value={c.caracteristicas[key].puntuacion} onChange={e=>update({caracteristicas:{...c.caracteristicas,[key]:{...c.caracteristicas[key],puntuacion:Number(e.target.value)}}})}/></label><span>Modificador: {Math.floor((c.caracteristicas[key].puntuacion-10)/2)>=0?'+':''}{Math.floor((c.caracteristicas[key].puntuacion-10)/2)}</span><label>Salvación<input value={c.caracteristicas[key].salvacion??''} onChange={e=>update({caracteristicas:{...c.caracteristicas,[key]:{...c.caracteristicas[key],salvacion:e.target.value}}})} placeholder="+4"/></label></div>)}</div></fieldset>
+    <fieldset><legend>Habilidades</legend>{c.habilidades.map(h=><div className="criatura-fila" key={h.id}><div className="nueva-propuesta-field"><label>Habilidad</label><input value={h.nombre} onChange={e=>update({habilidades:c.habilidades.map(x=>x.id===h.id?{...x,nombre:e.target.value}:x)})} placeholder="Percepción"/></div><div className="nueva-propuesta-field"><label>Bonificador</label><input value={h.bonificador} onChange={e=>update({habilidades:c.habilidades.map(x=>x.id===h.id?{...x,bonificador:e.target.value}:x)})} placeholder="+17"/></div><button className="criatura-quitar" type="button" onClick={()=>update({habilidades:c.habilidades.filter(x=>x.id!==h.id)})}>Quitar</button></div>)}<button className="criatura-agregar" type="button" onClick={()=>update({habilidades:[...c.habilidades,{id:crypto.randomUUID(),nombre:'',bonificador:''}]})}>+ Habilidad</button></fieldset>
+    <fieldset><legend>Defensas, sentidos e idiomas</legend><div className="criatura-grid">{texto('Resistencias al daño','resistencias','Rayo y trueno (solo aire)')}{texto('Inmunidades al daño','inmunidadesDano','Veneno; fuego (solo fuego)')}{texto('Inmunidades a estados','inmunidadesEstados','Envenenado, paralizado...')}{texto('Vulnerabilidades','vulnerabilidades')}{texto('Sentidos','sentidos','Visión en la oscuridad 60 pies, Percepción pasiva 10')}{texto('Idiomas','idiomas','Primordial; comprende idiomas del invocador')}</div></fieldset>
+    <fieldset><legend>Desafío y recompensas</legend><div className="criatura-grid">{texto('Valor de desafío (VD)','desafio','24 o Ninguno')}{texto('Experiencia (PX)','experiencia','62.000')}{texto('Bonificador de competencia','competencia','+7 o igual al invocador')}{texto('Hábitat','habitat','Bosque, pradera')}{texto('Tesoro','tesoro','Arcana, individual')}</div></fieldset>
+    {secciones.map(([key,label])=><fieldset key={key}><legend>{label}</legend>{c.secciones[key].map(entry=><div className="criatura-entrada" key={entry.id}><div className="nueva-propuesta-field"><label>Nombre</label><input value={entry.nombre} onChange={e=>modificarSeccion(key,c.secciones[key].map(x=>x.id===entry.id?{...x,nombre:e.target.value}:x))} placeholder="Ej.: Ataque múltiple"/></div><div className="nueva-propuesta-field"><label>Descripción, usos y condiciones</label><textarea rows={3} value={entry.descripcion} onChange={e=>modificarSeccion(key,c.secciones[key].map(x=>x.id===entry.id?{...x,descripcion:e.target.value}:x))} placeholder="Incluí tiradas, CD, daño, recargas y condiciones de uso"/></div><button className="criatura-quitar" type="button" onClick={()=>modificarSeccion(key,c.secciones[key].filter(x=>x.id!==entry.id))}>Eliminar</button></div>)}<button className="criatura-agregar" type="button" onClick={()=>modificarSeccion(key,[...c.secciones[key],nuevaEntrada()])}>+ Agregar {label.toLowerCase()}</button></fieldset>)}
+    <div className="nueva-propuesta-field"><label>Notas adicionales</label><textarea rows={4} value={c.notas??''} onChange={e=>update({notas:e.target.value})}/></div>
+    {error&&<p role="alert" className="criatura-error">{error}</p>}
+    <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-cancel" onClick={onCancel}>Cancelar</button><button type="button" className="nueva-propuesta-next" onClick={guardar}>Guardar criatura</button></div>
+  </section>
+}
