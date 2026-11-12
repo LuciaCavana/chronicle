@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import type { Especie } from '../types/especie'
+import type { Dote } from '../types/trasfondo'
 import type { Conjuro } from '../types/conjuro'
 import type { Elemento } from './chronicleLibros'
 
@@ -16,6 +17,7 @@ export type NuevoLibro = {
   categorias: string[]
   especies: Especie[]
   conjuros: Conjuro[]
+  dotes: Dote[]
   clases: Elemento[]
   subclases: Elemento[]
   objetos: Elemento[]
@@ -66,6 +68,7 @@ export async function guardarPropuesta(datos: NuevoLibro) {
       contenido: {
         especies: datos.especies,
         conjuros: datos.conjuros,
+        dotes: datos.dotes,
         clases: datos.clases,
         subclases: datos.subclases,
         objetos: datos.objetos,
@@ -303,6 +306,7 @@ export async function actualizarPropuesta(
       contenido: {
         especies: datos.especies,
         conjuros: datos.conjuros,
+        dotes: datos.dotes,
         clases: datos.clases,
         subclases: datos.subclases,
         objetos: datos.objetos,
