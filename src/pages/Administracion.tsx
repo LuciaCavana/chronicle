@@ -11,6 +11,7 @@ export default function Administracion() {
   const { session, loading: cargandoSesion } = useAuth()
   const [autorizado, setAutorizado] = useState<boolean | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
+  const [esPropietario, setEsPropietario] = useState(false)
   const [busqueda, setBusqueda] = useState('')
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -35,6 +36,9 @@ export default function Administracion() {
         if (!activo) return
         setAutorizado(esAdmin)
         if (!esAdmin) return
+        const { data: propietario, error: errorPropietario } = await supabase.rpc('chronicle_es_propietario')
+        if (errorPropietario) throw errorPropietario
+        if (activo) setEsPropietario(Boolean(propietario))
         const { data, error: errorLista } = await supabase.rpc('chronicle_listar_usuarios_admin')
         if (errorLista) throw errorLista
         if (activo) setUsuarios((data ?? []) as Usuario[])
@@ -53,7 +57,7 @@ export default function Administracion() {
   ), [usuarios, busqueda])
 
   async function otorgar(usuario: Usuario) {
-    if (guardandoId || usuario.es_admin) return
+    if (!esPropietario || guardandoId || usuario.es_admin) return
     setGuardandoId(usuario.user_id)
     setError(''); setMensaje('')
     try {
@@ -74,7 +78,7 @@ export default function Administracion() {
     <section style={{ maxWidth: 900, display: 'grid', gap: 18 }}>
       <div>
         <h2>Usuarios</h2>
-        <p>Buscá un usuario registrado y asignale permisos de administrador.</p>
+        <p>{esPropietario ? 'Buscá usuarios registrados y administrá sus permisos.' : 'Consultá los usuarios registrados y sus permisos.'}</p>
       </div>
       <label htmlFor="buscar-usuarios">Buscar por correo electrónico</label>
       <input id="buscar-usuarios" type="search" value={busqueda} onChange={e => setBusqueda(e.target.value)}
@@ -94,9 +98,9 @@ export default function Administracion() {
             </div>
             {usuario.es_admin
               ? <span aria-label="Ya es administrador">Administrador ✓</span>
-              : <button type="button" disabled={guardandoId !== null} onClick={() => void otorgar(usuario)}>
+              : esPropietario ? <button type="button" disabled={guardandoId !== null} onClick={() => void otorgar(usuario)}>
                   {guardandoId === usuario.user_id ? 'Asignando...' : 'Hacer administrador'}
-                </button>}
+                </button> : <span>Usuario</span>}
           </div>)}
           {filtrados.length === 0 && <p>No se encontraron usuarios.</p>}
         </div>
