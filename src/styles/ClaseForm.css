@@ -201,3 +201,39 @@
 .clase-form__resumen-rasgo span { color: #c8b994; font-size: 12px; }
 .clase-form__acciones-rasgo { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
 
+
+/* Progresión compacta: las características no agrandan verticalmente la fila. */
+.clase-form__tabla { table-layout: auto; }
+.clase-form__tabla tbody tr { height: 38px; }
+.clase-form__tabla tbody th,
+.clase-form__tabla tbody td { padding: 3px 7px; height: 38px; box-sizing: border-box; }
+.clase-form__tabla tbody td { max-width: 300px; }
+.clase-form__tabla tbody td input {
+  height: 30px;
+  padding: 4px 8px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.clase-form__tabla .clase-form__vinculos {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.clase-form__tabla .clase-form__rasgo-etiqueta {
+  display: inline-block;
+  flex: 0 0 auto;
+  max-width: 220px;
+  padding: 4px 7px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
+}
