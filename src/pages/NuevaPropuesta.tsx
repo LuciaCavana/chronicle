@@ -8,6 +8,8 @@ import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import TrasfondoForm from '../components/biblioteca/TrasfondoForm'
+import CriaturaForm from '../components/biblioteca/CriaturaForm'
+import type { Criatura } from '../types/criatura'
 import DoteForm from '../components/biblioteca/DoteForm'
 import type { Trasfondo } from '../types/trasfondo'
 import type { Dote } from '../types/trasfondo'
@@ -38,6 +40,7 @@ const categories = [
   { id: 'clases', label: 'Clases' },
   { id: 'subclases', label: 'Subclases' },
   { id: 'trasfondos', label: 'Trasfondos' },
+  { id: 'criaturas', label: 'Monstruos y criaturas' },
   { id: 'dotes', label: 'Dotes' },
   { id: 'conjuros', label: 'Conjuros' },
   { id: 'objetos', label: 'Objetos y equipo' },
@@ -93,6 +96,9 @@ export default function NuevaPropuesta() {
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
   const [dotes, setDotes] = useState<Dote[]>([])
   const [trasfondos, setTrasfondos] = useState<Trasfondo[]>([])
+  const [criaturas, setCriaturas] = useState<Criatura[]>([])
+  const [editingCriaturaId, setEditingCriaturaId] = useState<string | null>(null)
+  const [showCriaturaForm, setShowCriaturaForm] = useState(false)
   const [editingTrasfondoId, setEditingTrasfondoId] = useState<string | null>(null)
   const [showTrasfondoForm, setShowTrasfondoForm] = useState(false)
   const [editingDoteId, setEditingDoteId] = useState<string | null>(null)
@@ -150,6 +156,7 @@ export default function NuevaPropuesta() {
         conjuros?: Conjuro[]
         dotes?: Dote[]
         trasfondos?: Trasfondo[]
+        criaturas?: Criatura[]
         clases?: Elemento[]
         subclases?: Elemento[]
         objetos?: Elemento[]
@@ -167,6 +174,7 @@ export default function NuevaPropuesta() {
       setConjuros(contenido.conjuros ?? [])
       setDotes(contenido.dotes ?? [])
       setTrasfondos(contenido.trasfondos ?? [])
+      setCriaturas(contenido.criaturas ?? [])
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
       setObjetos(contenido.objetos ?? [])
@@ -205,6 +213,7 @@ export default function NuevaPropuesta() {
         setConjuros((version.conjuros ?? []) as Conjuro[])
         setDotes([]) // Las versiones publicadas aún no almacenan dotes.
         setTrasfondos([]) // Pendiente de publicación.
+        setCriaturas([]) // Pendiente de publicación.
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
         setObjetos((version.objetos ?? []) as Elemento[])
@@ -267,6 +276,12 @@ export default function NuevaPropuesta() {
 
   function eliminarEspecie(id: string) {
     setEspecies((actuales) => actuales.filter((especie) => especie.id !== id))
+  }
+
+  function guardarCriatura(criatura: Criatura) {
+    setCriaturas(actuales => actuales.some(c => c.id === criatura.id) ? actuales.map(c => c.id === criatura.id ? criatura : c) : [...actuales, criatura])
+    setShowCriaturaForm(false)
+    setEditingCriaturaId(null)
   }
 
   function guardarTrasfondo(trasfondo: Trasfondo) {
@@ -348,6 +363,7 @@ export default function NuevaPropuesta() {
         conjuros,
         dotes,
         trasfondos,
+        criaturas,
         clases,
         subclases,
         objetos,
@@ -598,6 +614,8 @@ export default function NuevaPropuesta() {
                 <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
+            ) : showCriaturaForm ? (
+              <CriaturaForm key={editingCriaturaId ?? 'nueva'} initialData={criaturas.find(c => c.id === editingCriaturaId)} criaturas={criaturas} conjuros={conjuros} onSave={guardarCriatura} onCancel={() => { setShowCriaturaForm(false); setEditingCriaturaId(null) }}/>
             ) : showTrasfondoForm ? (
               <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} />
             ) : showDoteForm ? (
@@ -624,6 +642,10 @@ export default function NuevaPropuesta() {
                 onToggleCategory={toggleCategory}
                 speciesCount={especies.length}
                 conjuros={conjuros}
+                criaturas={criaturas}
+                onAddCriatura={() => { setEditingCriaturaId(null); setShowCriaturaForm(true) }}
+                onEditCriatura={id => { setEditingCriaturaId(id); setShowCriaturaForm(true) }}
+                onDeleteCriatura={id => setCriaturas(actuales => actuales.filter(c => c.id !== id))}
                 trasfondos={trasfondos}
                 onAddTrasfondo={() => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }}
                 onEditTrasfondo={id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }}
@@ -655,6 +677,7 @@ export default function NuevaPropuesta() {
                 categoryItemCounts={{
                   dotes: dotes.length,
                   trasfondos: trasfondos.length,
+                  criaturas: criaturas.length,
                   clases: clases.length,
                   subclases: subclases.length,
                   objetos: objetos.length,
@@ -743,7 +766,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
+          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && !showCriaturaForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
