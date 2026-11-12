@@ -20,6 +20,8 @@ export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos,
   const [nombre, setNombre] = useState(initialData?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
   const [caracs, setCaracs] = useState(initialData?.caracteristicas ?? [])
+  const [aumentosHabilitados, setAumentosHabilitados] = useState(initialData?.aumentoCaracteristicas?.habilitado ?? true)
+  const [distribuciones, setDistribuciones] = useState<Array<'2_1' | '1_1_1'>>(initialData?.aumentoCaracteristicas?.distribuciones ?? ['2_1', '1_1_1'])
   const [doteId, setDoteId] = useState(initialData?.doteOrigenId ?? '')
   const [listaFija, setListaFija] = useState(initialData?.listaConjurosFijada ?? '')
   const [skills, setSkills] = useState(initialData?.competenciasHabilidades ?? [])
@@ -37,20 +39,30 @@ export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos,
     if (!nombre.trim()) { setError('Ingresá el nombre del trasfondo.'); return }
     if (trasfondos.some(t => t.id !== initialData?.id && t.nombre.trim().toLowerCase() === nombre.trim().toLowerCase())) { setError('Ya existe un trasfondo con ese nombre.'); return }
     if (caracs.length !== 3) { setError('Seleccioná exactamente tres características.'); return }
+    if (aumentosHabilitados && distribuciones.length === 0) { setError('Seleccioná al menos una distribución de aumentos.'); return }
     if (!doteId || !dote) { setError('Seleccioná una dote de origen válida.'); return }
     if (listaFija && !listasMagia.includes(listaFija)) { setError('La lista de magia fijada no está permitida por la dote.'); return }
     if (skills.length < 1 || skills.length > 2) { setError('Seleccioná una o dos habilidades.'); return }
     if (skills.length === 1 && idiomas.length !== 1) { setError('Si el trasfondo otorga una habilidad, agregá un idioma.'); return }
     if (idiomas.some(i => i.tipo === 'fijo' && !i.idioma?.trim())) { setError('Especificá el idioma fijo o elegí la opción a elección.'); return }
     if (opciones.some(o => !o.nombre.trim() || o.objetos.some(x => !x.objetoId || !Number.isInteger(x.cantidad) || x.cantidad < 1) || o.monedas.some(x => !x.moneda.trim() || !Number.isInteger(x.cantidad) || x.cantidad < 0))) { setError('Revisá las opciones de equipo y sus cantidades.'); return }
-    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: nombre.trim(), descripcion: descripcion.trim(), caracteristicas: caracs, doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}), competenciasHabilidades: skills, idiomas: idiomas.map(i => ({ ...i, ...(i.tipo === 'fijo' ? { idioma: i.idioma?.trim() } : { idioma: undefined }) })), competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean), opcionesEquipo: opciones, ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}) })
+    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: nombre.trim(), descripcion: descripcion.trim(), caracteristicas: caracs, aumentoCaracteristicas: { habilitado: aumentosHabilitados, distribuciones: aumentosHabilitados ? distribuciones : [] }, doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}), competenciasHabilidades: skills, idiomas: idiomas.map(i => ({ ...i, ...(i.tipo === 'fijo' ? { idioma: i.idioma?.trim() } : { idioma: undefined }) })), competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean), opcionesEquipo: opciones, ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}) })
   }
 
   return <section className="nueva-propuesta-panel trasfondo-form">
     <h3>{initialData ? 'Editar trasfondo' : 'Agregar trasfondo'}</h3>
     <div className="nueva-propuesta-field"><label htmlFor="trasfondo-nombre">Nombre *</label><input id="trasfondo-nombre" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Ej.: Granjero"/></div>
     <div className="nueva-propuesta-field"><label htmlFor="trasfondo-descripcion">Descripción</label><textarea id="trasfondo-descripcion" rows={4} value={descripcion} onChange={e => setDescripcion(e.target.value)}/></div>
-    <fieldset><legend>Características (elegí tres)</legend><div className="trasfondo-grid">{caracteristicas.map(c => <label key={c} className="trasfondo-check"><input type="checkbox" checked={caracs.includes(c)} disabled={!caracs.includes(c) && caracs.length >= 3} onChange={e => setCaracs(actuales => cambiarEnLista(actuales, c, e.target.checked))}/>{c}</label>)}</div></fieldset>
+    <fieldset><legend>Características (elegí tres)</legend><div className="trasfondo-grid">{caracteristicas.map(c => <label key={c} className="trasfondo-check"><input type="checkbox" checked={caracs.includes(c)} disabled={!caracs.includes(c) && caracs.length >= 3} onChange={e => setCaracs(actuales => cambiarEnLista(actuales, c, e.target.checked))}/>{c}</label>)}</div>
+      <div className="trasfondo-aumentos">
+        <label className="trasfondo-check"><input type="checkbox" checked={aumentosHabilitados} onChange={e => setAumentosHabilitados(e.target.checked)}/>Permitir aumentos de puntuaciones de característica</label>
+        {aumentosHabilitados && <>
+          <p className="trasfondo-hint">El personaje podrá distribuir los aumentos únicamente entre las tres características seleccionadas arriba. Elegí las distribuciones permitidas:</p>
+          <label className="trasfondo-check"><input type="checkbox" checked={distribuciones.includes('2_1')} onChange={e => setDistribuciones(actuales => e.target.checked ? [...actuales.filter(x => x !== '2_1'), '2_1'] : actuales.filter(x => x !== '2_1'))}/>+2 en una característica y +1 en otra distinta</label>
+          <label className="trasfondo-check"><input type="checkbox" checked={distribuciones.includes('1_1_1')} onChange={e => setDistribuciones(actuales => e.target.checked ? [...actuales.filter(x => x !== '1_1_1'), '1_1_1'] : actuales.filter(x => x !== '1_1_1'))}/>+1 en cada una de las tres características</label>
+        </>}
+      </div>
+    </fieldset>
     <fieldset><legend>Dote de origen</legend>
       <div className="nueva-propuesta-field"><label htmlFor="trasfondo-dote">Dote *</label><select id="trasfondo-dote" value={doteId} onChange={e => { setDoteId(e.target.value); setListaFija('') }}><option value="">Seleccioná una dote</option>{dotes.filter(d => d.categoria === 'origen').map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}</select></div>
       <p className="trasfondo-hint">Para crear una dote nueva, guardá este trasfondo después de cargarla en la categoría Dotes.</p>
