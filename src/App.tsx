@@ -12,6 +12,7 @@ import Libros from './pages/Libros'
 import LectorLibro from './pages/LectorLibro'
 import NuevaPropuesta from './pages/NuevaPropuesta'
 import MotorLibros from './pages/MotorLibros'
+import Administracion from './pages/Administracion'
 
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -88,6 +89,7 @@ function AppRoutes() {
       />
 
 
+      <Route path="/administracion" element={<ProtectedRoute><Administracion /></ProtectedRoute>} />
       <Route
         path="/home"
         element={
