@@ -1,0 +1,23 @@
+.trasfondo-form { color:#e8dfcf; }
+.trasfondo-form fieldset { min-width:0; margin:20px 0; padding:20px; border:1px solid #454354; border-radius:10px; background:#1b1d28; }
+.trasfondo-form legend { padding:0 8px; color:#d8b77b; font-weight:650; }
+.trasfondo-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; }
+.trasfondo-check { display:flex; align-items:center; gap:9px; padding:11px; border:1px solid #343342; border-radius:8px; background:#171923; font-size:13px; cursor:pointer; }
+.trasfondo-check input { accent-color:#d8b77b; }
+.trasfondo-check:has(input:checked) { border-color:#d8b77b; background:rgba(216,183,123,.09); }
+.trasfondo-check:has(input:disabled) { opacity:.55; }
+.trasfondo-hint,.trasfondo-form small { color:#a4a3b2; font-size:13px; }
+.trasfondo-equipo { margin:16px 0; padding:18px; border:1px solid #454354; border-radius:10px; background:#222431; }
+.trasfondo-equipo-header,.trasfondo-equipo-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; }
+.trasfondo-equipo-header { justify-content:space-between; }
+.trasfondo-equipo-header .nueva-propuesta-field { flex:1; }
+.trasfondo-equipo-row { display:grid; grid-template-columns:minmax(0,2fr) minmax(100px,1fr) auto; gap:12px; align-items:end; }
+.trasfondo-equipo-row .nueva-propuesta-field { margin-bottom:12px; }
+.trasfondo-add,.trasfondo-remove { min-height:36px; padding:8px 12px; border:1px solid #d8b77b; border-radius:8px; background:transparent; color:#d8b77b; cursor:pointer; font:inherit; font-size:13px; }
+.trasfondo-add:hover { background:rgba(216,183,123,.12); }
+.trasfondo-remove { border-color:#a96363; color:#e19a9a; }
+.trasfondo-remove:hover { background:rgba(225,154,154,.1); }
+.trasfondo-error { color:#e19a9a; }
+.trasfondo-form :is(button,input,select,textarea):focus-visible { outline:2px solid #d8b77b; outline-offset:2px; }
+@media(max-width:700px) { .trasfondo-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .trasfondo-equipo-row { grid-template-columns:minmax(0,1fr); } }
+@media(max-width:480px) { .trasfondo-grid { grid-template-columns:minmax(0,1fr); } .trasfondo-form fieldset { padding:12px; } }
