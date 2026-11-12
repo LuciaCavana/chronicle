@@ -427,7 +427,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                 </th>)}
               </tr></thead>
               <tbody>{datos.progresion.map(fila => <tr key={fila.nivel}>
-                <th scope="row"><div className="clase-form__nivel-fila"><span>{fila.nivel}</span><button type="button" className="clase-form__eliminar-fila" aria-label={`Eliminar fila del nivel ${fila.nivel}`} title="Eliminar fila" onClick={() => eliminarFila(fila.nivel)}>×</button></div></th>
+                <th scope="row"><div className="clase-form__nivel-fila"><button type="button" className="clase-form__eliminar-fila" aria-label={`Eliminar fila del nivel ${fila.nivel}`} title="Eliminar fila" onClick={() => eliminarFila(fila.nivel)}>×</button><span>{fila.nivel}</span></div></th>
                 {datos.columnasProgresion.map(columna => <td key={columna.id}
                   onContextMenu={e => {
                     if (columna.tipo !== 'caracteristicas') return
