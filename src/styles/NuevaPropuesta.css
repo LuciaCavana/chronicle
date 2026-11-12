@@ -206,3 +206,16 @@ button.nueva-propuesta-cancel {
 button.nueva-propuesta-cancel:hover {
   color: #d8b77b;
 }
+/* El editor de clases amplía también el panel principal, manteniéndolo centrado. */
+.nueva-propuesta:has(.clase-form) {
+  width: max-content;
+  min-width: min(100%, 1050px);
+  max-width: none;
+  margin-inline: auto;
+}
+.nueva-propuesta-panel:has(> .clase-form) {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  box-sizing: border-box;
+}
