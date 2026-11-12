@@ -111,10 +111,10 @@ export default function Libros() {
     }
 
     if (activeTab === 'administracion') {
-      return esAdministrador && libro.estado !== 'eliminado'
+      return esAdministrador && libro.estado === 'pendiente'
     }
 
-    return libro.creado_por === userId && libro.estado !== 'eliminado'
+    return libro.creado_por === userId && libro.estado === 'pendiente'
   })
 
   const textoBusqueda = search.trim().toLowerCase()
@@ -434,7 +434,7 @@ async function borrarPropuesta(
             placeholder={
               activeTab === 'catalogo'
                 ? 'Buscar libros...'
-                : 'Buscar mis propuestas...'
+                : activeTab === 'administracion' ? 'Buscar pendientes...' : 'Buscar mis borradores...'
             }
             aria-label="Buscar"
           />
@@ -476,6 +476,7 @@ async function borrarPropuesta(
         !(activeTab === 'administracion' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'propuestas' &&
           propuestasNuevas.some((propuesta) => {
+            if (propuesta.estado !== 'borrador') return false
             if (!textoBusqueda) return true
 
             return (
@@ -529,6 +530,7 @@ async function borrarPropuesta(
                       
             {activeTab === 'propuestas' &&
               propuestasNuevas
+                .filter((propuesta) => propuesta.estado === 'borrador')
                 .filter((propuesta) => {
                   if (!textoBusqueda) return true
 
