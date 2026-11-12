@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, GripVertical } from 'lucide-react'
-import { EditorDescripcion } from './EditorDescripcion'
+import { EditorDescripcion } from '../shared/EditorDescripcion'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
