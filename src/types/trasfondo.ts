@@ -43,5 +43,7 @@ export type Dote = {
   beneficios: string[]
   fuente?: { libro?: string; pagina?: number }
   efectos?: EfectoDote[]
+  /** IDs de conjuros del catálogo; evita duplicar su definición. */
+  conjurosIds?: string[]
   datosAdicionales?: Record<string, unknown>
 }
