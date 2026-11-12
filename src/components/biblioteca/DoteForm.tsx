@@ -65,7 +65,13 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
   return <section className="nueva-propuesta-panel especie-form">
     <h3>{initialData ? 'Editar dote' : 'Agregar dote'}</h3>
     <div className="nueva-propuesta-field"><label htmlFor="dote-nombre">Nombre *</label><input id="dote-nombre" value={nombre} onChange={e => { setNombre(e.target.value); setError('') }} /></div>
-    <div className="nueva-propuesta-field"><label htmlFor="dote-categoria">Categoría</label><input id="dote-categoria" value={categoria} onChange={e => setCategoria(e.target.value)} placeholder="Ej.: origen, general, épica" /></div>
+    <div className="nueva-propuesta-field"><label htmlFor="dote-categoria">Categoría *</label><select id="dote-categoria" value={categoria} onChange={e => setCategoria(e.target.value)}>
+      <option value="origen">Dote de origen</option>
+      <option value="general">Dote general</option>
+      <option value="epica">Dote épica</option>
+      <option value="estilo_combate">Dote de estilo de combate</option>
+      {!['origen', 'general', 'epica', 'estilo_combate'].includes(categoria) && <option value={categoria}>{categoria} (categoría anterior)</option>}
+    </select></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-requisitos">Requisitos (uno por línea)</label><textarea id="dote-requisitos" rows={3} value={requisitos} onChange={e => setRequisitos(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-beneficios">Beneficios (uno por línea)</label><textarea id="dote-beneficios" rows={5} value={beneficios} onChange={e => setBeneficios(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-descripcion">Descripción</label><textarea id="dote-descripcion" rows={5} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></div>
