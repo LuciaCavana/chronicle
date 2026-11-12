@@ -203,7 +203,7 @@ export default function ContenidoLibro({
                 <button
                   type="button"
                   className="contenido-libro-add"
-                  disabled={category.id !== 'especies' && category.id !== 'clases' && category.id !== 'subclases'}
+                  disabled={!(category.id === 'especies' || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass))}
                   title={
                     category.id === 'especies'
                       ? 'Agregar especie'
