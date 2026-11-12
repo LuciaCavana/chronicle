@@ -118,7 +118,7 @@
 
 
 /* Tabla de progresión flexible */
-.clase-form__tabla-scroll { width: min(100%, 708px); height: min(437px, 65vh); max-width: 100%; overflow: auto; margin: 12px 0 20px; }
+.clase-form__tabla-scroll { width: 100%; overflow-x: auto; margin: 12px 0 20px; }
 .clase-form__tabla { border-collapse: collapse; width: 100%; min-width: 620px; }
 .clase-form__tabla th, .clase-form__tabla td { border: 1px solid #454354; padding: 7px; vertical-align: middle; }
 .clase-form__tabla th { background: #242331; color: #e8dfcf; text-align: left; }
@@ -201,4 +201,3 @@
 .clase-form__resumen-rasgo span { color: #c8b994; font-size: 12px; }
 .clase-form__acciones-rasgo { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
 
-@media (max-width: 740px) { .clase-form__tabla-scroll { width: 100%; height: min(437px, 60vh); } }
