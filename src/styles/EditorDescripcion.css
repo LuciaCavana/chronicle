@@ -19,3 +19,10 @@
 .editor-descripcion__hex>span{width:34px;height:34px;border:1px solid #777;border-radius:5px}
 .editor-descripcion__hex input{width:110px!important;flex:none!important}
 .editor-descripcion__hex button{font-size:12px;padding:7px 9px}
+
+/* Selector flotante: no desplaza el área de escritura ni interrumpe la selección. */
+.editor-descripcion{position:relative}
+.editor-descripcion__selector{position:absolute;z-index:30;top:48px;right:8px;width:min(350px,calc(100% - 16px));box-sizing:border-box;border:1px solid #756343;border-radius:10px;box-shadow:0 12px 35px #000a}
+.editor-descripcion__selector-titulo{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.editor-descripcion__selector-titulo button{padding:5px;display:flex;align-items:center;justify-content:center}
+.editor-descripcion__hex button{display:inline-flex;align-items:center;gap:6px}
