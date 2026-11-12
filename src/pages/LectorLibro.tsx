@@ -16,6 +16,7 @@ type Version = {
   conjuros: unknown
   clases: unknown
   subclases: unknown
+  objetos: unknown
 }
 type LibroPublicado = {
   id: string
@@ -200,7 +201,7 @@ export default function LectorLibro() {
     async function cargar() {
       setCargando(true);setError('')
       const {data,error:fallo}=await supabase.from('libros')
-        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases,subclases)')
+        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases,subclases,objetos)')
         .eq('id',libroId ?? '').eq('estado','publicado').maybeSingle()
       if(!activo)return
       if(fallo)setError('No se pudo cargar el libro publicado.')
@@ -216,6 +217,7 @@ export default function LectorLibro() {
     {id:'especies',titulo:'Especies',elementos:lista(version.especies)},
     {id:'clases',titulo:'Clases',elementos:lista(version.clases)},
     {id:'subclases',titulo:'Subclases',elementos:lista(version.subclases)},
+    {id:'objetos',titulo:'Objetos y equipo',elementos:lista(version.objetos)},
     {id:'conjuros',titulo:'Conjuros',elementos:lista(version.conjuros)}
   ] : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
