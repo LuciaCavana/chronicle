@@ -33,7 +33,7 @@ function limpiarHtml(html: string) {
       const fondo = (hijo as HTMLElement).style.backgroundColor
       const fontColor = hijo.tagName === 'FONT' ? hijo.getAttribute('color') : null
       for (const atributo of Array.from(hijo.attributes)) hijo.removeAttribute(atributo.name)
-      const valido = (v: string) => /^(#[0-9a-f]{3,8}|rgb\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*\\)|[a-z]{3,20})$/i.test(v)
+      const valido = (v: string) => /^(#[0-9a-f]{3,8}|rgba?\([\d\s.,%]+\)|[a-z]{3,20})$/i.test(v)
       if (valido(color || '')) (hijo as HTMLElement).style.color = color
       if (valido(fondo || '')) (hijo as HTMLElement).style.backgroundColor = fondo
       if (fontColor && valido(fontColor)) (hijo as HTMLElement).style.color = fontColor
