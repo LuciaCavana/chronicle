@@ -7,6 +7,7 @@ import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
+import ConjuroForm from '../components/biblioteca/ConjuroForm'
 import ClaseForm from '../components/biblioteca/ClaseForm'
 import SubclaseForm from '../components/biblioteca/SubclaseForm'
 import ObjetoForm from '../components/biblioteca/ObjetoForm'
@@ -86,6 +87,8 @@ export default function NuevaPropuesta() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [especies, setEspecies] = useState<Especie[]>([])
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
+  const [editingConjuroId, setEditingConjuroId] = useState<string | null>(null)
+  const [showConjuroForm, setShowConjuroForm] = useState(false)
   const [clases, setClases] = useState<Elemento[]>([])
   const [subclases, setSubclases] = useState<Elemento[]>([])
   const [objetos, setObjetos] = useState<Elemento[]>([])
@@ -248,6 +251,12 @@ export default function NuevaPropuesta() {
 
   function eliminarEspecie(id: string) {
     setEspecies((actuales) => actuales.filter((especie) => especie.id !== id))
+  }
+
+  function guardarConjuro(conjuro: Conjuro) {
+    setConjuros(actuales => actuales.some(c => c.id === conjuro.id) ? actuales.map(c => c.id === conjuro.id ? conjuro : c) : [...actuales, conjuro])
+    setShowConjuroForm(false)
+    setEditingConjuroId(null)
   }
 
   function crearConjuro(conjuro: Conjuro) {
@@ -559,6 +568,8 @@ export default function NuevaPropuesta() {
                 <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
+            ) : showConjuroForm ? (
+              <ConjuroForm key={editingConjuroId ?? 'nuevo'} initialData={conjuros.find(c => c.id === editingConjuroId)} conjuros={conjuros} onSave={guardarConjuro} onCancel={() => { setShowConjuroForm(false); setEditingConjuroId(null) }} />
             ) : showEspecieForm ? (
               <EspecieForm
                 bookTitle={title}
@@ -609,6 +620,9 @@ export default function NuevaPropuesta() {
                 onAddSpecies={() => abrirFormularioEspecie(null)}
                 onEditSpecies={abrirFormularioEspecie}
                 onDeleteSpecies={eliminarEspecie}
+                onAddConjuro={() => { setEditingConjuroId(null); setShowConjuroForm(true) }}
+                onEditConjuro={id => { setEditingConjuroId(id); setShowConjuroForm(true) }}
+                onDeleteConjuro={id => setConjuros(actuales => actuales.filter(c => c.id !== id))}
               />
             )}
           </>
@@ -652,6 +666,8 @@ export default function NuevaPropuesta() {
                 if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
                 } else if (currentStep === 2 && editingClassId !== null) {
                   setEditingClassId(null)
+                } else if (currentStep === 2 && showConjuroForm) {
+                  setShowConjuroForm(false); setEditingConjuroId(null)
                 } else if (currentStep === 2 && showEspecieForm) {
                   cerrarFormularioEspecie()
                 } else {
@@ -679,7 +695,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
+          {currentStep === 2 && !showEspecieForm && !showConjuroForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
