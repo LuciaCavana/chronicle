@@ -20,6 +20,7 @@ import {
 
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
+import { enviarBorradorAprobacion } from '../services/libros'
 import '../styles/Libros.css'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'administracion'
@@ -30,6 +31,7 @@ type PropuestaNueva = {
   id: string
   tipo: 'libro_nuevo' | 'modificacion' | 'traduccion'
   estado: string
+  pendiente_aprobacion: boolean
   revision_resultante_id?: string | null
   titulo: string
   idioma: string
@@ -167,9 +169,10 @@ export default function Libros() {
       if (rol?.role === 'creator' || rol?.role === 'admin') {
         const { data: borradores, error: errorBorradores } = await supabase
           .from('propuestas')
-          .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,revision_resultante_id')
+          .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,revision_resultante_id,pendiente_aprobacion')
           .eq('estado', 'borrador')
           .eq('tipo', 'libro_nuevo')
+          .eq('pendiente_aprobacion', true)
           .order('creado_en', { ascending: false })
         if (errorBorradores) throw errorBorradores
         setBorradoresAdministracion((borradores ?? []) as PropuestaNueva[])
@@ -213,7 +216,9 @@ export default function Libros() {
             idioma,
             autor_id,
             creado_en,
-            metadatos_libro
+            metadatos_libro,
+            pendiente_aprobacion,
+            revision_resultante_id
           `)
           .eq('autor_id', usuario.id)
           .order('creado_en', { ascending: false })
@@ -358,6 +363,21 @@ async function borrarPropuesta(
       setError(
         err instanceof Error ? err.message : 'No se pudo modificar el libro.'
       )
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
+  async function enviarARevision(propuestaId: string) {
+    if (actualizandoId) return
+    setActualizandoId(propuestaId)
+    setError('')
+    try {
+      await enviarBorradorAprobacion(propuestaId)
+      setPropuestasNuevas(actuales => actuales.map(p => p.id === propuestaId ? { ...p, pendiente_aprobacion: true } : p))
+      await cargarLibros()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo enviar a aprobación.')
     } finally {
       setActualizandoId(null)
     }
@@ -560,12 +580,13 @@ async function borrarPropuesta(
 
                       <div className="libros-item-details">
                         <span>{propuesta.idioma.toUpperCase()}</span>
-                        <span>{propuesta.estado}</span>
+                        <span>{propuesta.pendiente_aprobacion ? 'Pendiente de aprobación' : propuesta.revision_resultante_id ? 'Versión aprobada / Sin cambios enviados' : 'Sin enviar a aprobación'}</span>
                       </div>
                     </div>
                                       
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
+                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}>Enviar a aprobación</button>}
                       <Link
                         to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
                         className="libros-admin-button"
