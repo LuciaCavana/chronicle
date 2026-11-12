@@ -189,3 +189,14 @@
 /* Los menús no bloquean el clic derecho sobre otras celdas o encabezados. */
 .clase-form__menu-capa { pointer-events: none; }
 .clase-form__menu-contextual { pointer-events: auto; }
+
+
+/* Editor emergente de características y lista compacta */
+.clase-form__editor-rasgo { display: flex; flex-direction: column; gap: 14px; width: min(640px, calc(100vw - 32px)); max-height: 90vh; overflow-y: auto; }
+.clase-form__editor-rasgo label { display: flex; flex-direction: column; gap: 7px; }
+.clase-form__editor-rasgo textarea { min-height: 160px; resize: vertical; }
+.clase-form__lista-rasgos { display: flex; flex-direction: column; gap: 9px; }
+.clase-form__resumen-rasgo { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px; border: 1px solid #454354; border-radius: 8px; background: #1a1b27; }
+.clase-form__resumen-rasgo > div:first-child { display: flex; flex-direction: column; gap: 5px; }
+.clase-form__resumen-rasgo span { color: #c8b994; font-size: 12px; }
+.clase-form__acciones-rasgo { display: flex; justify-content: flex-end; gap: 9px; flex-wrap: wrap; }
