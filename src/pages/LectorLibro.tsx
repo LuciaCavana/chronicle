@@ -64,7 +64,6 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
   }
   const equipo = lista(datos.equipoOpciones)
   const rasgos = lista(datos.rasgos).sort((a,b) => Number(a.nivel || 0)-Number(b.nivel || 0))
-  const recursos = lista(datos.recursos)
   const progresion = lista(datos.progresion)
   const columnas = lista(datos.columnasProgresion)
   const celdas = valorObjeto(datos.celdasProgresion)
@@ -115,14 +114,6 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
         </div>)}</div>
       </> : <TextoSeguro valor={datos.equipoInicial || 'No se especificó equipamiento inicial.'}/>}
     </section>
-    {recursos.length>0 && <section className="lector-libro__clase-bloque">
-      <h4>Recursos de clase</h4>
-      <div className="lector-libro__opciones">{recursos.map((recurso,i)=><article key={texto(recurso.id)||i} className="lector-libro__opcion">
-        <strong>{tituloElemento(recurso,i)}</strong>
-        {texto(recurso.recuperacion) && <span className="lector-libro__nota">Recuperación: {texto(recurso.recuperacion)}</span>}
-        <TextoSeguro valor={recurso.descripcion}/>
-      </article>)}</div>
-    </section>}
     {progresion.length>0 && <section className="lector-libro__clase-bloque">
       <h4>Tabla de progresión</h4>
       <div className="lector-libro__tabla-scroll"><table className="lector-libro__tabla">
