@@ -97,7 +97,8 @@ export async function obtenerLibros() {
         descripcion,
         categorias,
         especies,
-        conjuros
+        conjuros,
+        clases
       )
     `
     )
@@ -213,6 +214,7 @@ export async function actualizarLibro(
       categorias: datos.categorias,
       especies: datos.especies,
       conjuros: datos.conjuros,
+      clases: datos.clases,
     })
     .eq('id', versionId)
     .eq('libro_id', libroId)
