@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, ChevronRight, Feather, ScrollText } from 'lucide-react'
+import { ArrowLeft, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import '../styles/LectorLibro.css'
@@ -47,6 +47,13 @@ function DatoClase({ etiqueta, valor }: { etiqueta: string; valor: unknown }) {
 }
 
 function ClaseCompleta({ clase }: { clase: Registro }) {
+  const [rasgoAbierto, setRasgoAbierto] = useState<Registro | null>(null)
+  useEffect(() => {
+    if (!rasgoAbierto) return
+    const cerrar = (evento: KeyboardEvent) => { if (evento.key === 'Escape') setRasgoAbierto(null) }
+    document.addEventListener('keydown', cerrar)
+    return () => document.removeEventListener('keydown', cerrar)
+  }, [rasgoAbierto])
   // El editor guarda el contenido específico en elemento.datos.
   const datos = valorObjeto(clase.datos)
   const competencias = valorObjeto(datos.competencias)
@@ -69,6 +76,19 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
   const armasEspecificas = valoresTexto(competencias.armasEspecificas).map(nombreObjeto)
   const gruposEquipo = equipo.flatMap(grupo => lista(grupo.opciones).map(opcion => ({grupo, opcion})))
   return <>
+    {rasgoAbierto && <div className="lector-libro__modal-capa" role="presentation" onMouseDown={evento => { if (evento.target === evento.currentTarget) setRasgoAbierto(null) }}>
+      <div className="lector-libro__modal-rasgo" role="dialog" aria-modal="true" aria-labelledby="lector-rasgo-titulo">
+        <button type="button" className="lector-libro__modal-cerrar" onClick={() => setRasgoAbierto(null)} aria-label="Cerrar definición"><X size={20}/></button>
+        <div className="lector-libro__modal-cabecera">
+          <h3 id="lector-rasgo-titulo">{tituloElemento(rasgoAbierto, 0)}</h3>
+          <span>Nivel {mostrar(rasgoAbierto.nivel)}</span>
+        </div>
+        <div className="lector-libro__modal-cuerpo">
+          <TextoSeguro valor={rasgoAbierto.descripcion}/>
+          {!texto(rasgoAbierto.descripcion) && <p className="lector-libro__vacio">Esta característica todavía no tiene descripción.</p>}
+        </div>
+      </div>
+    </div>}
     <TextoSeguro valor={clase.descripcion || clase.texto || clase.resumen}/>
     <section className="lector-libro__clase-bloque">
       <h4>Datos generales</h4>
@@ -117,7 +137,7 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
               const rasgosVisibles=rasgos.filter(r=>Number(r.nivel)===nivel && !valoresTexto(filaOcultas[id]).includes(texto(r.id)))
               const valor=texto(filaCeldas[id]) || (id==='competencia' ? `+${Number(fila.bonificadorCompetencia || 0)}` : id==='notas' ? texto(fila.notas) : '')
               return <td key={id||j}>{columna.tipo==='caracteristicas'
-                ? <div className="lector-libro__etiquetas">{rasgosVisibles.map((rasgo,k)=><span key={texto(rasgo.id)||k}>{tituloElemento(rasgo,k)}</span>)}</div>
+                ? <div className="lector-libro__etiquetas">{rasgosVisibles.map((rasgo,k)=><button type="button" className="lector-libro__rasgo-enlace" key={texto(rasgo.id)||k} onClick={() => setRasgoAbierto(rasgo)} title={`Leer ${tituloElemento(rasgo,k)}`}>{tituloElemento(rasgo,k)}</button>)}</div>
                 : valor || '—'}</td>
             })}</tr>
         })}</tbody>
@@ -126,7 +146,7 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
     {rasgos.length>0 && <section className="lector-libro__clase-bloque">
       <h4>Características de clase</h4>
       <div className="lector-libro__rasgos">{rasgos.map((rasgo,i)=><article className="lector-libro__rasgo" key={texto(rasgo.id)||i}>
-        <div className="lector-libro__rasgo-encabezado"><strong>{tituloElemento(rasgo,i)}</strong><span>Nivel {mostrar(rasgo.nivel)}</span></div>
+        <div className="lector-libro__rasgo-encabezado"><strong>Nivel {mostrar(rasgo.nivel)}: {tituloElemento(rasgo,i)}.</strong></div>
         <TextoSeguro valor={rasgo.descripcion}/>
       </article>)}</div>
     </section>}
