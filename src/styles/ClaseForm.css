@@ -298,3 +298,13 @@
   width: max-content;
   min-width: 100%;
 }
+
+/* Ajuste fino: el panel toma el ancho real de la tabla, sin espacio sobrante. */
+.clase-form { width: max-content; min-width: 0; max-width: none; margin: 14px auto 0; }
+.clase-form__fieldset { display: flex; flex-direction: column; align-items: stretch; width: max-content; min-width: 0; max-width: none; }
+.clase-form__panel { display: grid; width: max-content; min-width: 0; max-width: none; padding: 14px; }
+.clase-form__tabla-scroll { width: max-content; max-width: none; margin: 8px 0 14px; }
+.clase-form__tabla { width: max-content; min-width: 0; }
+.clase-form__tabla td { min-width: 110px; }
+.clase-form__tabla .clase-form__columna-cabecera { min-width: 145px; }
+.clase-form__tabla .clase-form__columna-cabecera input { min-width: 95px; }
