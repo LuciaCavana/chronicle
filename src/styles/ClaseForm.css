@@ -176,3 +176,11 @@
 .clase-form__tabla tbody th[scope="row"] { cursor: context-menu; }
 .clase-form__menu-contextual .clase-form__menu-eliminar { color: #ff858e; }
 .clase-form__menu-contextual .clase-form__menu-eliminar:hover { background: #512b37; }
+
+
+/* Acciones de filas integradas, sin botón en el cuerpo */
+.clase-form__cabecera-nivel { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 145px; }
+.clase-form__cabecera-nivel .clase-form__agregar-fila { flex: none; padding: 5px 7px; font-size: 11px; border: 1px solid #806944; border-radius: 5px; background: #312b27; color: #e9c98e; cursor: pointer; }
+.clase-form__cabecera-nivel .clase-form__agregar-fila:hover { background: #463a2d; }
+.clase-form__tabla tbody th[scope="row"] { cursor: grab; user-select: none; }
+.clase-form__tabla tbody th[scope="row"]:active { cursor: grabbing; }
