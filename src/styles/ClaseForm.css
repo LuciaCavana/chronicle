@@ -161,3 +161,8 @@
 .clase-form__nivel-fila { display: flex; align-items: center; justify-content: center; gap: 8px; }
 .clase-form__eliminar-fila { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; min-width: 20px; padding: 0; border: 1px solid #a66368; border-radius: 50%; background: #38242c; color: #f0a0a5; font-size: 15px; line-height: 1; cursor: pointer; }
 .clase-form__eliminar-fila:hover { background: #66313c; color: #fff; }
+
+
+/* Eliminar fila: círculo rojo a la izquierda del nivel */
+.clase-form__eliminar-fila { border-color: #d65c66; background: #8b2937; color: #fff; }
+.clase-form__eliminar-fila:hover { border-color: #ff8b94; background: #bc3649; color: #fff; }
