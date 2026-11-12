@@ -16,6 +16,7 @@ type RevisionLibroProps = {
   cantidadEspecies: number
   cantidadConjuros: number
   cantidadClases?: number
+  cantidadSubclases?: number
 }
 
 export default function RevisionLibro({
@@ -30,6 +31,7 @@ export default function RevisionLibro({
   cantidadEspecies,
   cantidadConjuros,
   cantidadClases = 0,
+  cantidadSubclases = 0,
 }: RevisionLibroProps) {
   const clasificaciones: Record<string, string> = {
     source: 'Source',
@@ -61,6 +63,10 @@ if (
   advertencias.push(
     'La categoría Especies no tiene elementos cargados.'
   )
+}
+
+if (categorias.some(categoria => categoria.id === 'subclases') && cantidadSubclases === 0) {
+  advertencias.push('La categoría Subclases no tiene elementos cargados.')
 }
 
 if (categorias.some(categoria => categoria.id === 'clases') && cantidadClases === 0) {
@@ -108,6 +114,8 @@ if (
                 ? ` — ${cantidadEspecies} especie(s)`
                 : categoria.id === 'clases'
                     ? ` — ${cantidadClases} clase(s)`
+                : categoria.id === 'subclases'
+                    ? ` — ${cantidadSubclases} subclase(s)`
                 : categoria.id === 'conjuros'
                     ? ` — ${cantidadConjuros} conjuro(s)`
                     : ' — Sin elementos cargados'}
