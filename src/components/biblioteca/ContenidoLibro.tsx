@@ -28,6 +28,9 @@ type ContenidoLibroProps = {
   onEditSpecies: (id: string) => void
   onDeleteSpecies: (id: string) => void
   conjuros: Conjuro[]
+  onAddConjuro?: () => void
+  onEditConjuro?: (id: string) => void
+  onDeleteConjuro?: (id: string) => void
   clases?: { id: string; nombre: string }[]
   onAddClass?: () => void
   onEditClass?: (id: string) => void
@@ -54,6 +57,9 @@ export default function ContenidoLibro({
   onEditSpecies,
   onDeleteSpecies,
   conjuros,
+  onAddConjuro,
+  onEditConjuro,
+  onDeleteConjuro,
   clases = [],
   onAddClass,
   onEditClass,
@@ -196,13 +202,15 @@ export default function ContenidoLibro({
                           key={conjuro.id}
                           className="contenido-libro-species-item"
                         >
-                          <span className="contenido-libro-species-tag">
+                          <button type="button" className="contenido-libro-species-tag" onClick={() => onEditConjuro?.(conjuro.id)}>
                             {conjuro.nombre}
                             {' · '}
                             {conjuro.tipo === 'truco'
                               ? 'Truco'
                               : `Nivel ${conjuro.nivel}`}
-                          </span>
+                            <Pencil size={13} />
+                          </button>
+                          <button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar el conjuro «${conjuro.nombre}»?`)) onDeleteConjuro?.(conjuro.id) }} aria-label={`Eliminar ${conjuro.nombre}`}><Trash2 size={15}/></button>
                         </div>
                       ))}
                     </div>
@@ -212,15 +220,17 @@ export default function ContenidoLibro({
                 <button
                   type="button"
                   className="contenido-libro-add"
-                  disabled={!(category.id === 'especies' || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass) || (category.id === 'objetos' && !!onAddObject))}
+                  disabled={!(category.id === 'especies' || (category.id === 'conjuros' && !!onAddConjuro) || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass) || (category.id === 'objetos' && !!onAddObject))}
                   title={
                     category.id === 'especies'
                       ? 'Agregar especie'
-                      : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : category.id === 'objetos' ? 'Agregar objeto' : 'Próximamente'
+                      : category.id === 'conjuros' ? 'Agregar conjuro' : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : category.id === 'objetos' ? 'Agregar objeto' : 'Próximamente'
                   }
                   onClick={() => {
                     if (category.id === 'especies') {
                       onAddSpecies()
+                    } else if (category.id === 'conjuros') {
+                      onAddConjuro?.()
                     } else if (category.id === 'clases') {
                       onAddClass?.()
                     } else if (category.id === 'subclases') {
