@@ -18,6 +18,30 @@ function hexAHsv(hex: string): [number, number, number] {
 }
 const escapeHtml = (value: string) => value.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
 const normalizar = (value: string) => /^\s*</.test(value) ? value : value.split(/\r?\n/).map(p => '<p>'+escapeHtml(p || ' ')+'</p>').join('')
+const ETIQUETAS = new Set(['P','DIV','BR','STRONG','B','EM','I','U','UL','OL','LI','SPAN','FONT','H2','H3','BLOCKQUOTE'])
+function limpiarHtml(html: string) {
+  const doc = new DOMParser().parseFromString(html,'text/html')
+  function limpiar(nodo: Element) {
+    for (const hijo of Array.from(nodo.children)) {
+      if (!ETIQUETAS.has(hijo.tagName)) {
+        const texto = doc.createTextNode(hijo.textContent || '')
+        hijo.replaceWith(texto)
+        continue
+      }
+      const color = (hijo as HTMLElement).style.color
+      const fondo = (hijo as HTMLElement).style.backgroundColor
+      const fontColor = hijo.tagName === 'FONT' ? hijo.getAttribute('color') : null
+      for (const atributo of Array.from(hijo.attributes)) hijo.removeAttribute(atributo.name)
+      const valido = (v: string) => /^(#[0-9a-f]{3,8}|rgb\\(\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*,\\s*\\d{1,3}\\s*\\)|[a-z]{3,20})$/i.test(v)
+      if (valido(color || '')) (hijo as HTMLElement).style.color = color
+      if (valido(fondo || '')) (hijo as HTMLElement).style.backgroundColor = fondo
+      if (fontColor && valido(fontColor)) (hijo as HTMLElement).style.color = fontColor
+      limpiar(hijo)
+    }
+  }
+  limpiar(doc.body)
+  return doc.body.innerHTML
+}
 export function EditorDescripcion({value,onChange}:Props) {
   const editable=useRef<HTMLDivElement>(null)
   const seleccion=useRef<Range|null>(null)
@@ -25,8 +49,8 @@ export function EditorDescripcion({value,onChange}:Props) {
   const [h,setH]=useState(0),[s,setS]=useState(0.8),[v,setV]=useState(0.8)
   const [hex,setHex]=useState('#CC3333')
   const color=hsvAHex(h,s,v)
-  useEffect(()=>{if(editable.current && editable.current.innerHTML!==normalizar(value)) editable.current.innerHTML=normalizar(value)},[]) // solo al montar; no interrumpe el cursor
-  const emitir=()=>onChange(editable.current?.innerHTML || '')
+  useEffect(()=>{if(editable.current && editable.current.innerHTML!==normalizar(value)) editable.current.innerHTML=limpiarHtml(normalizar(value))},[]) // solo al montar; no interrumpe el cursor
+  const emitir=()=>onChange(limpiarHtml(editable.current?.innerHTML || ''))
   const guardarSeleccion=()=>{const sel=window.getSelection();if(sel?.rangeCount && editable.current?.contains(sel.anchorNode)) seleccion.current=sel.getRangeAt(0).cloneRange()}
   const restaurarSeleccion=()=>{editable.current?.focus();if(seleccion.current){const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(seleccion.current)}}
   const ejecutar=(cmd:string,arg?:string)=>{restaurarSeleccion();document.execCommand(cmd,false,arg);guardarSeleccion();emitir()}
@@ -59,6 +83,6 @@ export function EditorDescripcion({value,onChange}:Props) {
       <div className="editor-descripcion__hex"><span style={{background:color}}/><input aria-label="Color hexadecimal" value={hex} onChange={e=>{const val=e.target.value;setHex(val);if(/^#[0-9a-fA-F]{6}$/.test(val)){const [hh,ss,vv]=hexAHsv(val);setH(hh);setS(ss);setV(vv)}}}/><button type="button" onClick={()=>aplicarColor(color)}>Aplicar color</button><button type="button" onClick={()=>setTipo(null)}>Cerrar</button></div>
       <button type="button" onClick={()=>ejecutar('removeFormat')}>Quitar formato seleccionado</button>
     </div>}
-    <div ref={editable} className="editor-descripcion__contenido" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Descripción de la característica" onInput={emitir} onKeyUp={guardarSeleccion} onMouseUp={guardarSeleccion} onBlur={guardarSeleccion}/>
+    <div ref={editable} className="editor-descripcion__contenido" contentEditable suppressContentEditableWarning role="textbox" aria-multiline="true" aria-label="Descripción de la característica" onInput={emitir} onPaste={e=>{e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));emitir()}} onKeyUp={guardarSeleccion} onMouseUp={guardarSeleccion} onBlur={guardarSeleccion}/>
   </div>
 }
