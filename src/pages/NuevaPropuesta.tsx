@@ -584,6 +584,10 @@ export default function NuevaPropuesta() {
                   nombre: especie.nombre,
                 }))}
                 clases={clases.map(c => ({ id: c.id, nombre: c.nombre }))}
+                objetos={objetos.map(o => ({ id: o.id, nombre: o.nombre, tipo: String(o.datos.tipo ?? 'equipo') }))}
+                onAddObject={() => { const id = crypto.randomUUID(); setObjetos(actuales => [...actuales, { id, tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }]); setEditingObjectId(id) }}
+                onEditObject={setEditingObjectId}
+                onDeleteObject={id => setObjetos(actuales => actuales.filter(o => o.id !== id))}
                 subclases={subclases.map(s => ({ id: s.id, nombre: s.nombre, claseNombre: clases.find(c => c.id === (s.datos as {claseId?: string}).claseId)?.nombre ?? 'Clase no disponible' }))}
                 onAddSubclass={() => { const id = crypto.randomUUID(); setSubclases(actuales => [...actuales, { id, tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }]); setEditingSubclassId(id) }}
                 onEditSubclass={setEditingSubclassId}
@@ -598,6 +602,7 @@ export default function NuevaPropuesta() {
                 categoryItemCounts={{
                   clases: clases.length,
                   subclases: subclases.length,
+                  objetos: objetos.length,
                   especies: especies.length,
                   conjuros: conjuros.length,
                 }}
@@ -623,6 +628,7 @@ export default function NuevaPropuesta() {
             cantidadConjuros={conjuros.length}
             cantidadClases={clases.length}
             cantidadSubclases={subclases.length}
+            cantidadObjetos={objetos.length}
           />
         )}
 
@@ -678,6 +684,7 @@ export default function NuevaPropuesta() {
               type="button"
               className="nueva-propuesta-next"
               onClick={() => {
+                if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); return }
                 if (subclases.some(s => !s.nombre.trim() || !clases.some(c => c.id === (s.datos as {claseId?: string}).claseId))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); return }
                 if (clases.some(clase => !clase.nombre.trim())) {
                   setErrorGuardado('Todas las clases deben tener un nombre. Editá o eliminá las clases incompletas.')
