@@ -4,6 +4,7 @@ import ConjuroForm from './ConjuroForm'
 import SeleccionConjurosDoteForm from './SeleccionConjurosDoteForm'
 import type { Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
 import '../../styles/EspecieForm.css'
+import '../../styles/DoteForm.css'
 
 type Props = {
   initialData?: Dote | null
@@ -62,7 +63,7 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
 
   if (creandoConjuro) return <ConjuroForm conjuros={conjuros} onSave={conjuro => { onCrearConjuro(conjuro); setConjurosIds(actuales => [...actuales, conjuro.id]); setCreandoConjuro(false) }} onCancel={() => setCreandoConjuro(false)} />
 
-  return <section className="nueva-propuesta-panel especie-form">
+  return <section className="nueva-propuesta-panel especie-form dote-form">
     <h3>{initialData ? 'Editar dote' : 'Agregar dote'}</h3>
     <div className="nueva-propuesta-field"><label htmlFor="dote-nombre">Nombre *</label><input id="dote-nombre" value={nombre} onChange={e => { setNombre(e.target.value); setError('') }} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-categoria">Categoría *</label><select id="dote-categoria" value={categoria} onChange={e => setCategoria(e.target.value)}>
@@ -75,14 +76,14 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     <div className="nueva-propuesta-field"><label htmlFor="dote-requisitos">Requisitos (uno por línea)</label><textarea id="dote-requisitos" rows={3} value={requisitos} onChange={e => setRequisitos(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-beneficios">Beneficios (uno por línea)</label><textarea id="dote-beneficios" rows={5} value={beneficios} onChange={e => setBeneficios(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-descripcion">Descripción</label><textarea id="dote-descripcion" rows={5} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></div>
-    <fieldset><legend>Conjuros vinculados</legend>
+    <fieldset className="dote-conjuros"><legend>Conjuros vinculados</legend>
       <p>Seleccioná los conjuros que otorga o referencia esta dote. La relación se guarda por ID.</p>
       {conjuros.length === 0 && <p>No hay conjuros cargados todavía.</p>}
-      {conjuros.map(conjuro => <label key={conjuro.id} style={{ display: 'block', marginBottom: 8 }}>
+      {conjuros.map(conjuro => <label key={conjuro.id} className="dote-conjuro-opcion">
         <input type="checkbox" checked={conjurosIds.includes(conjuro.id)} onChange={e => setConjurosIds(actuales => e.target.checked ? [...actuales, conjuro.id] : actuales.filter(id => id !== conjuro.id))} />
         {' '}{conjuro.nombre} ({conjuro.tipo === 'truco' ? 'Truco' : `Nivel ${conjuro.nivel}`})
       </label>)}
-      <button type="button" onClick={() => setCreandoConjuro(true)}>Crear conjuro y vincularlo</button>
+      <button type="button" className="dote-accion" onClick={() => setCreandoConjuro(true)}>Crear conjuro y vincularlo</button>
     </fieldset>
     <SeleccionConjurosDoteForm value={seleccionConjuros} onChange={setSeleccionConjuros} clasesDisponibles={clasesDisponibles}/>
     <fieldset><legend>Fuente</legend>
@@ -99,7 +100,7 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
         <div className="nueva-propuesta-field"><label>Escala</label><select value={efecto.escala ?? 'fijo'} onChange={e => cambiarEfecto(efecto.id, { escala: e.target.value as EfectoDote['escala'] })}><option value="fijo">Valor fijo</option><option value="nivel_personaje">Multiplicar por nivel del personaje</option></select></div>
         <button type="button" className="nueva-propuesta-cancel" onClick={() => setEfectos(actuales => actuales.filter(e => e.id !== efecto.id))}>Quitar efecto</button>
       </div>)}
-      <button type="button" onClick={() => setEfectos(actuales => [...actuales, { id: crypto.randomUUID(), evento: 'al_obtener', atributo: '', operacion: 'sumar', valor: 0, escala: 'fijo' }])}>Agregar efecto</button>
+      <button type="button" className="dote-accion" onClick={() => setEfectos(actuales => [...actuales, { id: crypto.randomUUID(), evento: 'al_obtener', atributo: '', operacion: 'sumar', valor: 0, escala: 'fijo' }])}>Agregar efecto</button>
     </fieldset>
     {error && <p role="alert">{error}</p>}
     <div className="nueva-propuesta-actions">
