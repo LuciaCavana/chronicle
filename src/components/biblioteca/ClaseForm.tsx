@@ -107,7 +107,6 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
 
 export default function ClaseForm({ elemento, onChange, disabled = false }: Props) {
   const datos = normalizarDatos(elemento.datos)
-  const [nivelActivo, setNivelActivo] = useState(1)
   const [columnaArrastrada, setColumnaArrastrada] = useState<string | null>(null)
   const [armaduraNueva, setArmaduraNueva] = useState('')
   const [armaNueva, setArmaNueva] = useState('')
@@ -213,7 +212,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     }
     setNombreObjeto(''); setDescripcionObjeto(''); setNuevoObjeto(false)
   }
-  const rasgosNivel = datos.rasgos.filter(r => r.nivel === nivelActivo)
+  const rasgosOrdenados = [...datos.rasgos].sort((a, b) => a.nivel - b.nivel)
 
   return (
     <div className="clase-form">
@@ -370,13 +369,21 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               </tr>)}</tbody>
             </table>
           </div>
-          <div className="clase-form__niveles" role="group" aria-label="Seleccionar nivel para características">
-            {datos.progresion.map(n => <button key={n.nivel} type="button" className={n.nivel === nivelActivo ? 'clase-form__nivel clase-form__nivel--activo' : 'clase-form__nivel'} aria-pressed={n.nivel === nivelActivo} onClick={() => setNivelActivo(n.nivel)}>{n.nivel}</button>)}
+          <div className="clase-form__heading">
+            <h4>Características de clase</h4>
+            <button type="button" onClick={() => actualizar({ rasgos: [...datos.rasgos, { id: nuevoId(), nivel: 1, nombre: '', descripcion: '' }] })}>+ Agregar característica</button>
           </div>
-          <div className="clase-form__heading"><h4>Características del nivel {nivelActivo}</h4><button type="button" onClick={() => actualizar({ rasgos: [...datos.rasgos, { id: nuevoId(), nivel: nivelActivo, nombre: '', descripcion: '' }] })}>+ Característica</button></div>
-          {rasgosNivel.length === 0 && <p className="clase-form__hint">No hay características cargadas para este nivel.</p>}
-          {rasgosNivel.map(r => <div className="clase-form__item" key={r.id}>
-            <label>Nombre<input value={r.nombre} onChange={e => actualizarRasgo(r.id, { nombre: e.target.value })} /></label>
+          <p className="clase-form__hint">Agregá las características y elegí el nivel en el que se obtiene cada una.</p>
+          {rasgosOrdenados.length === 0 && <p className="clase-form__hint">Todavía no hay características cargadas.</p>}
+          {rasgosOrdenados.map(r => <div className="clase-form__item" key={r.id}>
+            <div className="clase-form__grid">
+              <label>Nombre<input value={r.nombre} onChange={e => actualizarRasgo(r.id, { nombre: e.target.value })} /></label>
+              <label>Nivel en que se obtiene
+                <select value={r.nivel} onChange={e => actualizarRasgo(r.id, { nivel: Number(e.target.value) })}>
+                  {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Nivel {n}</option>)}
+                </select>
+              </label>
+            </div>
             <label>Descripción<textarea rows={4} value={r.descripcion} onChange={e => actualizarRasgo(r.id, { descripcion: e.target.value })} /></label>
             <button type="button" className="clase-form__danger" onClick={() => actualizar({ rasgos: datos.rasgos.filter(x => x.id !== r.id) })}>Eliminar característica</button>
           </div>)}
