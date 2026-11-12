@@ -1,5 +1,7 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useAuth } from '../../contexts/useAuth'
+import { soyAdminMotor } from '../../services/chronicleLibros'
 import { NavLink } from 'react-router-dom'
 import '../../styles/Sidebar.css'
 import {
@@ -8,6 +10,7 @@ import {
   ScrollText,
   BookOpen,
   Backpack,
+  ShieldCheck,
 } from 'lucide-react'
 
 
@@ -22,6 +25,14 @@ const menuItems = [
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(true)
+  const { session } = useAuth()
+  const [esAdmin, setEsAdmin] = useState(false)
+  useEffect(() => {
+    let activo = true
+    setEsAdmin(false)
+    if (session) void soyAdminMotor().then(valor => { if (activo) setEsAdmin(valor) }).catch(() => { if (activo) setEsAdmin(false) })
+    return () => { activo = false }
+  }, [session?.user.id])
 
   return (
     <aside
@@ -36,7 +47,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav" aria-label="Menú principal">
-        {menuItems.map((item) => {
+        {[...menuItems, ...(esAdmin ? [{ label: 'Administración', icon: ShieldCheck, path: '/administracion' }] : [])].map((item) => {
           const Icon = item.icon
 
           return (
