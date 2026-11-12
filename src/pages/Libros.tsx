@@ -170,13 +170,7 @@ export default function Libros() {
       const puedeAdministrar = Boolean(adminMotor) || rol?.role === 'creator' || rol?.role === 'admin'
       setEsAdministrador(puedeAdministrar)
       if (puedeAdministrar) {
-        const { data: borradores, error: errorBorradores } = await supabase
-          .from('propuestas')
-          .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,revision_resultante_id,pendiente_aprobacion')
-          .eq('estado', 'borrador')
-          .eq('tipo', 'libro_nuevo')
-          .eq('pendiente_aprobacion', true)
-          .order('creado_en', { ascending: false })
+        const { data: borradores, error: errorBorradores } = await supabase.rpc('chronicle_listar_propuestas_pendientes')
         if (errorBorradores) throw errorBorradores
         setBorradoresAdministracion((borradores ?? []) as PropuestaNueva[])
       } else {
