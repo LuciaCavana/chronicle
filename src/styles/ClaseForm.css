@@ -184,3 +184,8 @@
 .clase-form__cabecera-nivel .clase-form__agregar-fila:hover { background: #463a2d; }
 .clase-form__tabla tbody th[scope="row"] { cursor: grab; user-select: none; }
 .clase-form__tabla tbody th[scope="row"]:active { cursor: grabbing; }
+
+
+/* Los menús no bloquean el clic derecho sobre otras celdas o encabezados. */
+.clase-form__menu-capa { pointer-events: none; }
+.clase-form__menu-contextual { pointer-events: auto; }
