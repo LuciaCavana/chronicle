@@ -56,3 +56,31 @@
 .lector-libro__clase[open] .lector-libro__clase-flecha{transform:rotate(90deg)}
 .lector-libro__clase-contenido{padding:20px 24px 24px;border-top:1px solid #4a4350}
 @media(max-width:600px){.lector-libro__clase-resumen{padding:14px}.lector-libro__clase-contenido{padding:16px}.lector-libro__clase-titulo{font-size:18px}}
+
+/* Lectura completa de clases, sin modificar el editor */
+.lector-libro__clase-bloque{margin-top:28px;padding-top:22px;border-top:1px solid #504657;min-width:0}
+.lector-libro__clase-bloque h4{margin:0 0 16px;font-family:Georgia,serif;font-weight:500;font-size:23px;color:#e8d2aa}
+.lector-libro__datos-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0}
+.lector-libro__dato{padding:13px 15px;border:1px solid #48404b;border-radius:8px;background:#24232e;min-width:0}
+.lector-libro__dato dt{font-size:12px;color:#bfa77f;margin-bottom:7px}
+.lector-libro__dato dd{font-size:14px;color:#e5dfd8;margin:0;line-height:1.55;overflow-wrap:anywhere}
+.lector-libro__nota{display:block;color:#b9b0b7;font-size:13px;line-height:1.5;margin:5px 0 12px}
+.lector-libro__opciones{display:grid;gap:10px}
+.lector-libro__opcion{background:#24232e;border:1px solid #48404b;border-radius:8px;padding:15px;color:#ded6cc}
+.lector-libro__opcion strong{color:#e8d2aa}
+.lector-libro__opcion ul{margin:10px 0 0;padding-left:22px;line-height:1.8}
+.lector-libro__tabla-scroll{width:100%;overflow-x:auto;border:1px solid #514757;border-radius:8px}
+.lector-libro__tabla{width:100%;border-collapse:collapse;font-size:13px;text-align:left;white-space:normal}
+.lector-libro__tabla th,.lector-libro__tabla td{padding:10px 12px;border-bottom:1px solid #443d48;border-right:1px solid #443d48;vertical-align:top;min-width:90px}
+.lector-libro__tabla thead th{background:#36303b;color:#ebd3a7;font-weight:600;white-space:nowrap}
+.lector-libro__tabla tbody th{background:#302b35;color:#e8d2aa;min-width:60px}
+.lector-libro__tabla tbody tr:nth-child(even){background:#292631}
+.lector-libro__tabla tbody tr:last-child th,.lector-libro__tabla tbody tr:last-child td{border-bottom:0}
+.lector-libro__etiquetas{display:flex;flex-wrap:wrap;gap:5px}
+.lector-libro__etiquetas span{border:1px solid #756044;border-radius:5px;padding:3px 7px;color:#ecd4a8;font-size:12px}
+.lector-libro__rasgo{padding:13px 0;border-bottom:1px solid #453e49}
+.lector-libro__rasgo:last-child{border-bottom:0}
+.lector-libro__rasgo-encabezado{display:flex;align-items:baseline;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.lector-libro__rasgo-encabezado strong{font-size:16px}
+.lector-libro__rasgo-encabezado span{color:#c1a77d;font-size:12px}
+@media(max-width:600px){.lector-libro__datos-grid{grid-template-columns:1fr}.lector-libro__tabla th,.lector-libro__tabla td{padding:8px}.lector-libro__clase-bloque h4{font-size:20px}}
