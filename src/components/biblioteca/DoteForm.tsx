@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Conjuro } from '../../types/conjuro'
-import ConjuroForm from './ConjuroForm'
+import SelectorConjuros from './SelectorConjuros'
 import SeleccionConjurosDoteForm from './SeleccionConjurosDoteForm'
 import type { Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
 import '../../styles/EspecieForm.css'
@@ -31,7 +31,7 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
   const [efectos, setEfectos] = useState<EfectoDote[]>(initialData?.efectos ?? [])
   const [conjurosIds, setConjurosIds] = useState<string[]>(initialData?.conjurosIds ?? [])
   const [seleccionConjuros, setSeleccionConjuros] = useState<SeleccionConjurosDote | null>(initialData?.seleccionConjuros ?? null)
-  const [creandoConjuro, setCreandoConjuro] = useState(false)
+  const [selectorConjurosAbierto, setSelectorConjurosAbierto] = useState(false)
   const [error, setError] = useState('')
   function cambiarEfecto(id: string, cambio: Partial<EfectoDote>) {
     setEfectos(actuales => actuales.map(efecto => efecto.id === id ? { ...efecto, ...cambio } : efecto))
@@ -61,8 +61,6 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     })
   }
 
-  if (creandoConjuro) return <ConjuroForm conjuros={conjuros} onSave={conjuro => { onCrearConjuro(conjuro); setConjurosIds(actuales => [...actuales, conjuro.id]); setCreandoConjuro(false) }} onCancel={() => setCreandoConjuro(false)} />
-
   return <section className="nueva-propuesta-panel especie-form dote-form">
     <h3>{initialData ? 'Editar dote' : 'Agregar dote'}</h3>
     <div className="nueva-propuesta-field"><label htmlFor="dote-nombre">Nombre *</label><input id="dote-nombre" value={nombre} onChange={e => { setNombre(e.target.value); setError('') }} /></div>
@@ -77,14 +75,25 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     <div className="nueva-propuesta-field"><label htmlFor="dote-beneficios">Beneficios (uno por línea)</label><textarea id="dote-beneficios" rows={5} value={beneficios} onChange={e => setBeneficios(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-descripcion">Descripción</label><textarea id="dote-descripcion" rows={5} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></div>
     <fieldset className="dote-conjuros"><legend>Conjuros vinculados</legend>
-      <p>Seleccioná los conjuros que otorga o referencia esta dote. La relación se guarda por ID.</p>
-      {conjuros.length === 0 && <p>No hay conjuros cargados todavía.</p>}
-      {conjuros.map(conjuro => <label key={conjuro.id} className="dote-conjuro-opcion">
-        <input type="checkbox" checked={conjurosIds.includes(conjuro.id)} onChange={e => setConjurosIds(actuales => e.target.checked ? [...actuales, conjuro.id] : actuales.filter(id => id !== conjuro.id))} />
-        {' '}{conjuro.nombre} ({conjuro.tipo === 'truco' ? 'Truco' : `Nivel ${conjuro.nivel}`})
-      </label>)}
-      <button type="button" className="dote-accion" onClick={() => setCreandoConjuro(true)}>Crear conjuro y vincularlo</button>
+      <p>Vinculá conjuros existentes o creá uno nuevo desde el mismo selector utilizado en Rasgos de especie.</p>
+      {conjurosIds.length === 0 && <p>No hay conjuros vinculados todavía.</p>}
+      {conjurosIds.map(id => {
+        const conjuro = conjuros.find(c => c.id === id)
+        return <div className="dote-conjuro-opcion" key={id}>
+          <span>{conjuro ? `${conjuro.nombre} (${conjuro.tipo === 'truco' ? 'Truco' : `Nivel ${conjuro.nivel}`})` : 'Conjuro no disponible en el catálogo'}</span>
+          <button type="button" className="dote-desvincular" onClick={() => setConjurosIds(actuales => actuales.filter(x => x !== id))}>Desvincular</button>
+        </div>
+      })}
+      <button type="button" className="dote-accion" onClick={() => setSelectorConjurosAbierto(true)}>+ Vincular conjuro</button>
     </fieldset>
+    <SelectorConjuros
+      abierto={selectorConjurosAbierto}
+      conjuros={conjuros}
+      idsVinculados={conjurosIds}
+      onVincular={conjuro => setConjurosIds(actuales => actuales.includes(conjuro.id) ? actuales : [...actuales, conjuro.id])}
+      onCrear={conjuro => { onCrearConjuro(conjuro); setConjurosIds(actuales => actuales.includes(conjuro.id) ? actuales : [...actuales, conjuro.id]) }}
+      onCerrar={() => setSelectorConjurosAbierto(false)}
+    />
     <SeleccionConjurosDoteForm value={seleccionConjuros} onChange={setSeleccionConjuros} clasesDisponibles={clasesDisponibles}/>
     <fieldset><legend>Fuente</legend>
       <div className="nueva-propuesta-field"><label htmlFor="dote-libro">Libro</label><input id="dote-libro" value={libro} onChange={e => setLibro(e.target.value)} placeholder="Ej.: PHB 2024"/></div>
