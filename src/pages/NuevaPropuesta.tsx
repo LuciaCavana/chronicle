@@ -9,6 +9,7 @@ import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import ClaseForm from '../components/biblioteca/ClaseForm'
 import SubclaseForm from '../components/biblioteca/SubclaseForm'
+import ObjetoForm from '../components/biblioteca/ObjetoForm'
 import type { Elemento } from '../services/chronicleLibros'
 import RevisionLibro from '../components/biblioteca/RevisionLibro'
 
@@ -87,6 +88,8 @@ export default function NuevaPropuesta() {
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
   const [clases, setClases] = useState<Elemento[]>([])
   const [subclases, setSubclases] = useState<Elemento[]>([])
+  const [objetos, setObjetos] = useState<Elemento[]>([])
+  const [editingObjectId, setEditingObjectId] = useState<string | null>(null)
   const [editingSubclassId, setEditingSubclassId] = useState<string | null>(null)
   const [editingClassId, setEditingClassId] = useState<string | null>(null)
   const [showEspecieForm, setShowEspecieForm] = useState(false)
@@ -134,6 +137,7 @@ export default function NuevaPropuesta() {
         conjuros?: Conjuro[]
         clases?: Elemento[]
         subclases?: Elemento[]
+        objetos?: Elemento[]
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -148,6 +152,7 @@ export default function NuevaPropuesta() {
       setConjuros(contenido.conjuros ?? [])
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
+      setObjetos(contenido.objetos ?? [])
       setRowVersion(propuesta.row_version)
       setTipoPropuesta('nuevo')
       setCurrentStep(1)
@@ -183,6 +188,7 @@ export default function NuevaPropuesta() {
         setConjuros((version.conjuros ?? []) as Conjuro[])
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
+        setObjetos((version.objetos ?? []) as Elemento[])
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -256,6 +262,7 @@ export default function NuevaPropuesta() {
       return
     }
 
+    if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); setCurrentStep(2); return }
     if (subclases.some(s => !s.nombre.trim() || !clases.some(c => c.id === (s.datos as {claseId?: string}).claseId))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); setCurrentStep(2); return }
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
@@ -539,7 +546,9 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {editingSubclassId !== null ? (
+            {editingObjectId !== null ? (
+              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
+            ) : editingSubclassId !== null ? (
               <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clases} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
             ) : editingClassId !== null ? (
               <section className="nueva-propuesta-panel">
@@ -663,7 +672,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && editingClassId === null && editingSubclassId === null && (
+          {currentStep === 2 && !showEspecieForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
