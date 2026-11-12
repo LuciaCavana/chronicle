@@ -224,9 +224,6 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     actualizar({ rasgos: existe ? datos.rasgos.map(r => r.id === rasgo.id ? rasgo : r) : [...datos.rasgos, rasgo] })
     setEditorRasgo(null)
   }
-  const actualizarRasgo = (id: string, cambios: Partial<Rasgo>) => actualizar({
-    rasgos: datos.rasgos.map(r => r.id === id ? { ...r, ...cambios } : r),
-  })
   const actualizarRecurso = (id: string, cambios: Partial<Recurso>) => actualizar({
     recursos: datos.recursos.map(r => r.id === id ? { ...r, ...cambios } : r),
   })
