@@ -36,6 +36,10 @@ type ContenidoLibroProps = {
   onAddSubclass?: () => void
   onEditSubclass?: (id: string) => void
   onDeleteSubclass?: (id: string) => void
+  objetos?: { id: string; nombre: string; tipo: string }[]
+  onAddObject?: () => void
+  onEditObject?: (id: string) => void
+  onDeleteObject?: (id: string) => void
 }
 
 export default function ContenidoLibro({
@@ -58,6 +62,10 @@ export default function ContenidoLibro({
   onAddSubclass,
   onEditSubclass,
   onDeleteSubclass,
+  objetos = [],
+  onAddObject,
+  onEditObject,
+  onDeleteObject,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
@@ -180,6 +188,7 @@ export default function ContenidoLibro({
                       </div>
                     )}
                     {category.id === 'subclases' && subclases.length > 0 && <div className="contenido-libro-species-list">{subclases.map(subclase => <div className="contenido-libro-species-item" key={subclase.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditSubclass?.(subclase.id)}>{subclase.nombre || 'Subclase sin nombre'} · {subclase.claseNombre} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la subclase «${subclase.nombre}»?`)) onDeleteSubclass?.(subclase.id) }}><Trash2 size={15}/></button></div>)}</div>}
+                    {category.id === 'objetos' && objetos.length > 0 && <div className="contenido-libro-species-list">{objetos.map(objeto => <div className="contenido-libro-species-item" key={objeto.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditObject?.(objeto.id)}>{objeto.nombre || 'Objeto sin nombre'} · {objeto.tipo} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar el objeto «${objeto.nombre}»?`)) onDeleteObject?.(objeto.id) }}><Trash2 size={15}/></button></div>)}</div>}
                     {category.id === 'conjuros' && conjuros.length > 0 && (
                     <div className="contenido-libro-species-list">
                       {conjuros.map(conjuro => (
@@ -203,11 +212,11 @@ export default function ContenidoLibro({
                 <button
                   type="button"
                   className="contenido-libro-add"
-                  disabled={!(category.id === 'especies' || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass))}
+                  disabled={!(category.id === 'especies' || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass) || (category.id === 'objetos' && !!onAddObject))}
                   title={
                     category.id === 'especies'
                       ? 'Agregar especie'
-                      : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : 'Próximamente'
+                      : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : category.id === 'objetos' ? 'Agregar objeto' : 'Próximamente'
                   }
                   onClick={() => {
                     if (category.id === 'especies') {
