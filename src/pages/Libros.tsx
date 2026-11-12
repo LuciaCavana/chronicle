@@ -30,6 +30,7 @@ type PropuestaNueva = {
   id: string
   tipo: 'libro_nuevo' | 'modificacion' | 'traduccion'
   estado: string
+  revision_resultante_id?: string | null
   titulo: string
   idioma: string
   autor_id: string
@@ -166,9 +167,10 @@ export default function Libros() {
       if (rol?.role === 'creator' || rol?.role === 'admin') {
         const { data: borradores, error: errorBorradores } = await supabase
           .from('propuestas')
-          .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro')
+          .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,revision_resultante_id')
           .eq('estado', 'borrador')
           .eq('tipo', 'libro_nuevo')
+          .is('revision_resultante_id', null)
           .order('creado_en', { ascending: false })
         if (errorBorradores) throw errorBorradores
         setBorradoresAdministracion((borradores ?? []) as PropuestaNueva[])
