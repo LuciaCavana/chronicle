@@ -176,7 +176,7 @@ export default function NuevaPropuesta() {
         setSelectedCategories(version.categorias ?? [])
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
-        setClases([])
+        setClases((version.clases ?? []) as Elemento[])
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -252,12 +252,6 @@ export default function NuevaPropuesta() {
 
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
-      setCurrentStep(2)
-      return
-    }
-
-    if (modoEdicionAnterior && clases.length > 0) {
-      setErrorGuardado('La edición de libros del sistema anterior todavía no admite guardar clases. Usá un borrador de propuesta.')
       setCurrentStep(2)
       return
     }
