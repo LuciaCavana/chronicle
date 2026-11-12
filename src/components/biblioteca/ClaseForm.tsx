@@ -26,6 +26,7 @@ type DatosClase = {
   columnasProgresion: ColumnaProgresion[]
   celdasProgresion: Record<string, Record<string, string>>
   vinculosProgresion: Record<string, Record<string, string[]>>
+  caracteristicasOcultas: Record<string, Record<string, string[]>>
   rasgos: Rasgo[]
 }
 
@@ -72,6 +73,9 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
     vinculosProgresion: valor.vinculosProgresion && typeof valor.vinculosProgresion === 'object' && !Array.isArray(valor.vinculosProgresion)
       ? valor.vinculosProgresion as Record<string, Record<string, string[]>>
       : {},
+    caracteristicasOcultas: valor.caracteristicasOcultas && typeof valor.caracteristicasOcultas === 'object' && !Array.isArray(valor.caracteristicasOcultas)
+      ? valor.caracteristicasOcultas as Record<string, Record<string, string[]>>
+      : {},
     rasgos: Array.isArray(valor.rasgos) ? valor.rasgos as Rasgo[] : [],
   }
 }
@@ -113,6 +117,8 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
   const datos = normalizarDatos(elemento.datos)
   const [columnaArrastrada, setColumnaArrastrada] = useState<string | null>(null)
   const [menuColumna, setMenuColumna] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [menuRasgo, setMenuRasgo] = useState<{ nivel: number; columna: string; rasgoId?: string; x: number; y: number } | null>(null)
+  const [popupRasgos, setPopupRasgos] = useState<{ nivel: number; columna: string } | null>(null)
   const [armaduraNueva, setArmaduraNueva] = useState('')
   const [armaNueva, setArmaNueva] = useState('')
   const [habilidadNueva, setHabilidadNueva] = useState('')
@@ -143,13 +149,14 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === id ? { ...c, tipo } : c) })
     setMenuColumna(null)
   }
-  const alternarVinculo = (nivelNumero: number, columnaId: string, rasgoId: string) => {
-    const actuales = datos.vinculosProgresion[nivelNumero]?.[columnaId] ?? []
-    const nuevos = actuales.includes(rasgoId) ? actuales.filter(id => id !== rasgoId) : [...actuales, rasgoId]
-    actualizar({ vinculosProgresion: {
-      ...datos.vinculosProgresion,
-      [nivelNumero]: { ...(datos.vinculosProgresion[nivelNumero] ?? {}), [columnaId]: nuevos },
+  const ocultarRasgo = (nivel: number, columna: string, id: string, ocultar: boolean) => {
+    const anteriores = datos.caracteristicasOcultas[nivel]?.[columna] ?? []
+    const siguientes = ocultar ? [...new Set([...anteriores, id])] : anteriores.filter(x => x !== id)
+    actualizar({ caracteristicasOcultas: {
+      ...datos.caracteristicasOcultas,
+      [nivel]: { ...(datos.caracteristicasOcultas[nivel] ?? {}), [columna]: siguientes },
     } })
+    setMenuRasgo(null)
   }
   const eliminarColumna = (id: string) => actualizar({
     columnasProgresion: datos.columnasProgresion.filter(c => c.id !== id),
@@ -368,6 +375,23 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'texto')}>Convertir a texto libre</button>
             </div>
           </div>}
+          {menuRasgo && <div className="clase-form__menu-capa" onClick={() => setMenuRasgo(null)}>
+            <div className="clase-form__menu-contextual" role="menu"
+              style={{ left: Math.max(8, Math.min(menuRasgo.x, window.innerWidth - 245)), top: Math.max(8, Math.min(menuRasgo.y, window.innerHeight - 120)) }}
+              onClick={e => e.stopPropagation()}>
+              {menuRasgo.rasgoId && <button type="button" role="menuitem" onClick={() => ocultarRasgo(menuRasgo.nivel, menuRasgo.columna, menuRasgo.rasgoId!, true)}>Quitar de la tabla</button>}
+              <button type="button" role="menuitem" onClick={() => { setPopupRasgos({ nivel: menuRasgo.nivel, columna: menuRasgo.columna }); setMenuRasgo(null) }}>Agregar característica</button>
+            </div>
+          </div>}
+          {popupRasgos && <div className="clase-form__overlay" onMouseDown={e => { if (e.target === e.currentTarget) setPopupRasgos(null) }}>
+            <div className="clase-form__modal" role="dialog" aria-modal="true" aria-label="Agregar características a la tabla">
+              <div className="clase-form__heading"><h4>Características del nivel {popupRasgos.nivel}</h4><button type="button" onClick={() => setPopupRasgos(null)}>Cerrar</button></div>
+              {datos.rasgos.filter(r => r.nivel === popupRasgos.nivel && (datos.caracteristicasOcultas[popupRasgos.nivel]?.[popupRasgos.columna] ?? []).includes(r.id)).length === 0
+                ? <p className="clase-form__hint">Todas las características de este nivel ya están visibles.</p>
+                : datos.rasgos.filter(r => r.nivel === popupRasgos.nivel && (datos.caracteristicasOcultas[popupRasgos.nivel]?.[popupRasgos.columna] ?? []).includes(r.id)).map(r =>
+                  <button key={r.id} type="button" className="clase-form__rasgo-opcion" onClick={() => ocultarRasgo(popupRasgos.nivel, popupRasgos.columna, r.id, false)}>{r.nombre || 'Sin nombre'} +</button>)}
+            </div>
+          </div>}
           <div className="clase-form__tabla-scroll">
             <table className="clase-form__tabla">
               <thead><tr>
@@ -392,13 +416,16 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                 {datos.columnasProgresion.map(columna => <td key={columna.id}>
                   {columna.tipo === 'caracteristicas' ? (
                     <div className="clase-form__vinculos">
-                      {datos.rasgos.filter(r => r.nivel === fila.nivel).length === 0
-                        ? <span className="clase-form__hint">Sin características en este nivel</span>
-                        : datos.rasgos.filter(r => r.nivel === fila.nivel).map(r => <label key={r.id} className="clase-form__vinculo">
-                          <input type="checkbox" checked={(datos.vinculosProgresion[fila.nivel]?.[columna.id] ?? []).includes(r.id)}
-                            onChange={() => alternarVinculo(fila.nivel, columna.id, r.id)} />
-                          <span>{r.nombre || 'Sin nombre'}</span>
-                        </label>)}
+                      {datos.rasgos.filter(r => r.nivel === fila.nivel && !(datos.caracteristicasOcultas[fila.nivel]?.[columna.id] ?? []).includes(r.id)).map(r =>
+                        <div key={r.id} className="clase-form__rasgo-etiqueta" title="Clic derecho para quitar de la tabla"
+                          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setMenuRasgo({ nivel: fila.nivel, columna: columna.id, rasgoId: r.id, x: e.clientX, y: e.clientY }) }}>
+                          {r.nombre || 'Sin nombre'}
+                        </div>)}
+                      <button type="button" className="clase-form__rasgo-agregar"
+                        onClick={() => setPopupRasgos({ nivel: fila.nivel, columna: columna.id })}
+                        onContextMenu={e => { e.preventDefault(); setMenuRasgo({ nivel: fila.nivel, columna: columna.id, x: e.clientX, y: e.clientY }) }}>
+                        + Agregar
+                      </button>
                     </div>
                   ) : (
                     <input aria-label={`Nivel ${fila.nivel}, ${columna.nombre}`}
