@@ -1,3 +1,4 @@
+import type { Dote } from '../../types/trasfondo'
 import type { Conjuro } from '../../types/conjuro'
 import { useState } from 'react'
 import {
@@ -27,6 +28,10 @@ type ContenidoLibroProps = {
   species: { id: string; nombre: string }[]
   onEditSpecies: (id: string) => void
   onDeleteSpecies: (id: string) => void
+  dotes?: Dote[]
+  onAddDote?: () => void
+  onEditDote?: (id: string) => void
+  onDeleteDote?: (id: string) => void
   conjuros: Conjuro[]
   onAddConjuro?: () => void
   onEditConjuro?: (id: string) => void
@@ -56,6 +61,10 @@ export default function ContenidoLibro({
   species,
   onEditSpecies,
   onDeleteSpecies,
+  dotes = [],
+  onAddDote,
+  onEditDote,
+  onDeleteDote,
   conjuros,
   onAddConjuro,
   onEditConjuro,
@@ -195,6 +204,7 @@ export default function ContenidoLibro({
                     )}
                     {category.id === 'subclases' && subclases.length > 0 && <div className="contenido-libro-species-list">{subclases.map(subclase => <div className="contenido-libro-species-item" key={subclase.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditSubclass?.(subclase.id)}>{subclase.nombre || 'Subclase sin nombre'} · {subclase.claseNombre} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la subclase «${subclase.nombre}»?`)) onDeleteSubclass?.(subclase.id) }}><Trash2 size={15}/></button></div>)}</div>}
                     {category.id === 'objetos' && objetos.length > 0 && <div className="contenido-libro-species-list">{objetos.map(objeto => <div className="contenido-libro-species-item" key={objeto.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditObject?.(objeto.id)}>{objeto.nombre || 'Objeto sin nombre'} · {objeto.tipo} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar el objeto «${objeto.nombre}»?`)) onDeleteObject?.(objeto.id) }}><Trash2 size={15}/></button></div>)}</div>}
+                    {category.id === 'dotes' && dotes.length > 0 && <div className="contenido-libro-species-list">{dotes.map(dote => <div className="contenido-libro-species-item" key={dote.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditDote?.(dote.id)}>{dote.nombre} · {dote.categoria}<Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la dote «${dote.nombre}»?`)) onDeleteDote?.(dote.id) }} aria-label={`Eliminar ${dote.nombre}`}><Trash2 size={15}/></button></div>)}</div>}
                     {category.id === 'conjuros' && conjuros.length > 0 && (
                     <div className="contenido-libro-species-list">
                       {conjuros.map(conjuro => (
@@ -220,15 +230,17 @@ export default function ContenidoLibro({
                 <button
                   type="button"
                   className="contenido-libro-add"
-                  disabled={!(category.id === 'especies' || (category.id === 'conjuros' && !!onAddConjuro) || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass) || (category.id === 'objetos' && !!onAddObject))}
+                  disabled={!(category.id === 'especies' || (category.id === 'dotes' && !!onAddDote) || (category.id === 'conjuros' && !!onAddConjuro) || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass) || (category.id === 'objetos' && !!onAddObject))}
                   title={
                     category.id === 'especies'
                       ? 'Agregar especie'
-                      : category.id === 'conjuros' ? 'Agregar conjuro' : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : category.id === 'objetos' ? 'Agregar objeto' : 'Próximamente'
+                      : category.id === 'dotes' ? 'Agregar dote' : category.id === 'conjuros' ? 'Agregar conjuro' : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : category.id === 'objetos' ? 'Agregar objeto' : 'Próximamente'
                   }
                   onClick={() => {
                     if (category.id === 'especies') {
                       onAddSpecies()
+                    } else if (category.id === 'dotes') {
+                      onAddDote?.()
                     } else if (category.id === 'conjuros') {
                       onAddConjuro?.()
                     } else if (category.id === 'clases') {
