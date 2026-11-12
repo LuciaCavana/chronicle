@@ -564,6 +564,10 @@ async function borrarPropuesta(
                   </div>
                 </div>
 
+                {libro.estado === 'publicado' && (
+                  <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer libro</Link>
+                )}
+
                 {activeTab === 'propuestas' &&
                   libro.estado === 'pendiente' &&
                   libro.creado_por === userId && (
