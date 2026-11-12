@@ -68,7 +68,7 @@ export async function guardarPropuesta(datos: NuevoLibro) {
         conjuros: datos.conjuros,
         clases: datos.clases,
         subclases: datos.subclases,
-       objetos: datos.objetos,
+        objetos: datos.objetos,
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -226,6 +226,7 @@ export async function actualizarLibro(
       conjuros: datos.conjuros,
       clases: datos.clases,
       subclases: datos.subclases,
+      objetos: datos.objetos,
     })
     .eq('id', versionId)
     .eq('libro_id', libroId)
@@ -304,7 +305,7 @@ export async function actualizarPropuesta(
         conjuros: datos.conjuros,
         clases: datos.clases,
         subclases: datos.subclases,
-       objetos: datos.objetos,
+        objetos: datos.objetos,
       },
       metadatos_libro: {
         codigo: datos.codigo,
