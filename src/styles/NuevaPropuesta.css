@@ -211,7 +211,7 @@ button.nueva-propuesta-cancel:hover {
    Checkboxes de todas las categorías del editor de libros.
    Diseño centralizado: no depender de la casilla nativa del navegador.
    ========================================================================== */
-.nueva-propuesta input[type="checkbox"] {
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
   box-sizing: border-box;
@@ -236,25 +236,25 @@ button.nueva-propuesta-cancel:hover {
   cursor: pointer;
   transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
 }
-.nueva-propuesta input[type="checkbox"]:hover:not(:disabled) {
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:hover:not(:disabled) {
   border-color: #f0cc8c;
   box-shadow: 0 0 0 3px rgba(216,183,123,.12);
 }
-.nueva-propuesta input[type="checkbox"]:checked {
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:checked {
   border-color: #d8b77b;
   background-color: #d8b77b;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.1 6.4 11.3 13 4.6' fill='none' stroke='%23171923' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-.nueva-propuesta input[type="checkbox"]:focus-visible {
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:focus-visible {
   outline: 2px solid #f0cc8c;
   outline-offset: 3px;
 }
-.nueva-propuesta input[type="checkbox"]:disabled {
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:disabled {
   opacity: .45;
   cursor: not-allowed;
 }
 /* Evita una segunda marca cuando algún formulario implementa ::before. */
-.nueva-propuesta input[type="checkbox"]::before {
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]::before {
   content: none;
 }
 /* Mantener espacio suficiente entre casilla y texto en todos los formularios. */
