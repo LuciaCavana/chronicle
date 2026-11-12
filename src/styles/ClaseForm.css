@@ -153,3 +153,6 @@
 .clase-form__rasgo-agregar:hover { background: #3b3440; }
 .clase-form__rasgo-opcion { display: block; width: 100%; text-align: left; margin: 8px 0; padding: 12px; border: 1px solid #63543f; border-radius: 6px; background: #242331; color: #e8dfcf; cursor: pointer; }
 .clase-form__rasgo-opcion:hover { background: #383243; }
+
+.clase-form__acciones-tabla { display: flex; flex-wrap: wrap; gap: 8px; }
+.clase-form__tabla td > .clase-form__danger { white-space: nowrap; }
