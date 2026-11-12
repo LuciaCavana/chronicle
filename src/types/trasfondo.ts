@@ -22,6 +22,17 @@ export type Trasfondo = {
   datosAdicionales?: Record<string, unknown>
 }
 
+/** Efecto declarativo: el motor valida y ejecuta operaciones admitidas. */
+export type EfectoDote = {
+  id: string
+  evento: 'al_obtener' | 'al_subir_nivel' | 'pasivo'
+  atributo: string
+  operacion: 'sumar' | 'establecer'
+  valor: number
+  escala?: 'fijo' | 'nivel_personaje'
+  descripcion?: string
+}
+
 /** Dote reutilizable por trasfondos y otras fuentes. */
 export type Dote = {
   id: string
@@ -30,5 +41,7 @@ export type Dote = {
   categoria: string
   requisitos: string[]
   beneficios: string[]
+  fuente?: { libro?: string; pagina?: number }
+  efectos?: EfectoDote[]
   datosAdicionales?: Record<string, unknown>
 }
