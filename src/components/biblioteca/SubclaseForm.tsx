@@ -17,6 +17,8 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
     recursos: Array.isArray(datosOriginales.recursos) ? datosOriginales.recursos : [],
   }
   const [editorRasgo, setEditorRasgo] = useState<Rasgo | null>(null)
+  const clasePrincipal = clases.find(c => c.id === datos.claseId)
+  const niveles = Array.isArray(clasePrincipal?.datos?.nivelesSubclase) ? [...new Set((clasePrincipal.datos.nivelesSubclase as unknown[]).filter((n): n is number => typeof n === 'number' && Number.isInteger(n) && n >= 1 && n <= 20))].sort((a,b)=>a-b) : []
   const actualizar = (cambios: Partial<Datos>) => onChange({ ...elemento, datos: { ...elemento.datos, ...datos, ...cambios } })
   return <div className="clase-form">
     <section className="clase-form__panel">
@@ -27,7 +29,9 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
         {clases.map(c => <option key={c.id} value={c.id}>{c.nombre || 'Clase sin nombre'}</option>)}
       </select>
       <h4>Características de la subclase</h4>
-      <p className="clase-form__hint">Definí las características y el nivel de clase en que se obtienen.</p>
+      <p className="clase-form__hint">Los niveles disponibles se configuran en la clase principal.</p>
+      {datos.claseId && niveles.length === 0 && <p className="clase-form__hint">La clase seleccionada todavía no tiene niveles de mejora de subclase configurados. Editá la clase principal y marcá sus niveles.</p>}
+      {datos.rasgos.some(r => !niveles.includes(r.nivel)) && <p className="clase-form__hint">Hay características guardadas en niveles que ya no están habilitados. Podés editarlas y asignarles uno de los niveles actuales.</p>}
       {datos.rasgos.length === 0 && <p className="clase-form__hint">Todavía no hay características cargadas.</p>}
       <div className="clase-form__lista-rasgos">
         {[...datos.rasgos].sort((a,b) => a.nivel-b.nivel).map(rasgo => <div className="clase-form__resumen-rasgo" key={rasgo.id}>
@@ -38,7 +42,7 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
           </div>
         </div>)}
       </div>
-      <button type="button" onClick={() => setEditorRasgo({ id: idNuevo(), nombre: '', descripcion: '', nivel: 3 })}>+ Agregar característica</button>
+      <button type="button" disabled={niveles.length === 0} onClick={() => setEditorRasgo({ id: idNuevo(), nombre: '', descripcion: '', nivel: niveles[0] })}>+ Agregar característica</button>
       <h4>Recursos internos</h4>
       <p className="clase-form__hint">Se guardan para la ficha del personaje y no aparecen en la lectura del libro.</p>
       {datos.recursos.map(recurso => <div className="clase-form__item" key={recurso.id}>
@@ -52,7 +56,7 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
     {editorRasgo && <div className="clase-form__overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setEditorRasgo(null) }}>
       <form className="clase-form__modal clase-form__editor-rasgo" role="dialog" aria-modal="true" aria-label="Editar característica" onSubmit={e => {
         e.preventDefault()
-        if (!editorRasgo.nombre.trim()) return
+        if (!editorRasgo.nombre.trim() || !niveles.includes(editorRasgo.nivel)) return
         const rasgo = { ...editorRasgo, nombre: editorRasgo.nombre.trim() }
         actualizar({ rasgos: datos.rasgos.some(r => r.id === rasgo.id) ? datos.rasgos.map(r => r.id === rasgo.id ? rasgo : r) : [...datos.rasgos, rasgo] })
         setEditorRasgo(null)
@@ -64,14 +68,15 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
         <label>Nombre<input autoFocus required value={editorRasgo.nombre} onChange={e => setEditorRasgo({ ...editorRasgo, nombre: e.target.value })} placeholder="Nombre de la característica" /></label>
         <label>Nivel en que se obtiene
           <select value={editorRasgo.nivel} onChange={e => setEditorRasgo({ ...editorRasgo, nivel: Number(e.target.value) })}>
-            {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Nivel {n}</option>)}
+            {!niveles.includes(editorRasgo.nivel) && <option value={editorRasgo.nivel} disabled>Nivel {editorRasgo.nivel} (ya no habilitado)</option>}
+            {niveles.map(n => <option key={n} value={n}>Nivel {n}</option>)}
           </select>
         </label>
         <label>Descripción</label>
         <EditorDescripcion key={editorRasgo.id} value={editorRasgo.descripcion} onChange={descripcion => setEditorRasgo(actual => actual ? { ...actual, descripcion } : actual)} />
         <div className="clase-form__acciones-rasgo">
           <button type="button" onClick={() => setEditorRasgo(null)}>Cancelar</button>
-          <button type="submit" disabled={!editorRasgo.nombre.trim()}>Guardar característica</button>
+          <button type="submit" disabled={!editorRasgo.nombre.trim() || !niveles.includes(editorRasgo.nivel)}>Guardar característica</button>
         </div>
       </form>
     </div>}
