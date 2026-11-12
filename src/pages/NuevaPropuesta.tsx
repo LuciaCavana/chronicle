@@ -607,6 +607,10 @@ export default function NuevaPropuesta() {
                 onToggleCategory={toggleCategory}
                 speciesCount={especies.length}
                 conjuros={conjuros}
+                dotes={dotes}
+                onAddDote={() => { setEditingDoteId(null); setShowDoteForm(true) }}
+                onEditDote={id => { setEditingDoteId(id); setShowDoteForm(true) }}
+                onDeleteDote={id => setDotes(actuales => actuales.filter(d => d.id !== id))}
                 species={especies.map((especie) => ({
                   id: especie.id,
                   nombre: especie.nombre,
@@ -628,6 +632,7 @@ export default function NuevaPropuesta() {
                 onEditClass={setEditingClassId}
                 onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
                 categoryItemCounts={{
+                  dotes: dotes.length,
                   clases: clases.length,
                   subclases: subclases.length,
                   objetos: objetos.length,
