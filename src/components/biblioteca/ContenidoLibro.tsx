@@ -226,6 +226,9 @@ export default function ContenidoLibro({
                     } else if (category.id === 'subclases') {
                       onAddSubclass?.()
                     }
+                    else if (category.id === 'objetos') {
+                      onAddObject?.()
+                    }
                   }}
                 >
                   <Plus size={17} />
