@@ -95,7 +95,6 @@ export default function NuevaPropuesta() {
   const [trasfondos, setTrasfondos] = useState<Trasfondo[]>([])
   const [editingTrasfondoId, setEditingTrasfondoId] = useState<string | null>(null)
   const [showTrasfondoForm, setShowTrasfondoForm] = useState(false)
-  const [volverATrasfondo, setVolverATrasfondo] = useState(false)
   const [editingDoteId, setEditingDoteId] = useState<string | null>(null)
   const [showDoteForm, setShowDoteForm] = useState(false)
   const [editingConjuroId, setEditingConjuroId] = useState<string | null>(null)
@@ -280,7 +279,6 @@ export default function NuevaPropuesta() {
     setDotes(actuales => actuales.some(d => d.id === dote.id) ? actuales.map(d => d.id === dote.id ? dote : d) : [...actuales, dote])
     setShowDoteForm(false)
     setEditingDoteId(null)
-    if (volverATrasfondo) { setVolverATrasfondo(false); setShowTrasfondoForm(true) }
   }
 
   function guardarConjuro(conjuro: Conjuro) {
@@ -601,7 +599,7 @@ export default function NuevaPropuesta() {
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
             ) : showTrasfondoForm ? (
-              <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} onCrearDote={() => { setShowTrasfondoForm(false); setVolverATrasfondo(true); setEditingDoteId(null); setShowDoteForm(true) }} onCrearObjeto={() => { setShowTrasfondoForm(false); const id = crypto.randomUUID(); setObjetos(actuales => [...actuales, { id, tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }]); setEditingObjectId(id) }} />
+              <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} />
             ) : showDoteForm ? (
               <DoteForm key={editingDoteId ?? 'nueva'} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clases.map(c => c.nombre).filter(Boolean)} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
             ) : showConjuroForm ? (
