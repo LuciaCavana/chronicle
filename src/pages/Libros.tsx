@@ -90,6 +90,7 @@ export default function Libros() {
 
   const [libros, setLibros] = useState<Libro[]>([])
   const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
+  const [borradoresAdministracion, setBorradoresAdministracion] = useState<PropuestaNueva[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [esAdministrador, setEsAdministrador] = useState(false)
   const [cargando, setCargando] = useState(true)
@@ -147,6 +148,7 @@ export default function Libros() {
         setUserId(null)
         setEsAdministrador(false)
         setLibros([])
+        setBorradoresAdministracion([])
         return
       }
 
@@ -161,6 +163,18 @@ export default function Libros() {
       if (errorRol) throw errorRol
 
       setEsAdministrador(rol?.role === 'creator' || rol?.role === 'admin')
+      if (rol?.role === 'creator' || rol?.role === 'admin') {
+        const { data: borradores, error: errorBorradores } = await supabase
+          .from('propuestas')
+          .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro')
+          .eq('estado', 'borrador')
+          .eq('tipo', 'libro_nuevo')
+          .order('creado_en', { ascending: false })
+        if (errorBorradores) throw errorBorradores
+        setBorradoresAdministracion((borradores ?? []) as PropuestaNueva[])
+      } else {
+        setBorradoresAdministracion([])
+      }
 
       const { data, error: errorLibros } = await supabase
         .from('libros')
@@ -348,6 +362,26 @@ async function borrarPropuesta(
     }
   }
 
+  async function aprobarBorrador(propuestaId: string) {
+    if (!esAdministrador || actualizandoId) return
+    setActualizandoId(propuestaId)
+    setError('')
+    setMensajeAdmin('')
+    try {
+      const { error: errorAprobacion } = await supabase.rpc('chronicle_aprobar_propuesta', {
+        p_propuesta_id: propuestaId,
+      })
+      if (errorAprobacion) throw errorAprobacion
+      setBorradoresAdministracion(actuales => actuales.filter(p => p.id !== propuestaId))
+      setMensajeAdmin('El borrador fue aprobado y publicado correctamente.')
+      await cargarLibros()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo aprobar el borrador.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
   return (
     <AppLayout title="Libros" subtitle="Explorá los libros de Chronicle">
       <div className="libros">
@@ -439,6 +473,7 @@ async function borrarPropuesta(
             </button>
           </div>
         ) : librosFiltrados.length === 0 &&
+        !(activeTab === 'administracion' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'propuestas' &&
           propuestasNuevas.some((propuesta) => {
             if (!textoBusqueda) return true
@@ -467,6 +502,30 @@ async function borrarPropuesta(
           </div>
         ) : (
           <div className="libros-lista">
+            {activeTab === 'administracion' && borradoresAdministracion
+              .filter(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))
+              .map(propuesta => (
+                <article className="libros-item" key={`admin-borrador-${propuesta.id}`}>
+                  <div className="libros-item-icon"><FileText size={24}/></div>
+                  <div className="libros-item-info">
+                    <h3>{propuesta.titulo || 'Libro sin título'}</h3>
+                    <p>{propuesta.metadatos_libro?.editorial || 'Sin editorial'}</p>
+                    <div className="libros-item-details">
+                      <span>Borrador</span>
+                      <span>{propuesta.idioma.toUpperCase()}</span>
+                      {propuesta.metadatos_libro?.codigo && <span>{propuesta.metadatos_libro.codigo}</span>}
+                    </div>
+                  </div>
+                  <div className="libros-admin-actions">
+                    <button type="button" className="libros-admin-button libros-admin-button--approve"
+                      disabled={actualizandoId !== null}
+                      onClick={() => void aprobarBorrador(propuesta.id)}>
+                      <CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? 'Publicando...' : 'Aprobar y publicar'}
+                    </button>
+                  </div>
+                </article>
+              ))}
+
                       
             {activeTab === 'propuestas' &&
               propuestasNuevas
