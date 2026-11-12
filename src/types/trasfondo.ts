@@ -9,12 +9,14 @@ export type OpcionEquipoInicial = {
   monedas: Array<{ moneda: string; cantidad: number }>
 }
 
-/** Trasfondo de un libro. Las reglas de aumentos se resuelven en el motor. */
+/** Trasfondo de un libro. La distribución elegida se resuelve en el creador de personajes. */
 export type Trasfondo = {
   id: string
   nombre: string
   descripcion: string
   caracteristicas: string[]
+  /** Por defecto, los trasfondos nuevos admiten +2/+1 o +1/+1/+1 entre sus tres características. */
+  aumentoCaracteristicas?: { habilitado: boolean; distribuciones: Array<'2_1' | '1_1_1'> }
   doteOrigenId: string | null
   /** Lista fijada por el trasfondo para dotes con elección de magia. */
   listaConjurosFijada?: string
