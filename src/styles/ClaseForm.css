@@ -128,3 +128,9 @@
 .clase-form__columna-cabecera { display: flex; gap: 5px; align-items: center; min-width: 170px; }
 .clase-form__columna-cabecera input { min-width: 110px; }
 .clase-form__columna-cabecera button { flex: none; padding: 5px 9px; }
+
+
+.clase-form__columna-cabecera .clase-form__arrastrar { display: inline-flex; align-items: center; justify-content: center; padding: 6px 3px; flex: none; cursor: grab; color: #d8b77b; background: transparent; border: 0; touch-action: none; }
+.clase-form__columna-cabecera .clase-form__arrastrar:active { cursor: grabbing; }
+.clase-form__columna--arrastrada { opacity: .45; }
+.clase-form__tabla th:has(.clase-form__arrastrar):hover { background: #302c3a; }
