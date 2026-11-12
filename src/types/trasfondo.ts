@@ -19,6 +19,8 @@ export type Trasfondo = {
   /** Lista fijada por el trasfondo para dotes con elección de magia. */
   listaConjurosFijada?: string
   competenciasHabilidades: string[]
+  /** Idiomas otorgados por el trasfondo; puede ser uno fijo o una elección. */
+  idiomas?: Array<{ tipo: 'fijo' | 'eleccion'; idioma?: string }>
   competenciasHerramientas: string[]
   opcionesEquipo: OpcionEquipoInicial[]
   datosAdicionales?: Record<string, unknown>
