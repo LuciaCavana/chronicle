@@ -23,6 +23,7 @@ export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos,
   const [doteId, setDoteId] = useState(initialData?.doteOrigenId ?? '')
   const [listaFija, setListaFija] = useState(initialData?.listaConjurosFijada ?? '')
   const [skills, setSkills] = useState(initialData?.competenciasHabilidades ?? [])
+  const [idiomas, setIdiomas] = useState<Array<{ tipo: 'fijo' | 'eleccion'; idioma?: string }>>(initialData?.idiomas ?? [])
   const [tools, setTools] = useState((initialData?.competenciasHerramientas ?? []).join(', '))
   const [opciones, setOpciones] = useState<OpcionEquipoInicial[]>(initialData?.opcionesEquipo ?? [nuevoEquipo('A'), nuevoEquipo('B')])
   const [error, setError] = useState('')
@@ -38,9 +39,11 @@ export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos,
     if (caracs.length !== 3) { setError('Seleccioná exactamente tres características.'); return }
     if (!doteId || !dote) { setError('Seleccioná una dote de origen válida.'); return }
     if (listaFija && !listasMagia.includes(listaFija)) { setError('La lista de magia fijada no está permitida por la dote.'); return }
-    if (skills.length !== 2) { setError('Seleccioná exactamente dos habilidades.'); return }
+    if (skills.length < 1 || skills.length > 2) { setError('Seleccioná una o dos habilidades.'); return }
+    if (skills.length === 1 && idiomas.length !== 1) { setError('Si el trasfondo otorga una habilidad, agregá un idioma.'); return }
+    if (idiomas.some(i => i.tipo === 'fijo' && !i.idioma?.trim())) { setError('Especificá el idioma fijo o elegí la opción a elección.'); return }
     if (opciones.some(o => !o.nombre.trim() || o.objetos.some(x => !x.objetoId || !Number.isInteger(x.cantidad) || x.cantidad < 1) || o.monedas.some(x => !x.moneda.trim() || !Number.isInteger(x.cantidad) || x.cantidad < 0))) { setError('Revisá las opciones de equipo y sus cantidades.'); return }
-    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: nombre.trim(), descripcion: descripcion.trim(), caracteristicas: caracs, doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}), competenciasHabilidades: skills, competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean), opcionesEquipo: opciones, ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}) })
+    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: nombre.trim(), descripcion: descripcion.trim(), caracteristicas: caracs, doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}), competenciasHabilidades: skills, idiomas: idiomas.map(i => ({ ...i, ...(i.tipo === 'fijo' ? { idioma: i.idioma?.trim() } : { idioma: undefined }) })), competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean), opcionesEquipo: opciones, ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}) })
   }
 
   return <section className="nueva-propuesta-panel trasfondo-form">
@@ -53,7 +56,17 @@ export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos,
       <p className="trasfondo-hint">Para crear una dote nueva, guardá este trasfondo después de cargarla en la categoría Dotes.</p>
       {listasMagia.length > 0 && <div className="nueva-propuesta-field"><label htmlFor="trasfondo-lista">Lista de conjuros fijada por este trasfondo</label><select id="trasfondo-lista" value={listaFija} onChange={e => setListaFija(e.target.value)}><option value="">El personaje elige la lista</option>{listasMagia.map(l => <option key={l} value={l}>{l}</option>)}</select><small>Si fijás una lista, el personaje solo podrá elegir conjuros de esa clase.</small></div>}
     </fieldset>
-    <fieldset><legend>Competencias en habilidades (elegí dos)</legend><div className="trasfondo-grid">{habilidades.map(h => <label key={h} className="trasfondo-check"><input type="checkbox" checked={skills.includes(h)} disabled={!skills.includes(h) && skills.length >= 2} onChange={e => setSkills(actuales => cambiarEnLista(actuales, h, e.target.checked))}/>{h}</label>)}</div></fieldset>
+    <fieldset><legend>Habilidades e idiomas</legend><p className="trasfondo-hint">Elegí una o dos habilidades. Si elegís una, el trasfondo también debe otorgar un idioma.</p><div className="trasfondo-grid">{habilidades.map(h => <label key={h} className="trasfondo-check"><input type="checkbox" checked={skills.includes(h)} disabled={!skills.includes(h) && skills.length >= 2} onChange={e => setSkills(actuales => cambiarEnLista(actuales, h, e.target.checked))}/>{h}</label>)}</div>
+      <div className="trasfondo-idiomas">
+        <h4>Idiomas otorgados</h4>
+        {idiomas.map((idioma, indice) => <div className="trasfondo-idioma-fila" key={indice}>
+          <div className="nueva-propuesta-field"><label>Tipo</label><select value={idioma.tipo} onChange={e => setIdiomas(actuales => actuales.map((x,i) => i === indice ? { tipo: e.target.value as 'fijo' | 'eleccion', idioma: '' } : x))}><option value="fijo">Idioma específico</option><option value="eleccion">A elección del personaje</option></select></div>
+          {idioma.tipo === 'fijo' && <div className="nueva-propuesta-field"><label>Idioma</label><input value={idioma.idioma ?? ''} onChange={e => setIdiomas(actuales => actuales.map((x,i) => i === indice ? { ...x, idioma: e.target.value } : x))} placeholder="Ej.: Élfico"/></div>}
+          <button type="button" className="trasfondo-remove" onClick={() => setIdiomas(actuales => actuales.filter((_,i) => i !== indice))}>Quitar idioma</button>
+        </div>)}
+        <button type="button" className="trasfondo-add" onClick={() => setIdiomas(actuales => [...actuales, { tipo: 'fijo', idioma: '' }])}>+ Agregar idioma</button>
+      </div>
+    </fieldset>
     <fieldset><legend>Competencias en herramientas</legend><div className="nueva-propuesta-field"><label htmlFor="trasfondo-tools">Herramientas (separadas por coma)</label><input id="trasfondo-tools" value={tools} onChange={e => setTools(e.target.value)} placeholder="Ej.: Herramientas de carpintero"/></div></fieldset>
     <fieldset><legend>Equipo inicial: alternativas</legend>
       <p className="trasfondo-hint">El personaje elegirá una de estas opciones. Podés combinar objetos y monedas.</p>
