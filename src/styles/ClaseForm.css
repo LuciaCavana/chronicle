@@ -267,3 +267,34 @@
   overflow-y: hidden;
 }
 .clase-form__tabla { width: max-content; min-width: 100%; }
+
+/* Ancho intrínseco: la tabla determina el ancho del panel y el conjunto se recentra. */
+.clase-form {
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+.clase-form__fieldset {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+.clase-form__panel {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.clase-form__tabla-scroll {
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+}
+.clase-form__tabla {
+  width: max-content;
+  min-width: 100%;
+}
