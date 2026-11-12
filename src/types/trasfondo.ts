@@ -33,6 +33,24 @@ export type EfectoDote = {
   descripcion?: string
 }
 
+/** Selección dinámica desde listas de clase, no referencias a cada conjuro. */
+export type SeleccionConjurosDote = {
+  listasPermitidas: string[]
+  listaSegunOrigen: boolean
+  mismaLista: boolean
+  selecciones: Array<{ nivel: number; cantidad: number }>
+  caracteristicasMagicas: string[]
+  conjuroNivelUnoSiemprePreparado?: boolean
+  lanzamientoSinEspacio?: { usos: number; recuperacion: 'descanso_largo' | 'descanso_corto' }
+  permiteUsarEspacios?: boolean
+  reemplazoAlSubirNivel?: { cantidad: number; mismoNivel: boolean; mismaLista: boolean }
+  repetible?: boolean
+  listaDistintaPorRepeticion?: boolean
+}
+
+/** Restricción de una dote al otorgarla desde un trasfondo u otra fuente. */
+export type RestriccionOrigenDote = { listaConjurosFijada?: string }
+
 /** Dote reutilizable por trasfondos y otras fuentes. */
 export type Dote = {
   id: string
@@ -45,5 +63,6 @@ export type Dote = {
   efectos?: EfectoDote[]
   /** IDs de conjuros del catálogo; evita duplicar su definición. */
   conjurosIds?: string[]
+  seleccionConjuros?: SeleccionConjurosDote
   datosAdicionales?: Record<string, unknown>
 }
