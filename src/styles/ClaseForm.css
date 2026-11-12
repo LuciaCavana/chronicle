@@ -237,3 +237,20 @@
   text-overflow: ellipsis;
   overflow-wrap: normal;
 }
+
+/* La tabla y el panel crecen con el contenido, sin barras dentro de las celdas. */
+.clase-form__fieldset { width: max-content; min-width: 100%; }
+.clase-form__panel { min-width: 0; }
+.clase-form__tabla-scroll { width: 100%; overflow: visible; }
+.clase-form__tabla { width: 100%; min-width: max-content; }
+.clase-form__tabla tbody td { max-width: none; }
+.clase-form__tabla .clase-form__vinculos {
+  width: max-content;
+  max-width: none;
+  overflow: visible;
+}
+.clase-form__tabla .clase-form__rasgo-etiqueta {
+  max-width: none;
+  overflow: visible;
+  text-overflow: clip;
+}
