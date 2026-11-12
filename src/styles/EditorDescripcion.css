@@ -1,0 +1,21 @@
+.editor-descripcion{border:1px solid #454354;border-radius:9px;background:#171923;color:#e8dfcf;overflow:visible}
+.editor-descripcion__barra{display:flex;gap:5px;flex-wrap:wrap;padding:9px;border-bottom:1px solid #454354;background:#252431;border-radius:9px 9px 0 0}
+.editor-descripcion__barra button{padding:6px 9px;font-size:13px}
+.editor-descripcion__barra button[aria-expanded=true]{background:#51412f;border-color:#e9c46a}
+.editor-descripcion__contenido{min-height:190px;max-height:420px;overflow-y:auto;padding:14px;outline:none;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.editor-descripcion__contenido:focus{box-shadow:inset 0 0 0 1px #d8b77b}
+.editor-descripcion__contenido p{margin:0 0 9px}.editor-descripcion__contenido ul,.editor-descripcion__contenido ol{padding-left:26px}
+.editor-descripcion__selector{padding:14px;display:flex;flex-direction:column;gap:12px;border-bottom:1px solid #454354;background:#20212c}
+.editor-descripcion__cuadro{height:175px;position:relative;touch-action:none;cursor:crosshair;border-radius:7px;overflow:hidden}
+.editor-descripcion__blanco,.editor-descripcion__negro{position:absolute;inset:0;pointer-events:none}
+.editor-descripcion__blanco{background:linear-gradient(to right,white,transparent)}
+.editor-descripcion__negro{background:linear-gradient(to top,black,transparent)}
+.editor-descripcion__cursor{position:absolute;width:16px;height:16px;border:2px solid white;border-radius:50%;box-shadow:0 1px 5px #000;transform:translate(-50%,-50%);pointer-events:none}
+.editor-descripcion__espectro{height:24px;position:relative;border-radius:6px;touch-action:none;cursor:pointer;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
+.editor-descripcion__marcador{position:absolute;top:50%;width:12px;height:31px;border:2px solid white;border-radius:4px;box-shadow:0 1px 5px #000;transform:translate(-50%,-50%);pointer-events:none}
+.editor-descripcion__predefinidos{display:flex;gap:8px;flex-wrap:wrap}
+.editor-descripcion__predefinidos button{width:30px;height:30px;padding:0;border:1px solid #8b8390;border-radius:6px}
+.editor-descripcion__hex{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.editor-descripcion__hex>span{width:34px;height:34px;border:1px solid #777;border-radius:5px}
+.editor-descripcion__hex input{width:110px!important;flex:none!important}
+.editor-descripcion__hex button{font-size:12px;padding:7px 9px}
