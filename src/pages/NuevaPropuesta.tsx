@@ -733,6 +733,8 @@ export default function NuevaPropuesta() {
                 if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
                 } else if (currentStep === 2 && editingClassId !== null) {
                   setEditingClassId(null)
+                } else if (currentStep === 2 && showCriaturaForm) {
+                  setShowCriaturaForm(false); setEditingCriaturaId(null)
                 } else if (currentStep === 2 && showTrasfondoForm) {
                   setShowTrasfondoForm(false); setEditingTrasfondoId(null)
                 } else if (currentStep === 2 && showDoteForm) {
