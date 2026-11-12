@@ -7,7 +7,7 @@ import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type Co
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
 type Nivel = { nivel: number; bonificadorCompetencia: number; notas: string }
-type ColumnaProgresion = { id: string; nombre: string }
+type ColumnaProgresion = { id: string; nombre: string; tipo?: 'texto' | 'caracteristicas' }
 type DatosClase = {
   dadoGolpe: number
   caracteristicaPrincipal: string
@@ -25,6 +25,7 @@ type DatosClase = {
   progresion: Nivel[]
   columnasProgresion: ColumnaProgresion[]
   celdasProgresion: Record<string, Record<string, string>>
+  vinculosProgresion: Record<string, Record<string, string[]>>
   rasgos: Rasgo[]
 }
 
@@ -68,6 +69,9 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
     celdasProgresion: valor.celdasProgresion && typeof valor.celdasProgresion === 'object' && !Array.isArray(valor.celdasProgresion)
       ? valor.celdasProgresion as Record<string, Record<string, string>>
       : {},
+    vinculosProgresion: valor.vinculosProgresion && typeof valor.vinculosProgresion === 'object' && !Array.isArray(valor.vinculosProgresion)
+      ? valor.vinculosProgresion as Record<string, Record<string, string[]>>
+      : {},
     rasgos: Array.isArray(valor.rasgos) ? valor.rasgos as Rasgo[] : [],
   }
 }
@@ -108,6 +112,7 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
 export default function ClaseForm({ elemento, onChange, disabled = false }: Props) {
   const datos = normalizarDatos(elemento.datos)
   const [columnaArrastrada, setColumnaArrastrada] = useState<string | null>(null)
+  const [menuColumna, setMenuColumna] = useState<{ id: string; x: number; y: number } | null>(null)
   const [armaduraNueva, setArmaduraNueva] = useState('')
   const [armaNueva, setArmaNueva] = useState('')
   const [habilidadNueva, setHabilidadNueva] = useState('')
@@ -134,9 +139,23 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     actualizar({ columnasProgresion: columnas })
     setColumnaArrastrada(null)
   }
+  const cambiarTipoColumna = (id: string, tipo: 'texto' | 'caracteristicas') => {
+    actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === id ? { ...c, tipo } : c) })
+    setMenuColumna(null)
+  }
+  const alternarVinculo = (nivelNumero: number, columnaId: string, rasgoId: string) => {
+    const actuales = datos.vinculosProgresion[nivelNumero]?.[columnaId] ?? []
+    const nuevos = actuales.includes(rasgoId) ? actuales.filter(id => id !== rasgoId) : [...actuales, rasgoId]
+    actualizar({ vinculosProgresion: {
+      ...datos.vinculosProgresion,
+      [nivelNumero]: { ...(datos.vinculosProgresion[nivelNumero] ?? {}), [columnaId]: nuevos },
+    } })
+  }
   const eliminarColumna = (id: string) => actualizar({
     columnasProgresion: datos.columnasProgresion.filter(c => c.id !== id),
     celdasProgresion: Object.fromEntries(Object.entries(datos.celdasProgresion).map(([nivelNumero, celdas]) =>
+      [nivelNumero, Object.fromEntries(Object.entries(celdas).filter(([clave]) => clave !== id))])),
+    vinculosProgresion: Object.fromEntries(Object.entries(datos.vinculosProgresion).map(([nivelNumero, celdas]) =>
       [nivelNumero, Object.fromEntries(Object.entries(celdas).filter(([clave]) => clave !== id))])),
   })
   const alternarPrincipal = (nombre: string) => {
@@ -340,7 +359,15 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <h4>Tabla de progresión (niveles 1 a 20)</h4>
             <button type="button" onClick={() => actualizar({ columnasProgresion: [...datos.columnasProgresion, { id: nuevoId(), nombre: 'Nueva columna' }] })}>+ Agregar columna</button>
           </div>
-          <p className="clase-form__hint">Podés arrastrar las columnas desde el ícono de puntos para cambiar su orden, renombrarlas, agregarlas o quitarlas y escribir cualquier contenido. La columna Nivel identifica cada fila.</p>
+          <p className="clase-form__hint">Podés arrastrar las columnas para ordenarlas. Hacé clic derecho sobre el encabezado para asignarle el tipo Características y vincular los rasgos de la clase. La columna Nivel identifica cada fila.</p>
+          {menuColumna && <div className="clase-form__menu-capa" onClick={() => setMenuColumna(null)}>
+            <div className="clase-form__menu-contextual" role="menu"
+              style={{ left: Math.min(menuColumna.x, window.innerWidth - 245), top: Math.min(menuColumna.y, window.innerHeight - 130) }}
+              onClick={e => e.stopPropagation()}>
+              <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'caracteristicas')}>Asignar características</button>
+              <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'texto')}>Convertir a texto libre</button>
+            </div>
+          </div>}
           <div className="clase-form__tabla-scroll">
             <table className="clase-form__tabla">
               <thead><tr>
@@ -348,7 +375,8 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                 {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}
                   className={columnaArrastrada === columna.id ? 'clase-form__columna--arrastrada' : ''}
                   onDragOver={e => { if (columnaArrastrada) e.preventDefault() }}
-                  onDrop={e => { e.preventDefault(); moverColumna(columna.id) }}>
+                  onDrop={e => { e.preventDefault(); moverColumna(columna.id) }}
+                  onContextMenu={e => { e.preventDefault(); setMenuColumna({ id: columna.id, x: e.clientX, y: e.clientY }) }}>
                   <div className="clase-form__columna-cabecera">
                     <button type="button" draggable aria-label={`Arrastrar columna ${columna.nombre}`}
                       className="clase-form__arrastrar" title="Arrastrar para reordenar"
@@ -362,9 +390,21 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               <tbody>{datos.progresion.map(fila => <tr key={fila.nivel}>
                 <th scope="row">{fila.nivel}</th>
                 {datos.columnasProgresion.map(columna => <td key={columna.id}>
-                  <input aria-label={`Nivel ${fila.nivel}, ${columna.nombre}`}
-                    value={datos.celdasProgresion[fila.nivel]?.[columna.id] ?? (columna.id === 'competencia' ? `+${fila.bonificadorCompetencia}` : columna.id === 'notas' ? fila.notas : '')}
-                    onChange={e => cambiarCelda(fila.nivel, columna.id, e.target.value)} />
+                  {columna.tipo === 'caracteristicas' ? (
+                    <div className="clase-form__vinculos">
+                      {datos.rasgos.filter(r => r.nivel === fila.nivel).length === 0
+                        ? <span className="clase-form__hint">Sin características en este nivel</span>
+                        : datos.rasgos.filter(r => r.nivel === fila.nivel).map(r => <label key={r.id} className="clase-form__vinculo">
+                          <input type="checkbox" checked={(datos.vinculosProgresion[fila.nivel]?.[columna.id] ?? []).includes(r.id)}
+                            onChange={() => alternarVinculo(fila.nivel, columna.id, r.id)} />
+                          <span>{r.nombre || 'Sin nombre'}</span>
+                        </label>)}
+                    </div>
+                  ) : (
+                    <input aria-label={`Nivel ${fila.nivel}, ${columna.nombre}`}
+                      value={datos.celdasProgresion[fila.nivel]?.[columna.id] ?? (columna.id === 'competencia' ? `+${fila.bonificadorCompetencia}` : columna.id === 'notas' ? fila.notas : '')}
+                      onChange={e => cambiarCelda(fila.nivel, columna.id, e.target.value)} />
+                  )}
                 </td>)}
               </tr>)}</tbody>
             </table>
