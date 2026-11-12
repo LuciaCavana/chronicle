@@ -84,7 +84,7 @@ export default function Libros() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [activeTab, setActiveTab] = useState<BooksTab>(
-    searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
+    searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
   )
   const [search, setSearch] = useState('')
 
@@ -111,10 +111,10 @@ export default function Libros() {
     }
 
     if (activeTab === 'administracion') {
-      return esAdministrador && libro.estado === 'pendiente'
+      return esAdministrador && libro.estado !== 'eliminado'
     }
 
-    return libro.creado_por === userId && libro.estado === 'pendiente'
+    return false // Las propuestas editables están en 'propuestas'; no mezclar libros publicados.
   })
 
   const textoBusqueda = search.trim().toLowerCase()
@@ -625,7 +625,7 @@ async function borrarPropuesta(
                   </div>
                 </div>
 
-                {libro.estado === 'publicado' && (
+                {libro.estado === 'publicado' && activeTab !== 'administracion' && (
                   <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer libro</Link>
                 )}
 
