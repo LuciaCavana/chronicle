@@ -1,0 +1,98 @@
+/* Configuración de conjuros por lista: diseño oscuro de Chronicle */
+.dote-magia {
+  min-width: 0;
+  margin: 22px 0;
+  padding: 22px;
+  border: 1px solid #454354;
+  border-radius: 12px;
+  background: #1b1d28;
+  color: #e8dfcf;
+}
+.dote-magia legend {
+  padding: 0 9px;
+  color: #d8b77b;
+  font-size: 15px;
+  font-weight: 700;
+}
+.dote-magia-help {
+  margin: 10px 0 18px;
+  color: #a4a3b2;
+  font-size: 13px;
+  line-height: 1.55;
+}
+.dote-magia-toggle,
+.dote-magia-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin: 8px 0;
+  border: 1px solid #343342;
+  border-radius: 8px;
+  background: #171923;
+  color: #e8dfcf;
+  font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.dote-magia-toggle:hover,
+.dote-magia-option:hover { border-color: #777080; }
+.dote-magia-toggle input[type="checkbox"],
+.dote-magia-option input[type="checkbox"] {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 2px 0 0;
+  accent-color: #d8b77b;
+  cursor: pointer;
+}
+.dote-magia-subtitle {
+  margin: 24px 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #343342;
+  color: #e8dfcf;
+  font-size: 14px;
+}
+.dote-magia .nueva-propuesta-field { margin: 12px 0 16px; }
+.dote-magia .nueva-propuesta-field input,
+.dote-magia .nueva-propuesta-field select {
+  box-sizing: border-box;
+  min-width: 0;
+}
+.dote-magia-eleccion {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  padding: 12px;
+  margin: 10px 0;
+  border: 1px solid #343342;
+  border-radius: 9px;
+  background: #222431;
+}
+.dote-magia-eleccion .nueva-propuesta-field { margin: 0; }
+.dote-magia-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 9px 13px;
+  margin: 6px 0 14px;
+  border: 1px solid #d8b77b;
+  border-radius: 8px;
+  background: transparent;
+  color: #d8b77b;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
+}
+.dote-magia-button:hover { background: rgba(216,183,123,.12); }
+.dote-magia :is(input, select, button):focus-visible {
+  outline: 2px solid #d8b77b;
+  outline-offset: 2px;
+}
+@media (max-width: 650px) {
+  .dote-magia { padding: 14px; }
+  .dote-magia-eleccion { grid-template-columns: minmax(0, 1fr); }
+  .dote-magia-eleccion .dote-magia-button { justify-self: start; margin-bottom: 0; }
+}
