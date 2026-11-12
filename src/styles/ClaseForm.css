@@ -166,3 +166,13 @@
 /* Eliminar fila: círculo rojo a la izquierda del nivel */
 .clase-form__eliminar-fila { border-color: #d65c66; background: #8b2937; color: #fff; }
 .clase-form__eliminar-fila:hover { border-color: #ff8b94; background: #bc3649; color: #fff; }
+
+
+/* Filas: menú contextual en el nivel y asa de arrastre, sin botón de borrar */
+.clase-form__nivel-fila { display: flex; align-items: center; justify-content: flex-start; gap: 8px; }
+.clase-form__arrastrar-fila { display: inline-flex; align-items: center; justify-content: center; width: 23px; min-width: 23px; height: 27px; padding: 0; background: transparent; border: 0; color: #c8a66c; cursor: grab; }
+.clase-form__arrastrar-fila:active { cursor: grabbing; }
+.clase-form__fila--arrastrada { opacity: .45; }
+.clase-form__tabla tbody th[scope="row"] { cursor: context-menu; }
+.clase-form__menu-contextual .clase-form__menu-eliminar { color: #ff858e; }
+.clase-form__menu-contextual .clase-form__menu-eliminar:hover { background: #512b37; }
