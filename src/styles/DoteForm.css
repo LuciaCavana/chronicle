@@ -22,3 +22,7 @@
 .dote-form .dote-magia-toggle input[type="checkbox"], .dote-form .dote-magia-option input[type="checkbox"] { margin:0 5px 0 0; }
 .dote-form :is(input,select,button,textarea):focus-visible { outline:2px solid #d8b77b; outline-offset:2px; }
 @media(max-width:650px) { .dote-form fieldset { padding:14px; } }
+
+.dote-form .dote-conjuro-opcion { justify-content:space-between; flex-wrap:wrap; cursor:default; }
+.dote-form .dote-desvincular { padding:7px 11px; border:1px solid #a96363; border-radius:7px; background:transparent; color:#e19a9a; font:inherit; font-size:12px; cursor:pointer; }
+.dote-form .dote-desvincular:hover { background:rgba(225,154,154,.12); }
