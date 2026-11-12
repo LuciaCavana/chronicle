@@ -308,3 +308,22 @@
 .clase-form__tabla td { min-width: 110px; }
 .clase-form__tabla .clase-form__columna-cabecera { min-width: 145px; }
 .clase-form__tabla .clase-form__columna-cabecera input { min-width: 95px; }
+
+/* Quitar el desplazamiento artificial y el ancho sobrante de la tabla. */
+.nueva-propuesta-panel > .clase-form {
+  position: static;
+  left: auto;
+  transform: none;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  margin: 14px auto 0;
+}
+.clase-form__tabla th,
+.clase-form__tabla td { padding-inline: 5px; }
+.clase-form__tabla tbody td { min-width: 90px; }
+.clase-form__tabla .clase-form__columna-cabecera { min-width: 0; }
+.clase-form__tabla .clase-form__columna-cabecera input { width: 175px; min-width: 85px; }
+.clase-form__tabla .clase-form__columna-cabecera button { padding-inline: 5px; }
+.clase-form__tabla td input { min-width: 80px; }
+.clase-form__panel { padding: 12px; }
