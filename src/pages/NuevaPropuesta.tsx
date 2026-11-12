@@ -311,6 +311,7 @@ export default function NuevaPropuesta() {
         conjuros,
         clases,
         subclases,
+        objetos,
       }
 
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
