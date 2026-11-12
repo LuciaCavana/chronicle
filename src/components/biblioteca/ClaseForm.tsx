@@ -120,6 +120,15 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
   const [menuFila, setMenuFila] = useState<{ nivel: number; x: number; y: number } | null>(null)
   const [menuColumna, setMenuColumna] = useState<{ id: string; x: number; y: number } | null>(null)
   const [menuRasgo, setMenuRasgo] = useState<{ nivel: number; columna: string; rasgoId?: string; x: number; y: number } | null>(null)
+  const abrirMenuFila = (nivel: number, x: number, y: number) => {
+    setMenuColumna(null); setMenuRasgo(null); setMenuFila({ nivel, x, y })
+  }
+  const abrirMenuColumna = (id: string, x: number, y: number) => {
+    setMenuFila(null); setMenuRasgo(null); setMenuColumna({ id, x, y })
+  }
+  const abrirMenuRasgo = (nivel: number, columna: string, x: number, y: number, rasgoId?: string) => {
+    setMenuFila(null); setMenuColumna(null); setMenuRasgo({ nivel, columna, rasgoId, x, y })
+  }
   const [popupRasgos, setPopupRasgos] = useState<{ nivel: number; columna: string } | null>(null)
   const [armaduraNueva, setArmaduraNueva] = useState('')
   const [armaNueva, setArmaNueva] = useState('')
@@ -402,6 +411,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <div className="clase-form__menu-contextual" role="menu"
               style={{ left: Math.max(8, Math.min(menuFila.x, window.innerWidth - 245)), top: Math.max(8, Math.min(menuFila.y, window.innerHeight - 130)) }}
               onClick={e => e.stopPropagation()}>
+              <button type="button" role="menuitem" onClick={() => agregarFila(menuFila.nivel)}>Agregar fila debajo</button>
               <button type="button" role="menuitem" className="clase-form__menu-eliminar" onClick={() => { eliminarFila(menuFila.nivel); setMenuFila(null) }}>Eliminar fila</button>
             </div>
           </div>}
@@ -411,6 +421,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               onClick={e => e.stopPropagation()}>
               <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'caracteristicas')}>Asignar características</button>
               <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'texto')}>Convertir a texto libre</button>
+              <button type="button" role="menuitem" onClick={() => { agregarFila(); setMenuColumna(null) }}>Agregar fila</button>
             </div>
           </div>}
           {menuRasgo && <div className="clase-form__menu-capa" onClick={() => setMenuRasgo(null)} onContextMenu={e => e.preventDefault()}>
@@ -419,6 +430,8 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               onClick={e => e.stopPropagation()}>
               {menuRasgo.rasgoId && <button type="button" role="menuitem" onClick={() => ocultarRasgo(menuRasgo.nivel, menuRasgo.columna, menuRasgo.rasgoId!, true)}>Quitar de la tabla</button>}
               <button type="button" role="menuitem" onClick={() => { setPopupRasgos({ nivel: menuRasgo.nivel, columna: menuRasgo.columna }); setMenuRasgo(null) }}>Agregar característica</button>
+              <button type="button" role="menuitem" onClick={() => agregarFila(menuRasgo.nivel)}>Agregar fila debajo</button>
+              <button type="button" role="menuitem" className="clase-form__menu-eliminar" onClick={() => { eliminarFila(menuRasgo.nivel); setMenuRasgo(null) }}>Eliminar fila</button>
             </div>
           </div>}
           {popupRasgos && <div className="clase-form__overlay" onMouseDown={e => { if (e.target === e.currentTarget) setPopupRasgos(null) }}>
@@ -432,14 +445,14 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           </div>}
           {datos.progresion.length === 0 && <button type="button" onClick={() => agregarFila()}>+ Agregar primera fila</button>}
           <div className="clase-form__tabla-scroll">
-            <table className="clase-form__tabla">
+            <table className="clase-form__tabla" onClick={() => { setMenuFila(null); setMenuColumna(null); setMenuRasgo(null) }}>
               <thead><tr>
                 <th scope="col"><div className="clase-form__cabecera-nivel"><span>Nivel</span><button type="button" className="clase-form__agregar-fila" onClick={() => agregarFila()} title="Agregar fila" aria-label="Agregar fila">+ Agregar fila</button></div></th>
                 {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}
                   className={columnaArrastrada === columna.id ? 'clase-form__columna--arrastrada' : ''}
                   onDragOver={e => { if (columnaArrastrada) e.preventDefault() }}
                   onDrop={e => { e.preventDefault(); moverColumna(columna.id) }}
-                  onContextMenu={e => { e.preventDefault(); setMenuColumna({ id: columna.id, x: e.clientX, y: e.clientY }) }}>
+                  onContextMenu={e => { e.preventDefault(); e.stopPropagation(); abrirMenuColumna(columna.id, e.clientX, e.clientY) }}>
                   <div className="clase-form__columna-cabecera">
                     <button type="button" draggable aria-label={`Arrastrar columna ${columna.nombre}`}
                       className="clase-form__arrastrar" title="Arrastrar para reordenar"
@@ -454,7 +467,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                 className={filaArrastrada === fila.nivel ? 'clase-form__fila--arrastrada' : ''}
                 onDragOver={e => { if (filaArrastrada !== null) e.preventDefault() }}
                 onDrop={e => { if (filaArrastrada !== null) { e.preventDefault(); moverFila(fila.nivel) } }}
-                onContextMenu={e => { e.preventDefault(); setMenuFila({ nivel: fila.nivel, x: e.clientX, y: e.clientY }) }}>
+                onContextMenu={e => { e.preventDefault(); abrirMenuFila(fila.nivel, e.clientX, e.clientY) }}>
                 <th scope="row" draggable title="Arrastrar el nivel para reordenar la fila; clic derecho para eliminar"
                   onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(fila.nivel)); setFilaArrastrada(fila.nivel) }}
                   onDragEnd={() => setFilaArrastrada(null)}>{fila.nivel}</th>
@@ -463,13 +476,13 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                     if (columna.tipo !== 'caracteristicas') return
                     e.preventDefault()
                     e.stopPropagation()
-                    setMenuRasgo({ nivel: fila.nivel, columna: columna.id, x: e.clientX, y: e.clientY })
+                    abrirMenuRasgo(fila.nivel, columna.id, e.clientX, e.clientY)
                   }}>
                   {columna.tipo === 'caracteristicas' ? (
                     <div className="clase-form__vinculos" title="Clic derecho para administrar características">
                       {datos.rasgos.filter(r => r.nivel === fila.nivel && !(datos.caracteristicasOcultas[fila.nivel]?.[columna.id] ?? []).includes(r.id)).map(r =>
                         <div key={r.id} className="clase-form__rasgo-etiqueta" title="Clic derecho para quitar de la tabla"
-                          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setMenuRasgo({ nivel: fila.nivel, columna: columna.id, rasgoId: r.id, x: e.clientX, y: e.clientY }) }}>
+                          onContextMenu={e => { e.preventDefault(); e.stopPropagation(); abrirMenuRasgo(fila.nivel, columna.id, e.clientX, e.clientY, r.id) }}>
                           {r.nombre || 'Sin nombre'}
                         </div>)}
                     </div>
