@@ -7,7 +7,9 @@ import AppLayout from '../components/layout/AppLayout'
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
+import TrasfondoForm from '../components/biblioteca/TrasfondoForm'
 import DoteForm from '../components/biblioteca/DoteForm'
+import type { Trasfondo } from '../types/trasfondo'
 import type { Dote } from '../types/trasfondo'
 import ConjuroForm from '../components/biblioteca/ConjuroForm'
 import ClaseForm from '../components/biblioteca/ClaseForm'
@@ -90,6 +92,10 @@ export default function NuevaPropuesta() {
   const [especies, setEspecies] = useState<Especie[]>([])
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
   const [dotes, setDotes] = useState<Dote[]>([])
+  const [trasfondos, setTrasfondos] = useState<Trasfondo[]>([])
+  const [editingTrasfondoId, setEditingTrasfondoId] = useState<string | null>(null)
+  const [showTrasfondoForm, setShowTrasfondoForm] = useState(false)
+  const [volverATrasfondo, setVolverATrasfondo] = useState(false)
   const [editingDoteId, setEditingDoteId] = useState<string | null>(null)
   const [showDoteForm, setShowDoteForm] = useState(false)
   const [editingConjuroId, setEditingConjuroId] = useState<string | null>(null)
@@ -144,6 +150,7 @@ export default function NuevaPropuesta() {
         especies?: Especie[]
         conjuros?: Conjuro[]
         dotes?: Dote[]
+        trasfondos?: Trasfondo[]
         clases?: Elemento[]
         subclases?: Elemento[]
         objetos?: Elemento[]
@@ -160,6 +167,7 @@ export default function NuevaPropuesta() {
       setEspecies(contenido.especies ?? [])
       setConjuros(contenido.conjuros ?? [])
       setDotes(contenido.dotes ?? [])
+      setTrasfondos(contenido.trasfondos ?? [])
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
       setObjetos(contenido.objetos ?? [])
@@ -197,6 +205,7 @@ export default function NuevaPropuesta() {
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
         setDotes([]) // Las versiones publicadas aún no almacenan dotes.
+        setTrasfondos([]) // Pendiente de publicación.
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
         setObjetos((version.objetos ?? []) as Elemento[])
@@ -261,10 +270,17 @@ export default function NuevaPropuesta() {
     setEspecies((actuales) => actuales.filter((especie) => especie.id !== id))
   }
 
+  function guardarTrasfondo(trasfondo: Trasfondo) {
+    setTrasfondos(actuales => actuales.some(t => t.id === trasfondo.id) ? actuales.map(t => t.id === trasfondo.id ? trasfondo : t) : [...actuales, trasfondo])
+    setShowTrasfondoForm(false)
+    setEditingTrasfondoId(null)
+  }
+
   function guardarDote(dote: Dote) {
     setDotes(actuales => actuales.some(d => d.id === dote.id) ? actuales.map(d => d.id === dote.id ? dote : d) : [...actuales, dote])
     setShowDoteForm(false)
     setEditingDoteId(null)
+    if (volverATrasfondo) { setVolverATrasfondo(false); setShowTrasfondoForm(true) }
   }
 
   function guardarConjuro(conjuro: Conjuro) {
@@ -333,6 +349,7 @@ export default function NuevaPropuesta() {
         especies,
         conjuros,
         dotes,
+        trasfondos,
         clases,
         subclases,
         objetos,
@@ -583,6 +600,8 @@ export default function NuevaPropuesta() {
                 <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
+            ) : showTrasfondoForm ? (
+              <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} onCrearDote={() => { setShowTrasfondoForm(false); setVolverATrasfondo(true); setEditingDoteId(null); setShowDoteForm(true) }} onCrearObjeto={() => { setShowTrasfondoForm(false); const id = crypto.randomUUID(); setObjetos(actuales => [...actuales, { id, tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }]); setEditingObjectId(id) }} />
             ) : showDoteForm ? (
               <DoteForm key={editingDoteId ?? 'nueva'} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clases.map(c => c.nombre).filter(Boolean)} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
             ) : showConjuroForm ? (
@@ -607,6 +626,10 @@ export default function NuevaPropuesta() {
                 onToggleCategory={toggleCategory}
                 speciesCount={especies.length}
                 conjuros={conjuros}
+                trasfondos={trasfondos}
+                onAddTrasfondo={() => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }}
+                onEditTrasfondo={id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }}
+                onDeleteTrasfondo={id => setTrasfondos(actuales => actuales.filter(t => t.id !== id))}
                 dotes={dotes}
                 onAddDote={() => { setEditingDoteId(null); setShowDoteForm(true) }}
                 onEditDote={id => { setEditingDoteId(id); setShowDoteForm(true) }}
@@ -633,6 +656,7 @@ export default function NuevaPropuesta() {
                 onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
                 categoryItemCounts={{
                   dotes: dotes.length,
+                  trasfondos: trasfondos.length,
                   clases: clases.length,
                   subclases: subclases.length,
                   objetos: objetos.length,
@@ -688,6 +712,8 @@ export default function NuevaPropuesta() {
                 if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
                 } else if (currentStep === 2 && editingClassId !== null) {
                   setEditingClassId(null)
+                } else if (currentStep === 2 && showTrasfondoForm) {
+                  setShowTrasfondoForm(false); setEditingTrasfondoId(null)
                 } else if (currentStep === 2 && showDoteForm) {
                   setShowDoteForm(false); setEditingDoteId(null)
                 } else if (currentStep === 2 && showConjuroForm) {
@@ -719,7 +745,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
+          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
