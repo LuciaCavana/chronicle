@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import type { Dote } from '../../types/trasfondo'
+import type { Dote, EfectoDote } from '../../types/trasfondo'
 import '../../styles/EspecieForm.css'
 
 type Props = {
@@ -19,7 +19,13 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
   const [categoria, setCategoria] = useState(initialData?.categoria ?? 'origen')
   const [requisitos, setRequisitos] = useState((initialData?.requisitos ?? []).join('\n'))
   const [beneficios, setBeneficios] = useState((initialData?.beneficios ?? []).join('\n'))
+  const [libro, setLibro] = useState(initialData?.fuente?.libro ?? '')
+  const [pagina, setPagina] = useState(initialData?.fuente?.pagina?.toString() ?? '')
+  const [efectos, setEfectos] = useState<EfectoDote[]>(initialData?.efectos ?? [])
   const [error, setError] = useState('')
+  function cambiarEfecto(id: string, cambio: Partial<EfectoDote>) {
+    setEfectos(actuales => actuales.map(efecto => efecto.id === id ? { ...efecto, ...cambio } : efecto))
+  }
 
   function guardar() {
     const nombreLimpio = nombre.trim()
@@ -27,6 +33,8 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
     if (dotes.some(d => d.id !== initialData?.id && d.nombre.trim().toLocaleLowerCase('es') === nombreLimpio.toLocaleLowerCase('es'))) {
       setError('Ya existe una dote con ese nombre.'); return
     }
+    if (pagina.trim() && (!Number.isInteger(Number(pagina)) || Number(pagina) < 1)) { setError('La página debe ser un número entero positivo.'); return }
+    if (efectos.some(e => !e.atributo.trim() || !Number.isFinite(e.valor))) { setError('Completá el atributo y el valor de cada efecto.'); return }
     onSave({
       id: initialData?.id ?? crypto.randomUUID(),
       nombre: nombreLimpio,
@@ -34,6 +42,8 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
       categoria: categoria.trim(),
       requisitos: lineas(requisitos),
       beneficios: lineas(beneficios),
+      fuente: { libro: libro.trim(), ...(pagina.trim() ? { pagina: Number(pagina) } : {}) },
+      efectos,
       ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {})
     })
   }
@@ -45,6 +55,22 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
     <div className="nueva-propuesta-field"><label htmlFor="dote-requisitos">Requisitos (uno por línea)</label><textarea id="dote-requisitos" rows={3} value={requisitos} onChange={e => setRequisitos(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-beneficios">Beneficios (uno por línea)</label><textarea id="dote-beneficios" rows={5} value={beneficios} onChange={e => setBeneficios(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-descripcion">Descripción</label><textarea id="dote-descripcion" rows={5} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></div>
+    <fieldset><legend>Fuente</legend>
+      <div className="nueva-propuesta-field"><label htmlFor="dote-libro">Libro</label><input id="dote-libro" value={libro} onChange={e => setLibro(e.target.value)} placeholder="Ej.: PHB 2024"/></div>
+      <div className="nueva-propuesta-field"><label htmlFor="dote-pagina">Página</label><input id="dote-pagina" type="number" min={1} step={1} value={pagina} onChange={e => setPagina(e.target.value)}/></div>
+    </fieldset>
+    <fieldset><legend>Efectos para el motor (opcional)</legend>
+      <p>Definí efectos declarativos. El motor deberá validar los atributos y eventos admitidos antes de aplicarlos.</p>
+      {efectos.map(efecto => <div key={efecto.id} className="nueva-propuesta-panel">
+        <div className="nueva-propuesta-field"><label>Evento</label><select value={efecto.evento} onChange={e => cambiarEfecto(efecto.id, { evento: e.target.value as EfectoDote['evento'] })}><option value="al_obtener">Al obtener la dote</option><option value="al_subir_nivel">Al subir de nivel</option><option value="pasivo">Pasivo</option></select></div>
+        <div className="nueva-propuesta-field"><label>Atributo del motor</label><input value={efecto.atributo} onChange={e => cambiarEfecto(efecto.id, { atributo: e.target.value })} placeholder="Ej.: puntos_golpe_maximos"/></div>
+        <div className="nueva-propuesta-field"><label>Operación</label><select value={efecto.operacion} onChange={e => cambiarEfecto(efecto.id, { operacion: e.target.value as EfectoDote['operacion'] })}><option value="sumar">Sumar</option><option value="establecer">Establecer</option></select></div>
+        <div className="nueva-propuesta-field"><label>Valor</label><input type="number" value={efecto.valor} onChange={e => cambiarEfecto(efecto.id, { valor: Number(e.target.value) })}/></div>
+        <div className="nueva-propuesta-field"><label>Escala</label><select value={efecto.escala ?? 'fijo'} onChange={e => cambiarEfecto(efecto.id, { escala: e.target.value as EfectoDote['escala'] })}><option value="fijo">Valor fijo</option><option value="nivel_personaje">Multiplicar por nivel del personaje</option></select></div>
+        <button type="button" className="nueva-propuesta-cancel" onClick={() => setEfectos(actuales => actuales.filter(e => e.id !== efecto.id))}>Quitar efecto</button>
+      </div>)}
+      <button type="button" onClick={() => setEfectos(actuales => [...actuales, { id: crypto.randomUUID(), evento: 'al_obtener', atributo: '', operacion: 'sumar', valor: 0, escala: 'fijo' }])}>Agregar efecto</button>
+    </fieldset>
     {error && <p role="alert">{error}</p>}
     <div className="nueva-propuesta-actions">
       <button type="button" className="nueva-propuesta-cancel" onClick={onCancel}>Cancelar</button>
