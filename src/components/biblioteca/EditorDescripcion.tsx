@@ -46,6 +46,8 @@ function limpiarHtml(html: string) {
 export function EditorDescripcion({value,onChange}:Props) {
   const editable=useRef<HTMLDivElement>(null)
   const seleccion=useRef<Range|null>(null)
+  const historialColor=useRef<string[]>([])
+  const rehacerColor=useRef<string[]>([])
   const [tipo,setTipo]=useState<'letra'|'fondo'|null>(null)
   const [h,setH]=useState(0),[s,setS]=useState(0.8),[v,setV]=useState(0.8)
   const [hex,setHex]=useState('#CC3333')
@@ -56,20 +58,48 @@ export function EditorDescripcion({value,onChange}:Props) {
   const guardarSeleccion=()=>{const sel=window.getSelection();if(sel?.rangeCount && editable.current?.contains(sel.anchorNode)) seleccion.current=sel.getRangeAt(0).cloneRange()}
   const restaurarSeleccion=()=>{editable.current?.focus();if(seleccion.current){const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(seleccion.current)}}
   const ejecutar=(cmd:string,arg?:string)=>{restaurarSeleccion();document.execCommand(cmd,false,arg);guardarSeleccion();emitir()}
-  const aplicarColor=(valor:string)=>{if(tipo) ejecutar(tipo==='fondo'?'hiliteColor':'foreColor',valor)}
+  const aplicarColor=(valor:string)=>{
+    if(!tipo || !editable.current || !seleccion.current || seleccion.current.collapsed)return
+    const antes=editable.current.innerHTML
+    ejecutar(tipo==='fondo'?'hiliteColor':'foreColor',valor)
+    if(editable.current.innerHTML!==antes){
+      historialColor.current.push(antes)
+      if(historialColor.current.length>100)historialColor.current.shift()
+      rehacerColor.current=[]
+    }
+  }
+  const navegarColor=(rehacer:boolean)=>{
+    const origen=rehacer?rehacerColor.current:historialColor.current
+    const destino=rehacer?historialColor.current:rehacerColor.current
+    const anterior=origen.pop()
+    if(anterior===undefined || !editable.current)return false
+    destino.push(editable.current.innerHTML)
+    editable.current.innerHTML=anterior
+    seleccion.current=null
+    emitir()
+    editable.current.focus()
+    return true
+  }
   const actualizarColor=(hh:number,ss:number,vv:number)=>{setH(hh);setS(ss);setV(vv);const nuevo=hsvAHex(hh,ss,vv);setHex(nuevo);aplicarColor(nuevo)}
   const cambiarHue=(e:React.PointerEvent<HTMLDivElement>)=>{const rect=e.currentTarget.getBoundingClientRect();actualizarColor(Math.min(359.99,Math.max(0,(e.clientX-rect.left)/rect.width*360)),s,v)}
   const cambiarSV=(e:React.PointerEvent<HTMLDivElement>)=>{const rect=e.currentTarget.getBoundingClientRect();actualizarColor(h,Math.max(0,Math.min(1,(e.clientX-rect.left)/rect.width)),1-Math.max(0,Math.min(1,(e.clientY-rect.top)/rect.height)))}
   const arrastrar=(e:React.PointerEvent<HTMLDivElement>,fn:(e:React.PointerEvent<HTMLDivElement>)=>void)=>{e.currentTarget.setPointerCapture(e.pointerId);fn(e)}
-  return <div className="editor-descripcion">
+  return <div className="editor-descripcion" onKeyDown={e=>{
+    if(!(e.ctrlKey||e.metaKey)||e.altKey)return
+    const key=e.key.toLowerCase()
+    if((key==='z' && navegarColor(e.shiftKey)) || (key==='y' && navegarColor(true))){
+      e.preventDefault()
+      e.stopPropagation()
+    }
+  }}>
     <div className="editor-descripcion__barra" onMouseDown={e=>e.preventDefault()}>
       <button type="button" title="Negrita" onClick={()=>ejecutar('bold')}><b>N</b></button>
       <button type="button" title="Cursiva" onClick={()=>ejecutar('italic')}><i>C</i></button>
       <button type="button" title="Subrayado" onClick={()=>ejecutar('underline')}><u>S</u></button>
       <button type="button" title="Lista con viñetas" onClick={()=>ejecutar('insertUnorderedList')}>• Lista</button>
       <button type="button" title="Lista numerada" onClick={()=>ejecutar('insertOrderedList')}>1. Lista</button>
-      <button type="button" title="Deshacer" onClick={()=>ejecutar('undo')}>↶</button>
-      <button type="button" title="Rehacer" onClick={()=>ejecutar('redo')}>↷</button>
+      <button type="button" title="Deshacer" onClick={()=>{if(!navegarColor(false))ejecutar('undo')}}>↶</button>
+      <button type="button" title="Rehacer" onClick={()=>{if(!navegarColor(true))ejecutar('redo')}}>↷</button>
       <button type="button" title="Color de letra" aria-expanded={tipo==='letra'} onClick={()=>{guardarSeleccion();setCopiado(false);setTipo(tipo==='letra'?null:'letra')}}><Baseline size={18} color={color}/></button>
       <button type="button" title="Color de fondo" aria-expanded={tipo==='fondo'} onClick={()=>{guardarSeleccion();setCopiado(false);setTipo(tipo==='fondo'?null:'fondo')}}><Highlighter size={18} color={color}/></button>
     </div>
