@@ -29,6 +29,7 @@ type DatosClase = {
   vinculosProgresion: Record<string, Record<string, string[]>>
   caracteristicasOcultas: Record<string, Record<string, string[]>>
   rasgos: Rasgo[]
+  nivelesSubclase: number[]
 }
 
 type Props = {
@@ -78,6 +79,7 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
       ? valor.caracteristicasOcultas as Record<string, Record<string, string[]>>
       : {},
     rasgos: Array.isArray(valor.rasgos) ? valor.rasgos as Rasgo[] : [],
+    nivelesSubclase: Array.isArray(valor.nivelesSubclase) ? [...new Set(valor.nivelesSubclase.filter((n): n is number => Number.isInteger(n) && n >= 1 && n <= 20))].sort((a,b)=>a-b) : [],
   }
 }
 
@@ -503,6 +505,17 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                 </td>)}
               </tr>)}</tbody>
             </table>
+          </div>
+          <div className="clase-form__heading">
+            <h4>Niveles de mejora de subclase</h4>
+          </div>
+          <p className="clase-form__hint">Marcá los niveles en los que esta clase obtiene características de su subclase. Las subclases vinculadas usarán únicamente estos niveles.</p>
+          <div className="clase-form__checks">
+            {Array.from({ length: 20 }, (_, i) => i + 1).map(nivel => <label key={nivel}>
+              <input type="checkbox" checked={datos.nivelesSubclase.includes(nivel)}
+                onChange={() => actualizar({ nivelesSubclase: datos.nivelesSubclase.includes(nivel) ? datos.nivelesSubclase.filter(n => n !== nivel) : [...datos.nivelesSubclase, nivel].sort((a,b)=>a-b) })}/>
+              Nivel {nivel}
+            </label>)}
           </div>
           <div className="clase-form__heading">
             <h4>Características de clase</h4>
