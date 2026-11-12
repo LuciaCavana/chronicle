@@ -8,7 +8,7 @@ const atributos = [['fuerza','Fuerza'],['destreza','Destreza'],['constitucion','
 const secciones = [['rasgos','Rasgos'],['acciones','Acciones'],['acciones_adicionales','Acciones adicionales'],['reacciones','Reacciones'],['acciones_legendarias','Acciones legendarias'],['acciones_guarida','Acciones de guarida'],['efectos_regionales','Efectos regionales']] as const
 const vacio = (): Criatura => ({
   id: crypto.randomUUID(), nombre:'', fuente:{libro:'',pagina:undefined}, tamano:'Mediano', tipo:'Humanoide', alineamiento:'Sin alineamiento', invocacion:false,
-  variantes:[], ca:{valor:''}, iniciativa:{valor:''}, pg:{valor:''},
+  conjurosInvocacionIds:[], variantes:[], ca:{valor:''}, iniciativa:{valor:''}, pg:{valor:''},
   velocidades:[{id:crypto.randomUUID(),tipo:'Caminar',valor:'30 pies'}],
   caracteristicas:{fuerza:{puntuacion:10},destreza:{puntuacion:10},constitucion:{puntuacion:10},inteligencia:{puntuacion:10},sabiduria:{puntuacion:10},carisma:{puntuacion:10}},
   habilidades:[], resistencias:'', inmunidadesDano:'', inmunidadesEstados:'', vulnerabilidades:'', sentidos:'', idiomas:'', desafio:'', experiencia:'', competencia:'', habitat:'', tesoro:'',
@@ -16,7 +16,7 @@ const vacio = (): Criatura => ({
 })
 const nuevaEntrada = (): RasgoCriatura => ({id:crypto.randomUUID(),nombre:'',descripcion:''})
 export default function CriaturaForm({initialData,criaturas,conjuros,onSave,onCancel}:Props) {
-  const [c,setC] = useState<Criatura>(()=> initialData ? {...vacio(),...initialData, secciones:{...vacio().secciones,...initialData.secciones}} : vacio())
+  const [c,setC] = useState<Criatura>(()=> initialData ? {...vacio(),...initialData, conjurosInvocacionIds: Array.from(new Set([...(initialData.conjurosInvocacionIds ?? []), ...(initialData.conjuroInvocacionId ? [initialData.conjuroInvocacionId] : [])])), secciones:{...vacio().secciones,...initialData.secciones}} : vacio())
   const [error,setError] = useState('')
   const update = (patch:Partial<Criatura>) => setC(v=>({...v,...patch}))
   const texto = (label:string, key:keyof Criatura, placeholder='') => <div className="nueva-propuesta-field"><label>{label}</label><input value={String(c[key] ?? '')} placeholder={placeholder} onChange={e=>update({[key]:e.target.value})}/></div>
@@ -26,10 +26,10 @@ export default function CriaturaForm({initialData,criaturas,conjuros,onSave,onCa
     if (!c.nombre.trim()) {setError('Ingresá el nombre de la criatura.');return}
     if (criaturas.some(x=>x.id!==c.id && x.nombre.trim().toLocaleLowerCase('es')===c.nombre.trim().toLocaleLowerCase('es'))) {setError('Ya existe una criatura con ese nombre.');return}
     if (!c.ca.valor.trim() || !c.pg.valor.trim()) {setError('Completá la CA y los puntos de golpe.');return}
-    if (c.invocacion && c.conjuroInvocacionId && !conjuros.some(x=>x.id===c.conjuroInvocacionId)) {setError('El conjuro vinculado no existe.');return}
+    if (c.invocacion && (c.conjurosInvocacionIds ?? []).some(id=>!conjuros.some(x=>x.id===id))) {setError('Uno de los conjuros vinculados no existe.');return}
     if (c.invocacion && c.nivelConjuroBase !== undefined && (!Number.isInteger(c.nivelConjuroBase)||c.nivelConjuroBase<1||c.nivelConjuroBase>9)) {setError('El nivel base del conjuro debe estar entre 1 y 9.');return}
     if (c.velocidades.some(v=>!v.tipo.trim()||!v.valor.trim()) || c.habilidades.some(h=>!h.nombre.trim()||!h.bonificador.trim()) || Object.values(c.secciones).some(lista=>lista.some(x=>!x.nombre.trim()||!x.descripcion.trim()))) {setError('Completá las velocidades, habilidades y entradas de acciones o rasgos agregadas.');return}
-    onSave({...c,nombre:c.nombre.trim(),conjuroInvocacionId:c.invocacion ? c.conjuroInvocacionId : undefined,nivelConjuroBase:c.invocacion ? c.nivelConjuroBase : undefined})
+    onSave({...c,nombre:c.nombre.trim(),conjurosInvocacionIds:c.invocacion ? c.conjurosInvocacionIds ?? [] : [],conjuroInvocacionId:undefined,nivelConjuroBase:c.invocacion ? c.nivelConjuroBase : undefined})
   }
   return <section className="nueva-propuesta-panel criatura-form">
     <h3>{initialData?'Editar monstruo o criatura':'Agregar monstruo o criatura'}</h3>
@@ -44,8 +44,8 @@ export default function CriaturaForm({initialData,criaturas,conjuros,onSave,onCa
       <div className="nueva-propuesta-field"><label>Página</label><input type="number" min={1} value={c.fuente?.pagina??''} onChange={e=>update({fuente:{libro:c.fuente?.libro??'',pagina:e.target.value?Number(e.target.value):undefined}})}/></div>
     </div>
     <fieldset><legend>Invocación y variantes</legend>
-      <label className="criatura-check"><input type="checkbox" checked={c.invocacion} onChange={e=>update({invocacion:e.target.checked})}/>Esta criatura puede ser invocada por un conjuro</label>
-      {c.invocacion && <div className="criatura-grid"><div className="nueva-propuesta-field"><label>Conjuro que la invoca</label><select value={c.conjuroInvocacionId??''} onChange={e=>update({conjuroInvocacionId:e.target.value||undefined})}><option value="">Sin vincular todavía</option>{conjuros.map(x=><option key={x.id} value={x.id}>{x.nombre}</option>)}</select></div><div className="nueva-propuesta-field"><label>Nivel base del conjuro</label><input type="number" min={1} max={9} value={c.nivelConjuroBase??''} onChange={e=>update({nivelConjuroBase:e.target.value?Number(e.target.value):undefined})}/></div></div>}
+      <label className="criatura-check"><input type="checkbox" checked={c.invocacion} onChange={e=>update({invocacion:e.target.checked})}/>Esta criatura puede ser invocada mediante conjuros</label>
+      {c.invocacion && <div className="criatura-grid"><div className="nueva-propuesta-field"><label>Conjuros que la invocan</label><p className="criatura-ayuda">Podés vincular varios conjuros existentes. Marcá todos los que correspondan.</p><div className="criatura-conjuros">{conjuros.length===0 ? <p className="criatura-ayuda">Todavía no hay conjuros en este libro. Agregalos desde la categoría Conjuros.</p> : conjuros.map(conjuro=><label className="criatura-check" key={conjuro.id}><input type="checkbox" checked={(c.conjurosInvocacionIds??[]).includes(conjuro.id)} onChange={e=>update({conjurosInvocacionIds:e.target.checked ? Array.from(new Set([...(c.conjurosInvocacionIds??[]),conjuro.id])) : (c.conjurosInvocacionIds??[]).filter(id=>id!==conjuro.id)})}/>{conjuro.nombre}</label>)}</div></div><div className="nueva-propuesta-field"><label>Nivel base del conjuro</label><input type="number" min={1} max={9} value={c.nivelConjuroBase??''} onChange={e=>update({nivelConjuroBase:e.target.value?Number(e.target.value):undefined})}/></div></div>}
       <div className="nueva-propuesta-field"><label>Variantes (una por línea)</label><textarea rows={3} value={c.variantes.join('\n')} onChange={e=>update({variantes:e.target.value.split('\n').map(x=>x.trim()).filter(Boolean)})} placeholder="Aire\nTierra\nFuego\nAgua"/></div>
     </fieldset>
     <fieldset><legend>Defensas e iniciativa</legend><div className="criatura-grid">{campoValor('Clase de armadura (CA) *','ca','22 o 11 + nivel del conjuro')}{campoValor('Iniciativa','iniciativa','+16 (26)')}{campoValor('Puntos de golpe (PG) *','pg','546 (28d20 + 252) o 50 + 10 por nivel sobre 4')}</div></fieldset>
