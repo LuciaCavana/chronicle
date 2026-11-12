@@ -63,7 +63,7 @@ function normalizarDatos(valor: Record<string, unknown>): DatosClase {
     equipoOpciones: normalizarEquipo(valor.equipoOpciones),
     objetosCatalogo: normalizarCatalogo(valor.objetosCatalogo),
     recursos: Array.isArray(valor.recursos) ? valor.recursos as Recurso[] : [],
-    progresion: Array.isArray(valor.progresion) && valor.progresion.length === 20 ? valor.progresion as Nivel[] : progresionInicial(),
+    progresion: Array.isArray(valor.progresion) ? valor.progresion as Nivel[] : progresionInicial(),
     columnasProgresion: Array.isArray(valor.columnasProgresion)
       ? (valor.columnasProgresion as ColumnaProgresion[]).filter(c => typeof c?.id === 'string' && typeof c?.nombre === 'string')
       : [{ id: 'competencia', nombre: 'Bonificador de competencia' }, { id: 'rasgos', nombre: 'Rasgos' }, { id: 'recursos', nombre: 'Recursos' }, { id: 'notas', nombre: 'Notas' }],
@@ -133,6 +133,18 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
       ...datos.celdasProgresion,
       [nivelNumero]: { ...(datos.celdasProgresion[nivelNumero] ?? {}), [columnaId]: texto },
     },
+  })
+  const agregarFila = () => {
+    const niveles = new Set(datos.progresion.map(f => f.nivel))
+    let nuevoNivel = 1
+    while (niveles.has(nuevoNivel)) nuevoNivel++
+    actualizar({ progresion: [...datos.progresion, { nivel: nuevoNivel, bonificadorCompetencia: 2 + Math.floor((nuevoNivel - 1) / 4), notas: '' }].sort((a, b) => a.nivel - b.nivel) })
+  }
+  const eliminarFila = (nivel: number) => actualizar({
+    progresion: datos.progresion.filter(f => f.nivel !== nivel),
+    celdasProgresion: Object.fromEntries(Object.entries(datos.celdasProgresion).filter(([clave]) => clave !== String(nivel))),
+    vinculosProgresion: Object.fromEntries(Object.entries(datos.vinculosProgresion).filter(([clave]) => clave !== String(nivel))),
+    caracteristicasOcultas: Object.fromEntries(Object.entries(datos.caracteristicasOcultas).filter(([clave]) => clave !== String(nivel))),
   })
   const moverColumna = (destinoId: string) => {
     if (!columnaArrastrada || columnaArrastrada === destinoId) return
@@ -363,8 +375,11 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
 
         <section className="clase-form__panel">
           <div className="clase-form__heading">
-            <h4>Tabla de progresión (niveles 1 a 20)</h4>
-            <button type="button" onClick={() => actualizar({ columnasProgresion: [...datos.columnasProgresion, { id: nuevoId(), nombre: 'Nueva columna' }] })}>+ Agregar columna</button>
+            <h4>Tabla de progresión</h4>
+            <div className="clase-form__acciones-tabla">
+              <button type="button" onClick={agregarFila}>+ Agregar fila</button>
+              <button type="button" onClick={() => actualizar({ columnasProgresion: [...datos.columnasProgresion, { id: nuevoId(), nombre: 'Nueva columna' }] })}>+ Agregar columna</button>
+            </div>
           </div>
           <p className="clase-form__hint">Podés arrastrar las columnas para ordenarlas. Hacé clic derecho sobre el encabezado para asignarle el tipo Características y vincular los rasgos de la clase. La columna Nivel identifica cada fila.</p>
           {menuColumna && <div className="clase-form__menu-capa" onClick={() => setMenuColumna(null)} onContextMenu={e => e.preventDefault()}>
@@ -410,6 +425,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                     <button type="button" className="clase-form__danger" aria-label={`Eliminar columna ${columna.nombre}`} title="Eliminar columna" onClick={() => eliminarColumna(columna.id)}>×</button>
                   </div>
                 </th>)}
+                <th scope="col">Acciones</th>
               </tr></thead>
               <tbody>{datos.progresion.map(fila => <tr key={fila.nivel}>
                 <th scope="row">{fila.nivel}</th>
@@ -434,6 +450,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                       onChange={e => cambiarCelda(fila.nivel, columna.id, e.target.value)} />
                   )}
                 </td>)}
+                <td><button type="button" className="clase-form__danger" aria-label={`Eliminar fila del nivel ${fila.nivel}`} onClick={() => eliminarFila(fila.nivel)}>Eliminar fila</button></td>
               </tr>)}</tbody>
             </table>
           </div>
