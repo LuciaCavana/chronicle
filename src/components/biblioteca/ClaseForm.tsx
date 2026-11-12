@@ -367,7 +367,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <button type="button" onClick={() => actualizar({ columnasProgresion: [...datos.columnasProgresion, { id: nuevoId(), nombre: 'Nueva columna' }] })}>+ Agregar columna</button>
           </div>
           <p className="clase-form__hint">Podés arrastrar las columnas para ordenarlas. Hacé clic derecho sobre el encabezado para asignarle el tipo Características y vincular los rasgos de la clase. La columna Nivel identifica cada fila.</p>
-          {menuColumna && <div className="clase-form__menu-capa" onClick={() => setMenuColumna(null)}>
+          {menuColumna && <div className="clase-form__menu-capa" onClick={() => setMenuColumna(null)} onContextMenu={e => e.preventDefault()}>
             <div className="clase-form__menu-contextual" role="menu"
               style={{ left: Math.min(menuColumna.x, window.innerWidth - 245), top: Math.min(menuColumna.y, window.innerHeight - 130) }}
               onClick={e => e.stopPropagation()}>
@@ -375,7 +375,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'texto')}>Convertir a texto libre</button>
             </div>
           </div>}
-          {menuRasgo && <div className="clase-form__menu-capa" onClick={() => setMenuRasgo(null)}>
+          {menuRasgo && <div className="clase-form__menu-capa" onClick={() => setMenuRasgo(null)} onContextMenu={e => e.preventDefault()}>
             <div className="clase-form__menu-contextual" role="menu"
               style={{ left: Math.max(8, Math.min(menuRasgo.x, window.innerWidth - 245)), top: Math.max(8, Math.min(menuRasgo.y, window.innerHeight - 120)) }}
               onClick={e => e.stopPropagation()}>
@@ -413,19 +413,20 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               </tr></thead>
               <tbody>{datos.progresion.map(fila => <tr key={fila.nivel}>
                 <th scope="row">{fila.nivel}</th>
-                {datos.columnasProgresion.map(columna => <td key={columna.id}>
+                {datos.columnasProgresion.map(columna => <td key={columna.id}
+                  onContextMenu={e => {
+                    if (columna.tipo !== 'caracteristicas') return
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setMenuRasgo({ nivel: fila.nivel, columna: columna.id, x: e.clientX, y: e.clientY })
+                  }}>
                   {columna.tipo === 'caracteristicas' ? (
-                    <div className="clase-form__vinculos">
+                    <div className="clase-form__vinculos" title="Clic derecho para administrar características">
                       {datos.rasgos.filter(r => r.nivel === fila.nivel && !(datos.caracteristicasOcultas[fila.nivel]?.[columna.id] ?? []).includes(r.id)).map(r =>
                         <div key={r.id} className="clase-form__rasgo-etiqueta" title="Clic derecho para quitar de la tabla"
                           onContextMenu={e => { e.preventDefault(); e.stopPropagation(); setMenuRasgo({ nivel: fila.nivel, columna: columna.id, rasgoId: r.id, x: e.clientX, y: e.clientY }) }}>
                           {r.nombre || 'Sin nombre'}
                         </div>)}
-                      <button type="button" className="clase-form__rasgo-agregar"
-                        onClick={() => setPopupRasgos({ nivel: fila.nivel, columna: columna.id })}
-                        onContextMenu={e => { e.preventDefault(); setMenuRasgo({ nivel: fila.nivel, columna: columna.id, x: e.clientX, y: e.clientY }) }}>
-                        + Agregar
-                      </button>
                     </div>
                   ) : (
                     <input aria-label={`Nivel ${fila.nivel}, ${columna.nombre}`}
