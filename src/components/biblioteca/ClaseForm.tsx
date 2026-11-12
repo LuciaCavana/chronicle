@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { ChevronDown, GripVertical } from 'lucide-react'
+import { EditorDescripcion } from './EditorDescripcion'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
@@ -455,7 +456,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           <div className="clase-form__tabla-scroll">
             <table className="clase-form__tabla" onClick={() => { setMenuFila(null); setMenuColumna(null); setMenuRasgo(null) }}>
               <thead><tr>
-                <th scope="col"><div className="clase-form__cabecera-nivel"><span>Nivel</span><button type="button" className="clase-form__agregar-fila" onClick={() => agregarFila()} title="Agregar fila" aria-label="Agregar fila">+ Agregar fila</button></div></th>
+                <th scope="col">Nivel</th>
                 {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}
                   className={columnaArrastrada === columna.id ? 'clase-form__columna--arrastrada' : ''}
                   onDragOver={e => { if (columnaArrastrada) e.preventDefault() }}
@@ -529,7 +530,8 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Nivel {n}</option>)}
             </select>
           </label>
-          <label>Descripción<textarea rows={8} value={editorRasgo.descripcion} onChange={e => setEditorRasgo({ ...editorRasgo, descripcion: e.target.value })} placeholder="Descripción de la característica" /></label>
+          <label>Descripción</label>
+          <EditorDescripcion key={editorRasgo.id} value={editorRasgo.descripcion} onChange={descripcion => setEditorRasgo(actual => actual ? { ...actual, descripcion } : actual)} />
           <div className="clase-form__acciones-rasgo">
             <button type="button" onClick={() => setEditorRasgo(null)}>Cancelar</button>
             <button type="submit" disabled={!editorRasgo.nombre.trim()}>Guardar característica</button>
