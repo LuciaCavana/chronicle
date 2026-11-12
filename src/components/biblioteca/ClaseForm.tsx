@@ -130,6 +130,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     setMenuFila(null); setMenuColumna(null); setMenuRasgo({ nivel, columna, rasgoId, x, y })
   }
   const [popupRasgos, setPopupRasgos] = useState<{ nivel: number; columna: string } | null>(null)
+  const [editorRasgo, setEditorRasgo] = useState<Rasgo | null>(null)
   const [armaduraNueva, setArmaduraNueva] = useState('')
   const [armaNueva, setArmaNueva] = useState('')
   const [habilidadNueva, setHabilidadNueva] = useState('')
@@ -213,6 +214,13 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
       ? datos.salvaciones.filter(v => v !== nombre)
       : [...datos.salvaciones, nombre],
   })
+  const guardarRasgo = () => {
+    if (!editorRasgo || !editorRasgo.nombre.trim()) return
+    const rasgo = { ...editorRasgo, nombre: editorRasgo.nombre.trim() }
+    const existe = datos.rasgos.some(r => r.id === rasgo.id)
+    actualizar({ rasgos: existe ? datos.rasgos.map(r => r.id === rasgo.id ? rasgo : r) : [...datos.rasgos, rasgo] })
+    setEditorRasgo(null)
+  }
   const actualizarRasgo = (id: string, cambios: Partial<Rasgo>) => actualizar({
     rasgos: datos.rasgos.map(r => r.id === id ? { ...r, ...cambios } : r),
   })
@@ -497,24 +505,37 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           </div>
           <div className="clase-form__heading">
             <h4>Características de clase</h4>
-            <button type="button" onClick={() => actualizar({ rasgos: [...datos.rasgos, { id: nuevoId(), nivel: 1, nombre: '', descripcion: '' }] })}>+ Agregar característica</button>
+            <button type="button" onClick={() => setEditorRasgo({ id: nuevoId(), nivel: 1, nombre: '', descripcion: '' })}>+ Agregar característica</button>
           </div>
-          <p className="clase-form__hint">Agregá las características y elegí el nivel en el que se obtiene cada una.</p>
+          <p className="clase-form__hint">Creá o editá cada característica desde una ventana. Se vinculará automáticamente al nivel que elijas.</p>
           {rasgosOrdenados.length === 0 && <p className="clase-form__hint">Todavía no hay características cargadas.</p>}
-          {rasgosOrdenados.map(r => <div className="clase-form__item" key={r.id}>
-            <div className="clase-form__grid">
-              <label>Nombre<input value={r.nombre} onChange={e => actualizarRasgo(r.id, { nombre: e.target.value })} /></label>
-              <label>Nivel en que se obtiene
-                <select value={r.nivel} onChange={e => actualizarRasgo(r.id, { nivel: Number(e.target.value) })}>
-                  {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Nivel {n}</option>)}
-                </select>
-              </label>
-            </div>
-            <label>Descripción<textarea rows={4} value={r.descripcion} onChange={e => actualizarRasgo(r.id, { descripcion: e.target.value })} /></label>
-            <button type="button" className="clase-form__danger" onClick={() => actualizar({ rasgos: datos.rasgos.filter(x => x.id !== r.id) })}>Eliminar característica</button>
-          </div>)}
+          <div className="clase-form__lista-rasgos">
+            {rasgosOrdenados.map(r => <div className="clase-form__resumen-rasgo" key={r.id}>
+              <div><strong>{r.nombre || 'Sin nombre'}</strong><span>Nivel {r.nivel}</span></div>
+              <div className="clase-form__acciones-rasgo">
+                <button type="button" onClick={() => setEditorRasgo({ ...r })}>Editar</button>
+                <button type="button" className="clase-form__danger" onClick={() => actualizar({ rasgos: datos.rasgos.filter(x => x.id !== r.id) })}>Eliminar</button>
+              </div>
+            </div>)}
+          </div>
         </section>
       </fieldset>
+      {editorRasgo && <div className="clase-form__overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setEditorRasgo(null) }}>
+        <form className="clase-form__modal clase-form__editor-rasgo" role="dialog" aria-modal="true" aria-label="Editar característica" onSubmit={e => { e.preventDefault(); guardarRasgo() }}>
+          <div className="clase-form__heading"><h4>{datos.rasgos.some(r => r.id === editorRasgo.id) ? 'Editar característica' : 'Nueva característica'}</h4><button type="button" onClick={() => setEditorRasgo(null)}>Cerrar</button></div>
+          <label>Nombre<input autoFocus required value={editorRasgo.nombre} onChange={e => setEditorRasgo({ ...editorRasgo, nombre: e.target.value })} placeholder="Nombre de la característica" /></label>
+          <label>Nivel en que se obtiene
+            <select value={editorRasgo.nivel} onChange={e => setEditorRasgo({ ...editorRasgo, nivel: Number(e.target.value) })}>
+              {Array.from({ length: 20 }, (_, i) => i + 1).map(n => <option key={n} value={n}>Nivel {n}</option>)}
+            </select>
+          </label>
+          <label>Descripción<textarea rows={8} value={editorRasgo.descripcion} onChange={e => setEditorRasgo({ ...editorRasgo, descripcion: e.target.value })} placeholder="Descripción de la característica" /></label>
+          <div className="clase-form__acciones-rasgo">
+            <button type="button" onClick={() => setEditorRasgo(null)}>Cancelar</button>
+            <button type="submit" disabled={!editorRasgo.nombre.trim()}>Guardar característica</button>
+          </div>
+        </form>
+      </div>}
       {selector && <div className="clase-form__overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setSelector(null) }}>
         <div className="clase-form__modal" role="dialog" aria-modal="true" aria-label={selector.tipo === 'arma' ? 'Seleccionar armas' : 'Seleccionar objetos'}>
           <div className="clase-form__heading"><h4>{selector.tipo === 'arma' ? 'Seleccionar armas' : 'Seleccionar objetos'}</h4><button type="button" onClick={() => { setSelector(null); setNuevoObjeto(false) }}>Cerrar</button></div>
