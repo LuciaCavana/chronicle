@@ -41,3 +41,18 @@
 .lector-libro__vacio{color:#a4a3b2;font-style:italic;line-height:1.6}
 .lector-libro__pie{display:flex;justify-content:center;align-items:center;gap:14px;border-top:1px solid #4a4350;margin-top:48px;padding-top:24px;color:#ae9368;font-family:Georgia,serif;font-size:13px;text-align:center}
 @media(max-width:800px){.lector-libro__disposicion{grid-template-columns:1fr;gap:14px}.lector-libro__indice{position:static}.lector-libro__portada{min-height:280px;padding:40px 20px}.lector-libro__paginas{padding:22px}.lector-libro__entrada{padding:17px}}
+
+/* Clases del libro: tarjetas plegables de lectura. */
+.lector-libro__clases{display:grid;gap:12px;margin-top:24px}
+.lector-libro__clase{background:#1b1c25;border:1px solid #4a4350;border-radius:10px;overflow:hidden}
+.lector-libro__clase[open]{border-color:#9c8056}
+.lector-libro__clase-resumen{display:flex;align-items:center;gap:14px;padding:18px 20px;cursor:pointer;list-style:none;color:#ecd8b4;transition:background .2s}
+.lector-libro__clase-resumen::-webkit-details-marker{display:none}
+.lector-libro__clase-resumen:hover{background:#302b34}
+.lector-libro__clase-resumen:focus-visible{outline:2px solid #d8b77b;outline-offset:-3px}
+.lector-libro__clase-insignia{display:grid;place-items:center;flex-shrink:0;width:38px;height:38px;border:1px solid #846d4a;border-radius:9px;color:#d8b77b}
+.lector-libro__clase-titulo{font-family:Georgia,serif;font-size:21px;flex:1;min-width:0;overflow-wrap:anywhere}
+.lector-libro__clase-flecha{color:#d8b77b;transition:transform .2s}
+.lector-libro__clase[open] .lector-libro__clase-flecha{transform:rotate(90deg)}
+.lector-libro__clase-contenido{padding:20px 24px 24px;border-top:1px solid #4a4350}
+@media(max-width:600px){.lector-libro__clase-resumen{padding:14px}.lector-libro__clase-contenido{padding:16px}.lector-libro__clase-titulo{font-size:18px}}
