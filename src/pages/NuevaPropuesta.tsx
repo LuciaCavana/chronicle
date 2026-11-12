@@ -8,6 +8,7 @@ import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import ClaseForm from '../components/biblioteca/ClaseForm'
+import SubclaseForm from '../components/biblioteca/SubclaseForm'
 import type { Elemento } from '../services/chronicleLibros'
 import RevisionLibro from '../components/biblioteca/RevisionLibro'
 
@@ -85,6 +86,8 @@ export default function NuevaPropuesta() {
   const [especies, setEspecies] = useState<Especie[]>([])
   const [conjuros, setConjuros] = useState<Conjuro[]>([])
   const [clases, setClases] = useState<Elemento[]>([])
+  const [subclases, setSubclases] = useState<Elemento[]>([])
+  const [editingSubclassId, setEditingSubclassId] = useState<string | null>(null)
   const [editingClassId, setEditingClassId] = useState<string | null>(null)
   const [showEspecieForm, setShowEspecieForm] = useState(false)
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
@@ -130,6 +133,7 @@ export default function NuevaPropuesta() {
         especies?: Especie[]
         conjuros?: Conjuro[]
         clases?: Elemento[]
+        subclases?: Elemento[]
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -143,6 +147,7 @@ export default function NuevaPropuesta() {
       setEspecies(contenido.especies ?? [])
       setConjuros(contenido.conjuros ?? [])
       setClases(contenido.clases ?? [])
+      setSubclases(contenido.subclases ?? [])
       setRowVersion(propuesta.row_version)
       setTipoPropuesta('nuevo')
       setCurrentStep(1)
@@ -177,6 +182,7 @@ export default function NuevaPropuesta() {
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
         setClases((version.clases ?? []) as Elemento[])
+        setSubclases((version.subclases ?? []) as Elemento[])
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -250,6 +256,7 @@ export default function NuevaPropuesta() {
       return
     }
 
+    if (subclases.some(s => !s.nombre.trim() || !clases.some(c => c.id === (s.datos as {claseId?: string}).claseId))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); setCurrentStep(2); return }
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
       setCurrentStep(2)
@@ -296,6 +303,7 @@ export default function NuevaPropuesta() {
         especies,
         conjuros,
         clases,
+        subclases,
       }
 
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
@@ -531,7 +539,9 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {editingClassId !== null ? (
+            {editingSubclassId !== null ? (
+              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clases} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
+            ) : editingClassId !== null ? (
               <section className="nueva-propuesta-panel">
                 <h3>Editar clase</h3>
                 <div className="nueva-propuesta-field"><label>Nombre de la clase *</label><input value={clases.find(c => c.id === editingClassId)?.nombre ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, nombre: e.target.value } : c))} /></div>
@@ -564,6 +574,10 @@ export default function NuevaPropuesta() {
                   nombre: especie.nombre,
                 }))}
                 clases={clases.map(c => ({ id: c.id, nombre: c.nombre }))}
+                subclases={subclases.map(s => ({ id: s.id, nombre: s.nombre, claseNombre: clases.find(c => c.id === (s.datos as {claseId?: string}).claseId)?.nombre ?? 'Clase no disponible' }))}
+                onAddSubclass={() => { const id = crypto.randomUUID(); setSubclases(actuales => [...actuales, { id, tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }]); setEditingSubclassId(id) }}
+                onEditSubclass={setEditingSubclassId}
+                onDeleteSubclass={id => setSubclases(actuales => actuales.filter(s => s.id !== id))}
                 onAddClass={() => {
                   const id = crypto.randomUUID()
                   setClases(actuales => [...actuales, { id, tipo: 'clase', nombre: '', descripcion: '', datos: {} }])
@@ -573,6 +587,7 @@ export default function NuevaPropuesta() {
                 onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
                 categoryItemCounts={{
                   clases: clases.length,
+                  subclases: subclases.length,
                   especies: especies.length,
                   conjuros: conjuros.length,
                 }}
@@ -617,7 +632,8 @@ export default function NuevaPropuesta() {
               className="nueva-propuesta-cancel"
               onClick={() => {
                 setErrorGuardado('')
-                if (currentStep === 2 && editingClassId !== null) {
+                if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
+                } else if (currentStep === 2 && editingClassId !== null) {
                   setEditingClassId(null)
                 } else if (currentStep === 2 && showEspecieForm) {
                   cerrarFormularioEspecie()
@@ -646,11 +662,12 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && editingClassId === null && (
+          {currentStep === 2 && !showEspecieForm && editingClassId === null && editingSubclassId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
               onClick={() => {
+                if (subclases.some(s => !s.nombre.trim() || !clases.some(c => c.id === (s.datos as {claseId?: string}).claseId))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); return }
                 if (clases.some(clase => !clase.nombre.trim())) {
                   setErrorGuardado('Todas las clases deben tener un nombre. Editá o eliminá las clases incompletas.')
                   return
