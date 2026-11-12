@@ -1,13 +1,15 @@
 import { useState } from 'react'
 import type { Conjuro } from '../../types/conjuro'
 import ConjuroForm from './ConjuroForm'
-import type { Dote, EfectoDote } from '../../types/trasfondo'
+import SeleccionConjurosDoteForm from './SeleccionConjurosDoteForm'
+import type { Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
 import '../../styles/EspecieForm.css'
 
 type Props = {
   initialData?: Dote | null
   dotes: Dote[]
   conjuros: Conjuro[]
+  clasesDisponibles?: string[]
   onCrearConjuro: (conjuro: Conjuro) => void
   onSave: (dote: Dote) => void
   onCancel: () => void
@@ -17,7 +19,7 @@ function lineas(texto: string): string[] {
   return texto.split('\n').map(linea => linea.trim()).filter(Boolean)
 }
 
-export default function DoteForm({ initialData, dotes, conjuros, onCrearConjuro, onSave, onCancel }: Props) {
+export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibles = [], onCrearConjuro, onSave, onCancel }: Props) {
   const [nombre, setNombre] = useState(initialData?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
   const [categoria, setCategoria] = useState(initialData?.categoria ?? 'origen')
@@ -27,6 +29,7 @@ export default function DoteForm({ initialData, dotes, conjuros, onCrearConjuro,
   const [pagina, setPagina] = useState(initialData?.fuente?.pagina?.toString() ?? '')
   const [efectos, setEfectos] = useState<EfectoDote[]>(initialData?.efectos ?? [])
   const [conjurosIds, setConjurosIds] = useState<string[]>(initialData?.conjurosIds ?? [])
+  const [seleccionConjuros, setSeleccionConjuros] = useState<SeleccionConjurosDote | null>(initialData?.seleccionConjuros ?? null)
   const [creandoConjuro, setCreandoConjuro] = useState(false)
   const [error, setError] = useState('')
   function cambiarEfecto(id: string, cambio: Partial<EfectoDote>) {
@@ -41,6 +44,7 @@ export default function DoteForm({ initialData, dotes, conjuros, onCrearConjuro,
     }
     if (pagina.trim() && (!Number.isInteger(Number(pagina)) || Number(pagina) < 1)) { setError('La página debe ser un número entero positivo.'); return }
     if (efectos.some(e => !e.atributo.trim() || !Number.isFinite(e.valor))) { setError('Completá el atributo y el valor de cada efecto.'); return }
+    if (seleccionConjuros && (seleccionConjuros.listasPermitidas.length === 0 || seleccionConjuros.selecciones.length === 0 || seleccionConjuros.selecciones.some(x => !Number.isInteger(x.nivel) || x.nivel < 0 || x.nivel > 9 || !Number.isInteger(x.cantidad) || x.cantidad < 1))) { setError('Definí al menos una lista y elecciones válidas de nivel y cantidad.'); return }
     onSave({
       id: initialData?.id ?? crypto.randomUUID(),
       nombre: nombreLimpio,
@@ -51,6 +55,7 @@ export default function DoteForm({ initialData, dotes, conjuros, onCrearConjuro,
       fuente: { libro: libro.trim(), ...(pagina.trim() ? { pagina: Number(pagina) } : {}) },
       efectos,
       conjurosIds,
+      ...(seleccionConjuros ? { seleccionConjuros } : {}),
       ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {})
     })
   }
@@ -73,6 +78,7 @@ export default function DoteForm({ initialData, dotes, conjuros, onCrearConjuro,
       </label>)}
       <button type="button" onClick={() => setCreandoConjuro(true)}>Crear conjuro y vincularlo</button>
     </fieldset>
+    <SeleccionConjurosDoteForm value={seleccionConjuros} onChange={setSeleccionConjuros} clasesDisponibles={clasesDisponibles}/>
     <fieldset><legend>Fuente</legend>
       <div className="nueva-propuesta-field"><label htmlFor="dote-libro">Libro</label><input id="dote-libro" value={libro} onChange={e => setLibro(e.target.value)} placeholder="Ej.: PHB 2024"/></div>
       <div className="nueva-propuesta-field"><label htmlFor="dote-pagina">Página</label><input id="dote-pagina" type="number" min={1} step={1} value={pagina} onChange={e => setPagina(e.target.value)}/></div>
