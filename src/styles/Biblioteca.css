@@ -95,10 +95,3 @@
   outline: 2px solid #d8b77b;
   outline-offset: 3px;
 }
-/* En el editor de clases, el contenedor exterior acompaña el ancho intrínseco. */
-.biblioteca:has(.clase-form) {
-  width: max-content;
-  min-width: 100%;
-  max-width: none;
-  margin-inline: auto;
-}
