@@ -165,8 +165,11 @@ export default function Libros() {
 
       if (errorRol) throw errorRol
 
-      setEsAdministrador(rol?.role === 'creator' || rol?.role === 'admin')
-      if (rol?.role === 'creator' || rol?.role === 'admin') {
+      const { data: adminMotor, error: errorAdminMotor } = await supabase.rpc('chronicle_es_admin')
+      if (errorAdminMotor) throw errorAdminMotor
+      const puedeAdministrar = Boolean(adminMotor) || rol?.role === 'creator' || rol?.role === 'admin'
+      setEsAdministrador(puedeAdministrar)
+      if (puedeAdministrar) {
         const { data: borradores, error: errorBorradores } = await supabase
           .from('propuestas')
           .select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,revision_resultante_id,pendiente_aprobacion')
