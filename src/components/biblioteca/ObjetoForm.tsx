@@ -1,5 +1,6 @@
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/NuevaPropuesta.css'
+import '../../styles/ObjetoForm.css'
 
 type Datos = Record<string, unknown>
 type Props = { elemento: Elemento; objetos: Elemento[]; onChange: (elemento: Elemento) => void }
@@ -23,13 +24,13 @@ export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
   const tipo = texto(datos.tipo) || 'equipo'
   const actualizar = (campo: string, valor: unknown) => onChange({ ...elemento, datos: { ...datos, [campo]: valor } })
   const campo = (nombre: string, clave: string, placeholder = '') => <label className="nueva-propuesta-field">{nombre}<input value={texto(datos[clave])} placeholder={placeholder} onChange={e => actualizar(clave, e.target.value)}/></label>
-  const numero = (nombre: string, clave: string, minimo = 0) => <label className="nueva-propuesta-field">{nombre}<input type="number" min={minimo} step="any" value={datos[clave] == null ? '' : texto(datos[clave])} onChange={e => actualizar(clave, e.target.value === '' ? null : Number(e.target.value))}/></label>
+  const numero = (nombre: string, clave: string, minimo = 0) => <label className="nueva-propuesta-field objeto-form__number">{nombre}<input type="number" min={minimo} step="any" value={datos[clave] == null ? '' : texto(datos[clave])} onChange={e => actualizar(clave, e.target.value === '' ? null : Number(e.target.value))}/></label>
   const seleccionar = (nombre: string, clave: string, opciones: string[]) => <label className="nueva-propuesta-field">{nombre}<select value={texto(datos[clave])} onChange={e => actualizar(clave, e.target.value)}>{opciones.map(op => <option key={op} value={op}>{op || 'Sin seleccionar'}</option>)}</select></label>
-  const marcar = (nombre: string, clave: string) => <label style={{display:'flex',alignItems:'center',gap:8}}><input type="checkbox" checked={datos[clave] === true} onChange={e => actualizar(clave, e.target.checked)}/>{nombre}</label>
+  const marcar = (nombre: string, clave: string) => <label className="objeto-form__checkbox"><input type="checkbox" checked={datos[clave] === true} onChange={e => actualizar(clave, e.target.checked)}/>{nombre}</label>
   const relacionados = Array.isArray(datos.contenido) ? datos.contenido as {objetoId:string;cantidad:number}[] : []
   const variantes = Array.isArray(datos.variantes) ? datos.variantes as string[] : []
 
-  return <div style={{display:'grid',gap:20}}>
+  return <div className="objeto-form">
     <h3>Datos generales</h3>
     <div className="nueva-propuesta-field"><label>Tipo de objeto</label><select value={tipo} onChange={e => actualizar('tipo',e.target.value)}>{tipos.map(([id,nombre])=><option key={id} value={id}>{nombre}</option>)}</select></div>
     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
@@ -43,7 +44,7 @@ export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
     {marcar('Es un objeto mágico','magico')}
     {marcar('Es consumible','consumible')}
     {campo('Imagen (URL)','imagen')}
-    {tipo === 'arma' && <section style={{display:'grid',gap:12}}>
+    {tipo === 'arma' && <section className="objeto-form__section">
       <h3>Estadísticas de arma</h3>
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))',gap:12}}>
         {seleccionar('Competencia','competencia',['Simple','Marcial','Otra'])}
@@ -58,7 +59,7 @@ export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
         {numero('Bonificador al daño','bonoDanio',-20)}
       </div>
       <strong>Propiedades</strong>
-      <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>{propiedadesArma.map(prop=><label key={prop} style={{display:'flex',gap:6}}><input type="checkbox" checked={lista(datos.propiedades).includes(prop)} onChange={e=>actualizar('propiedades',e.target.checked?[...lista(datos.propiedades),prop]:lista(datos.propiedades).filter(p=>p!==prop))}/>{prop}</label>)}</div>
+      <div className="objeto-form__checks">{propiedadesArma.map(prop=><label key={prop} className="objeto-form__checkbox"><input type="checkbox" checked={lista(datos.propiedades).includes(prop)} onChange={e=>actualizar('propiedades',e.target.checked?[...lista(datos.propiedades),prop]:lista(datos.propiedades).filter(p=>p!==prop))}/>{prop}</label>)}</div>
     </section>}
     {tipo === 'armadura' && <section style={{display:'grid',gap:12}}>
       <h3>Estadísticas de armadura</h3>
@@ -83,14 +84,14 @@ export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
       {numero('Capacidad (lb)','capacidad')}
       {numero('Cantidad de usos','usos')}
       <strong>Objetos incluidos</strong>
-      {relacionados.map((r,i)=><div key={i} style={{display:'flex',gap:8,flexWrap:'wrap'}}>
-        <select aria-label="Objeto incluido" value={r.objetoId} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,objetoId:e.target.value}:x))}>
+      {relacionados.map((r,i)=><div key={i} className="objeto-form__included-row">
+        <select className="objeto-form__included-select" aria-label="Objeto incluido" value={r.objetoId} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,objetoId:e.target.value}:x))}>
           <option value="">Seleccioná un objeto</option>{objetos.filter(o=>o.id!==elemento.id).map(o=><option key={o.id} value={o.id}>{o.nombre || 'Objeto sin nombre'}</option>)}
         </select>
-        <input aria-label="Cantidad" type="number" min={1} value={r.cantidad} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,cantidad:Math.max(1,Number(e.target.value)||1)}:x))}/>
-        <button type="button" onClick={()=>actualizar('contenido',relacionados.filter((_,j)=>j!==i))}>Quitar</button>
+        <input className="objeto-form__included-quantity" aria-label="Cantidad" type="number" min={1} value={r.cantidad} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,cantidad:Math.max(1,Number(e.target.value)||1)}:x))}/>
+        <button className="objeto-form__remove" type="button" onClick={()=>actualizar('contenido',relacionados.filter((_,j)=>j!==i))}>Quitar</button>
       </div>)}
-      <button type="button" onClick={()=>actualizar('contenido',[...relacionados,{objetoId:'',cantidad:1}])}>Agregar objeto al contenido</button>
+      <button className="objeto-form__add" type="button" onClick={()=>actualizar('contenido',[...relacionados,{objetoId:'',cantidad:1}])}>Agregar objeto al contenido</button>
     </section>}
     {tipo === 'pocion' && <section>{campo('Efecto','efecto')}{campo('Duración','duracion')}{numero('Usos','usos')}</section>}
     {tipo === 'pergamino' && <section>{campo('Conjuro vinculado','conjuro')}{numero('Nivel del conjuro','nivelConjuro')}{campo('Requisitos de uso','requisitos')}</section>}
