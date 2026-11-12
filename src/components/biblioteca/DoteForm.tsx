@@ -1,10 +1,14 @@
 import { useState } from 'react'
+import type { Conjuro } from '../../types/conjuro'
+import ConjuroForm from './ConjuroForm'
 import type { Dote, EfectoDote } from '../../types/trasfondo'
 import '../../styles/EspecieForm.css'
 
 type Props = {
   initialData?: Dote | null
   dotes: Dote[]
+  conjuros: Conjuro[]
+  onCrearConjuro: (conjuro: Conjuro) => void
   onSave: (dote: Dote) => void
   onCancel: () => void
 }
@@ -13,7 +17,7 @@ function lineas(texto: string): string[] {
   return texto.split('\n').map(linea => linea.trim()).filter(Boolean)
 }
 
-export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props) {
+export default function DoteForm({ initialData, dotes, conjuros, onCrearConjuro, onSave, onCancel }: Props) {
   const [nombre, setNombre] = useState(initialData?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
   const [categoria, setCategoria] = useState(initialData?.categoria ?? 'origen')
@@ -22,6 +26,8 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
   const [libro, setLibro] = useState(initialData?.fuente?.libro ?? '')
   const [pagina, setPagina] = useState(initialData?.fuente?.pagina?.toString() ?? '')
   const [efectos, setEfectos] = useState<EfectoDote[]>(initialData?.efectos ?? [])
+  const [conjurosIds, setConjurosIds] = useState<string[]>(initialData?.conjurosIds ?? [])
+  const [creandoConjuro, setCreandoConjuro] = useState(false)
   const [error, setError] = useState('')
   function cambiarEfecto(id: string, cambio: Partial<EfectoDote>) {
     setEfectos(actuales => actuales.map(efecto => efecto.id === id ? { ...efecto, ...cambio } : efecto))
@@ -44,9 +50,12 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
       beneficios: lineas(beneficios),
       fuente: { libro: libro.trim(), ...(pagina.trim() ? { pagina: Number(pagina) } : {}) },
       efectos,
+      conjurosIds,
       ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {})
     })
   }
+
+  if (creandoConjuro) return <ConjuroForm conjuros={conjuros} onSave={conjuro => { onCrearConjuro(conjuro); setConjurosIds(actuales => [...actuales, conjuro.id]); setCreandoConjuro(false) }} onCancel={() => setCreandoConjuro(false)} />
 
   return <section className="nueva-propuesta-panel especie-form">
     <h3>{initialData ? 'Editar dote' : 'Agregar dote'}</h3>
@@ -55,6 +64,15 @@ export default function DoteForm({ initialData, dotes, onSave, onCancel }: Props
     <div className="nueva-propuesta-field"><label htmlFor="dote-requisitos">Requisitos (uno por línea)</label><textarea id="dote-requisitos" rows={3} value={requisitos} onChange={e => setRequisitos(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-beneficios">Beneficios (uno por línea)</label><textarea id="dote-beneficios" rows={5} value={beneficios} onChange={e => setBeneficios(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label htmlFor="dote-descripcion">Descripción</label><textarea id="dote-descripcion" rows={5} value={descripcion} onChange={e => setDescripcion(e.target.value)} /></div>
+    <fieldset><legend>Conjuros vinculados</legend>
+      <p>Seleccioná los conjuros que otorga o referencia esta dote. La relación se guarda por ID.</p>
+      {conjuros.length === 0 && <p>No hay conjuros cargados todavía.</p>}
+      {conjuros.map(conjuro => <label key={conjuro.id} style={{ display: 'block', marginBottom: 8 }}>
+        <input type="checkbox" checked={conjurosIds.includes(conjuro.id)} onChange={e => setConjurosIds(actuales => e.target.checked ? [...actuales, conjuro.id] : actuales.filter(id => id !== conjuro.id))} />
+        {' '}{conjuro.nombre} ({conjuro.tipo === 'truco' ? 'Truco' : `Nivel ${conjuro.nivel}`})
+      </label>)}
+      <button type="button" onClick={() => setCreandoConjuro(true)}>Crear conjuro y vincularlo</button>
+    </fieldset>
     <fieldset><legend>Fuente</legend>
       <div className="nueva-propuesta-field"><label htmlFor="dote-libro">Libro</label><input id="dote-libro" value={libro} onChange={e => setLibro(e.target.value)} placeholder="Ej.: PHB 2024"/></div>
       <div className="nueva-propuesta-field"><label htmlFor="dote-pagina">Página</label><input id="dote-pagina" type="number" min={1} step={1} value={pagina} onChange={e => setPagina(e.target.value)}/></div>
