@@ -37,6 +37,101 @@ function TextoSeguro({ valor }: { valor: unknown }) {
   const limpio = contenido.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&')
   return <p className="lector-libro__texto">{limpio}</p>
 }
+const valoresTexto = (valor: unknown): string[] => Array.isArray(valor) ? valor.map(texto).filter(Boolean) : []
+const valorObjeto = (valor: unknown): Registro => esObjeto(valor) ? valor : {}
+const mostrar = (valor: unknown): string => texto(valor) || 'No especificado'
+
+function DatoClase({ etiqueta, valor }: { etiqueta: string; valor: unknown }) {
+  const contenido = Array.isArray(valor) ? valoresTexto(valor).join(', ') : texto(valor)
+  return <div className="lector-libro__dato"><dt>{etiqueta}</dt><dd>{contenido || 'No especificado'}</dd></div>
+}
+
+function ClaseCompleta({ clase }: { clase: Registro }) {
+  // El editor guarda el contenido específico en elemento.datos.
+  const datos = valorObjeto(clase.datos)
+  const competencias = valorObjeto(datos.competencias)
+  const catalogo = lista(datos.objetosCatalogo)
+  const nombreObjeto = (id: unknown) => {
+    const objeto = catalogo.find(item => texto(item.id) === texto(id))
+    return objeto ? mostrar(objeto.nombre) : `Objeto no disponible (${texto(id)})`
+  }
+  const equipo = lista(datos.equipoOpciones)
+  const rasgos = lista(datos.rasgos).sort((a,b) => Number(a.nivel || 0)-Number(b.nivel || 0))
+  const recursos = lista(datos.recursos)
+  const progresion = lista(datos.progresion)
+  const columnas = lista(datos.columnasProgresion)
+  const celdas = valorObjeto(datos.celdasProgresion)
+  const ocultas = valorObjeto(datos.caracteristicasOcultas)
+  const principales = valoresTexto(datos.caracteristicasPrincipales)
+  const categoriasArmas = valoresTexto(competencias.armasCategorias)
+  const armaduras = valoresTexto(competencias.armaduras)
+  const habilidades = valoresTexto(competencias.habilidadesOpciones)
+  const armasEspecificas = valoresTexto(competencias.armasEspecificas).map(nombreObjeto)
+  const gruposEquipo = equipo.flatMap(grupo => lista(grupo.opciones).map(opcion => ({grupo, opcion})))
+  return <>
+    <TextoSeguro valor={clase.descripcion || clase.texto || clase.resumen}/>
+    <section className="lector-libro__clase-bloque">
+      <h4>Datos generales</h4>
+      <dl className="lector-libro__datos-grid">
+        <DatoClase etiqueta="Dado de golpe" valor={datos.dadoGolpe ? `d${datos.dadoGolpe}` : ''}/>
+        <DatoClase etiqueta="Características principales" valor={principales.length ? principales : datos.caracteristicaPrincipal}/>
+        <DatoClase etiqueta="Salvaciones" valor={datos.salvaciones}/>
+        <DatoClase etiqueta="Herramientas" valor={datos.herramientas}/>
+        <DatoClase etiqueta="Armaduras" valor={armaduras.length ? armaduras : datos.armaduras}/>
+        <DatoClase etiqueta="Armas" valor={[...categoriasArmas,...armasEspecificas].length ? [...categoriasArmas,...armasEspecificas] : datos.armas}/>
+        <DatoClase etiqueta="Habilidades disponibles" valor={habilidades.length ? habilidades : datos.habilidades}/>
+        <DatoClase etiqueta="Habilidades a elegir" valor={competencias.habilidadesCantidad}/>
+      </dl>
+    </section>
+    <section className="lector-libro__clase-bloque">
+      <h4>Equipo inicial</h4>
+      {gruposEquipo.length ? <>
+        <p className="lector-libro__nota">Opciones de equipamiento. Cantidad de elecciones: {equipo.reduce((n,g)=>n+Number(g.elegir || 0),0)}.</p>
+        <div className="lector-libro__opciones">{gruposEquipo.map(({opcion},i) => <div className="lector-libro__opcion" key={texto(opcion.id)||i}>
+          <strong>Opción {String.fromCharCode(65+i)}</strong>
+          <ul>{lista(opcion.objetos).map((item,j)=><li key={j}>{Number(item.cantidad || 1)} × {nombreObjeto(item.objetoId)}</li>)}
+            {Number(opcion.oro || 0)>0 && <li>{Number(opcion.oro)} po</li>}
+          </ul>
+        </div>)}</div>
+      </> : <TextoSeguro valor={datos.equipoInicial || 'No se especificó equipamiento inicial.'}/>}
+    </section>
+    {recursos.length>0 && <section className="lector-libro__clase-bloque">
+      <h4>Recursos de clase</h4>
+      <div className="lector-libro__opciones">{recursos.map((recurso,i)=><article key={texto(recurso.id)||i} className="lector-libro__opcion">
+        <strong>{tituloElemento(recurso,i)}</strong>
+        {texto(recurso.recuperacion) && <span className="lector-libro__nota">Recuperación: {texto(recurso.recuperacion)}</span>}
+        <TextoSeguro valor={recurso.descripcion}/>
+      </article>)}</div>
+    </section>}
+    {progresion.length>0 && <section className="lector-libro__clase-bloque">
+      <h4>Tabla de progresión</h4>
+      <div className="lector-libro__tabla-scroll"><table className="lector-libro__tabla">
+        <thead><tr><th scope="col">Nivel</th>{columnas.map((columna,i)=><th scope="col" key={texto(columna.id)||i}>{mostrar(columna.nombre)}</th>)}</tr></thead>
+        <tbody>{progresion.map((fila,i)=>{
+          const nivel=Number(fila.nivel || 0)
+          const filaCeldas=valorObjeto(celdas[String(nivel)])
+          const filaOcultas=valorObjeto(ocultas[String(nivel)])
+          return <tr key={texto(fila.nivel)||i}><th scope="row">{nivel}</th>
+            {columnas.map((columna,j)=>{
+              const id=texto(columna.id)
+              const rasgosVisibles=rasgos.filter(r=>Number(r.nivel)===nivel && !valoresTexto(filaOcultas[id]).includes(texto(r.id)))
+              const valor=texto(filaCeldas[id]) || (id==='competencia' ? `+${Number(fila.bonificadorCompetencia || 0)}` : id==='notas' ? texto(fila.notas) : '')
+              return <td key={id||j}>{columna.tipo==='caracteristicas'
+                ? <div className="lector-libro__etiquetas">{rasgosVisibles.map((rasgo,k)=><span key={texto(rasgo.id)||k}>{tituloElemento(rasgo,k)}</span>)}</div>
+                : valor || '—'}</td>
+            })}</tr>
+        })}</tbody>
+      </table></div>
+    </section>}
+    {rasgos.length>0 && <section className="lector-libro__clase-bloque">
+      <h4>Características de clase</h4>
+      <div className="lector-libro__rasgos">{rasgos.map((rasgo,i)=><article className="lector-libro__rasgo" key={texto(rasgo.id)||i}>
+        <div className="lector-libro__rasgo-encabezado"><strong>{tituloElemento(rasgo,i)}</strong><span>Nivel {mostrar(rasgo.nivel)}</span></div>
+        <TextoSeguro valor={rasgo.descripcion}/>
+      </article>)}</div>
+    </section>}
+  </>
+}
 function ClasesDesplegables({ seccion }: { seccion: Seccion }) {
   return <section id={seccion.id} className="lector-libro__seccion">
     <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>{seccion.titulo}</h2></div>
@@ -48,15 +143,7 @@ function ClasesDesplegables({ seccion }: { seccion: Seccion }) {
             <span className="lector-libro__clase-titulo">{tituloElemento(clase, indice)}</span>
             <ChevronRight className="lector-libro__clase-flecha" size={20}/>
           </summary>
-          <div className="lector-libro__clase-contenido">
-            <TextoSeguro valor={clase.descripcion || clase.texto || clase.resumen}/>
-            {lista(clase.rasgos).length > 0 && <div className="lector-libro__rasgos">
-              {lista(clase.rasgos).map((rasgo, j) => <div key={texto(rasgo.id) || j}>
-                <strong>{tituloElemento(rasgo, j)}</strong>
-                <TextoSeguro valor={rasgo.descripcion}/>
-              </div>)}
-            </div>}
-          </div>
+          <div className="lector-libro__clase-contenido"><ClaseCompleta clase={clase}/></div>
         </details>
       ))}
     </div>
