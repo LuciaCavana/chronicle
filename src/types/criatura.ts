@@ -12,6 +12,9 @@ export type Criatura = {
   subtipo?: string
   alineamiento: string
   invocacion: boolean
+  /** IDs de todos los conjuros capaces de invocar esta criatura. */
+  conjurosInvocacionIds?: string[]
+  /** Compatibilidad con borradores anteriores; se migra al editar. */
   conjuroInvocacionId?: string
   nivelConjuroBase?: number
   variantes: string[]
