@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, GripVertical } from 'lucide-react'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
@@ -108,6 +108,7 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
 export default function ClaseForm({ elemento, onChange, disabled = false }: Props) {
   const datos = normalizarDatos(elemento.datos)
   const [nivelActivo, setNivelActivo] = useState(1)
+  const [columnaArrastrada, setColumnaArrastrada] = useState<string | null>(null)
   const [armaduraNueva, setArmaduraNueva] = useState('')
   const [armaNueva, setArmaNueva] = useState('')
   const [habilidadNueva, setHabilidadNueva] = useState('')
@@ -123,6 +124,17 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
       [nivelNumero]: { ...(datos.celdasProgresion[nivelNumero] ?? {}), [columnaId]: texto },
     },
   })
+  const moverColumna = (destinoId: string) => {
+    if (!columnaArrastrada || columnaArrastrada === destinoId) return
+    const columnas = [...datos.columnasProgresion]
+    const origen = columnas.findIndex(c => c.id === columnaArrastrada)
+    const destino = columnas.findIndex(c => c.id === destinoId)
+    if (origen < 0 || destino < 0) return
+    const [columna] = columnas.splice(origen, 1)
+    columnas.splice(destino, 0, columna)
+    actualizar({ columnasProgresion: columnas })
+    setColumnaArrastrada(null)
+  }
   const eliminarColumna = (id: string) => actualizar({
     columnasProgresion: datos.columnasProgresion.filter(c => c.id !== id),
     celdasProgresion: Object.fromEntries(Object.entries(datos.celdasProgresion).map(([nivelNumero, celdas]) =>
@@ -329,13 +341,20 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
             <h4>Tabla de progresión (niveles 1 a 20)</h4>
             <button type="button" onClick={() => actualizar({ columnasProgresion: [...datos.columnasProgresion, { id: nuevoId(), nombre: 'Nueva columna' }] })}>+ Agregar columna</button>
           </div>
-          <p className="clase-form__hint">Podés cambiar los nombres, agregar o quitar columnas y escribir cualquier contenido. La columna Nivel identifica cada fila.</p>
+          <p className="clase-form__hint">Podés arrastrar las columnas desde el ícono de puntos para cambiar su orden, renombrarlas, agregarlas o quitarlas y escribir cualquier contenido. La columna Nivel identifica cada fila.</p>
           <div className="clase-form__tabla-scroll">
             <table className="clase-form__tabla">
               <thead><tr>
                 <th scope="col">Nivel</th>
-                {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}>
+                {datos.columnasProgresion.map(columna => <th scope="col" key={columna.id}
+                  className={columnaArrastrada === columna.id ? 'clase-form__columna--arrastrada' : ''}
+                  onDragOver={e => { if (columnaArrastrada) e.preventDefault() }}
+                  onDrop={e => { e.preventDefault(); moverColumna(columna.id) }}>
                   <div className="clase-form__columna-cabecera">
+                    <button type="button" draggable aria-label={`Arrastrar columna ${columna.nombre}`}
+                      className="clase-form__arrastrar" title="Arrastrar para reordenar"
+                      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', columna.id); setColumnaArrastrada(columna.id) }}
+                      onDragEnd={() => setColumnaArrastrada(null)}><GripVertical size={17} /></button>
                     <input aria-label="Nombre de columna" value={columna.nombre} onChange={e => actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === columna.id ? { ...c, nombre: e.target.value } : c) })} />
                     <button type="button" className="clase-form__danger" aria-label={`Eliminar columna ${columna.nombre}`} title="Eliminar columna" onClick={() => eliminarColumna(columna.id)}>×</button>
                   </div>
