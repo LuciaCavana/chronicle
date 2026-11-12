@@ -131,7 +131,9 @@ export async function obtenerLibroParaEditar(libroId: string) {
         descripcion,
         categorias,
         especies,
-        conjuros
+        conjuros,
+        clases,
+        subclases
       )
     `
     )
