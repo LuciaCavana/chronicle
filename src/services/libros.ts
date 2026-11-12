@@ -55,6 +55,7 @@ export async function guardarPropuesta(datos: NuevoLibro) {
     .insert({
       tipo: 'libro_nuevo',
       estado: 'borrador',
+      pendiente_aprobacion: false,
       autor_id: usuarioId,
       idioma: datos.idioma,
       titulo: datos.titulo,
@@ -299,6 +300,7 @@ export async function actualizarPropuesta(
         editorial: datos.editorial,
         clasificacion: datos.clasificacion,
       },
+      pendiente_aprobacion: false,
       row_version: versionActual + 1,
       actualizado_en: new Date().toISOString(),
     })
@@ -318,4 +320,21 @@ export async function actualizarPropuesta(
   }
 
   return data
+}
+
+
+/** Envía la versión guardada del borrador a revisión administrativa. */
+export async function enviarBorradorAprobacion(propuestaId: string) {
+  const { data: auth, error: authError } = await supabase.auth.getUser()
+  if (authError) throw authError
+  if (!auth.user) throw new Error('Tenés que iniciar sesión.')
+  const { data, error } = await supabase.from('propuestas')
+    .update({ pendiente_aprobacion: true })
+    .eq('id', propuestaId)
+    .eq('autor_id', auth.user.id)
+    .eq('estado', 'borrador')
+    .eq('pendiente_aprobacion', false)
+    .select('id').maybeSingle()
+  if (error) throw error
+  if (!data) throw new Error('El borrador ya fue enviado o no está disponible.')
 }
