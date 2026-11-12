@@ -32,6 +32,10 @@ type ContenidoLibroProps = {
   onAddClass?: () => void
   onEditClass?: (id: string) => void
   onDeleteClass?: (id: string) => void
+  subclases?: { id: string; nombre: string; claseNombre: string }[]
+  onAddSubclass?: () => void
+  onEditSubclass?: (id: string) => void
+  onDeleteSubclass?: (id: string) => void
 }
 
 export default function ContenidoLibro({
@@ -50,6 +54,10 @@ export default function ContenidoLibro({
   onAddClass,
   onEditClass,
   onDeleteClass,
+  subclases = [],
+  onAddSubclass,
+  onEditSubclass,
+  onDeleteSubclass,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
@@ -171,6 +179,7 @@ export default function ContenidoLibro({
                         ))}
                       </div>
                     )}
+                    {category.id === 'subclases' && subclases.length > 0 && <div className="contenido-libro-species-list">{subclases.map(subclase => <div className="contenido-libro-species-item" key={subclase.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditSubclass?.(subclase.id)}>{subclase.nombre || 'Subclase sin nombre'} · {subclase.claseNombre} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la subclase «${subclase.nombre}»?`)) onDeleteSubclass?.(subclase.id) }}><Trash2 size={15}/></button></div>)}</div>}
                     {category.id === 'conjuros' && conjuros.length > 0 && (
                     <div className="contenido-libro-species-list">
                       {conjuros.map(conjuro => (
@@ -194,17 +203,19 @@ export default function ContenidoLibro({
                 <button
                   type="button"
                   className="contenido-libro-add"
-                  disabled={category.id !== 'especies' && category.id !== 'clases'}
+                  disabled={category.id !== 'especies' && category.id !== 'clases' && category.id !== 'subclases'}
                   title={
                     category.id === 'especies'
                       ? 'Agregar especie'
-                      : category.id === 'clases' ? 'Agregar clase' : 'Próximamente'
+                      : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : 'Próximamente'
                   }
                   onClick={() => {
                     if (category.id === 'especies') {
                       onAddSpecies()
                     } else if (category.id === 'clases') {
                       onAddClass?.()
+                    } else if (category.id === 'subclases') {
+                      onAddSubclass?.()
                     }
                   }}
                 >
