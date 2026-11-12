@@ -254,3 +254,16 @@
   overflow: visible;
   text-overflow: clip;
 }
+
+/* El panel se mantiene centrado y la tabla no ensancha toda la página. */
+.clase-form { width: 100%; min-width: 0; max-width: 100%; }
+.clase-form__fieldset { width: 100%; min-width: 0; max-width: 100%; }
+.clase-form__panel { width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; }
+.clase-form__tabla-scroll {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.clase-form__tabla { width: max-content; min-width: 100%; }
