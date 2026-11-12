@@ -1,0 +1,24 @@
+/* Estilos del editor de dotes, aislados del resto de formularios. */
+.dote-form { color:#e8dfcf; }
+.dote-form fieldset { min-width:0; margin:20px 0; padding:20px; border:1px solid #454354; border-radius:10px; background:#1b1d28; }
+.dote-form fieldset legend { padding:0 9px; color:#d8b77b; font-size:15px; font-weight:650; }
+.dote-form fieldset p { color:#aaa8b8; font-size:13px; line-height:1.6; }
+.dote-form .nueva-propuesta-field select, .dote-form select {
+  box-sizing:border-box; width:100%; min-height:44px; padding:10px 42px 10px 14px;
+  border:1px solid #454354; border-radius:9px; color:#e8dfcf; background-color:#171923;
+  font:inherit; font-size:14px; appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d8b77b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 14px center; background-size:16px;
+}
+.dote-form select option { color:#e8dfcf; background:#171923; }
+.dote-form .nueva-propuesta-field select:hover { border-color:#d8b77b; }
+.dote-form .dote-conjuros { background:#1b1d28; }
+.dote-form .dote-conjuro-opcion { display:flex; align-items:center; gap:15px; padding:12px 14px; margin:9px 0; border:1px solid #343342; border-radius:9px; background:#171923; color:#e8dfcf; font-size:13px; cursor:pointer; }
+.dote-form .dote-conjuro-opcion:has(input:checked) { border-color:#d8b77b; background:rgba(216,183,123,.09); }
+.dote-form input[type="checkbox"] { flex:0 0 auto; width:17px; height:17px; margin:0 5px 0 0; accent-color:#d8b77b; cursor:pointer; }
+.dote-form .dote-accion { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:9px 15px; margin:10px 0 2px; border:1px solid #d8b77b; border-radius:8px; background:rgba(216,183,123,.06); color:#d8b77b; font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:background .15s ease; }
+.dote-form .dote-accion:hover { background:rgba(216,183,123,.16); }
+.dote-form .dote-magia-toggle, .dote-form .dote-magia-option { display:flex; align-items:center; gap:16px; padding:13px 15px; line-height:1.5; }
+.dote-form .dote-magia-toggle input[type="checkbox"], .dote-form .dote-magia-option input[type="checkbox"] { margin:0 5px 0 0; }
+.dote-form :is(input,select,button,textarea):focus-visible { outline:2px solid #d8b77b; outline-offset:2px; }
+@media(max-width:650px) { .dote-form fieldset { padding:14px; } }
