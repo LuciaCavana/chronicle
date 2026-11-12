@@ -18,6 +18,7 @@ export type NuevoLibro = {
   conjuros: Conjuro[]
   clases: Elemento[]
   subclases: Elemento[]
+  objetos: Elemento[]
 }
 
 export async function guardarLibro(datos: NuevoLibro) {
@@ -67,6 +68,7 @@ export async function guardarPropuesta(datos: NuevoLibro) {
         conjuros: datos.conjuros,
         clases: datos.clases,
         subclases: datos.subclases,
+       objetos: datos.objetos,
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -102,7 +104,8 @@ export async function obtenerLibros() {
         especies,
         conjuros,
         clases,
-        subclases
+        subclases,
+       objetos
       )
     `
     )
@@ -133,7 +136,8 @@ export async function obtenerLibroParaEditar(libroId: string) {
         especies,
         conjuros,
         clases,
-        subclases
+        subclases,
+       objetos
       )
     `
     )
@@ -300,6 +304,7 @@ export async function actualizarPropuesta(
         conjuros: datos.conjuros,
         clases: datos.clases,
         subclases: datos.subclases,
+       objetos: datos.objetos,
       },
       metadatos_libro: {
         codigo: datos.codigo,
