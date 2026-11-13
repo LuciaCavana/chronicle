@@ -11,6 +11,7 @@ import {
   BookOpen,
   Sparkles,
   Search,
+  Skull,
 } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import '../styles/Biblioteca.css'
@@ -22,6 +23,7 @@ const categories = [
   { id: 'trasfondos', name: 'Trasfondos', description: 'El origen de cada aventura', icon: ScrollText },
   { id: 'dotes', name: 'Dotes', description: 'Talentos y capacidades', icon: Award },
   { id: 'conjuros', name: 'Conjuros', description: 'El poder de la magia', icon: WandSparkles },
+  { id: 'monstruos', name: 'Monstruos y criaturas', description: 'Explorá el bestiario', icon: Skull },
   { id: 'objetos', name: 'Objetos y equipo', description: 'Herramientas para la aventura', icon: Swords },
   { id: 'reglas', name: 'Reglas', description: 'Consultá las mecánicas', icon: BookOpen },
   { id: 'otras-opciones', name: 'Otras opciones y características', description: 'Más posibilidades para tu personaje', icon: Sparkles },
@@ -65,11 +67,11 @@ export default function Biblioteca() {
                 </>
             )
 
-            if (category.id === 'libros') {
+            if (category.id === 'libros' || category.id === 'conjuros') {
                 return (
                 <Link
                     key={category.id}
-                    to="/biblioteca/libros"
+                    to={category.id === "libros" ? "/biblioteca/libros" : "/biblioteca/conjuros"}
                     className="biblioteca-card biblioteca-card--link"
                 >
                     {content}
