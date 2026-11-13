@@ -361,6 +361,17 @@ export async function actualizarPropuesta(
 }
 
 
+/** Guarda únicamente los elementos modificados respecto de la copia inicial.
+ * El servidor fusiona cambios ajenos por ID y rechaza conflictos del mismo elemento.
+ */
+export async function guardarElementosCompartidos(propuestaId: string, base: Record<string, unknown>, nuevo: Record<string, unknown>) {
+  const { data, error } = await supabase.rpc('chronicle_guardar_borrador_elementos', {
+    p_propuesta_id: propuestaId, p_base: base, p_nuevo: nuevo,
+  })
+  if (error) throw error
+  return data as number
+}
+
 /** Envía la versión guardada del borrador a revisión administrativa. */
 export async function enviarBorradorAprobacion(propuestaId: string) {
   const { data: auth, error: authError } = await supabase.auth.getUser()
