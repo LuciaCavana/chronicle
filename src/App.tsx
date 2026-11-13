@@ -24,14 +24,14 @@ function AvisoNuevaVersion() {
 
   useEffect(() => {
     const archivos = (html: string) =>
-      [...html.matchAll(/(?:\\/assets\\/)[^"'\\s<>]+\\.(?:js|css)/g)]
+      [...html.matchAll(/(?:\/assets\/)[^"'\s<>]+\.(?:js|css)/g)]
         .map(match => match[0])
         .sort()
         .join('|')
 
     const actuales = [...document.querySelectorAll<HTMLScriptElement>('script[src], link[rel="stylesheet"]')]
       .map(element => element.getAttribute('src') || element.getAttribute('href') || '')
-      .filter(url => url.includes('/assets/') && /\\.(?:js|css)(?:\\?|$)/.test(url))
+      .filter(url => url.includes('/assets/') && /\.(?:js|css)(?:\?|$)/.test(url))
       .map(url => url.split('?')[0])
       .sort()
       .join('|')
