@@ -41,7 +41,7 @@ export default function Sidebar({ mobileOpen = false, onNavigate }: { mobileOpen
       onMouseLeave={() => setCollapsed(true)}
     >
       <div className="sidebar-header">
-        {!collapsed && (
+        {(!collapsed || mobileOpen) && (
           <span className="sidebar-brand">CHRONICLE</span>
         )}
       </div>
@@ -58,7 +58,7 @@ export default function Sidebar({ mobileOpen = false, onNavigate }: { mobileOpen
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
               }
-              title={collapsed ? item.label : undefined}
+              title={collapsed && !mobileOpen ? item.label : undefined}
             >
               <Icon
                 className="sidebar-icon"
