@@ -257,10 +257,11 @@
   border-color: #d8b77b;
 }
 .clase-form .clase-form__checks label:has(input:checked) {
-  background: #d8b77b;
-  border-color: #f0cc8c;
-  color: #211a12;
+  background: #342d24;
+  border-color: #d8b77b;
+  color: #f0dfbd;
   font-weight: 600;
+  box-shadow: inset 0 0 0 1px rgba(216, 183, 123, .18);
 }
 .clase-form .clase-form__checks input[type="checkbox"],
 .nueva-propuesta .nueva-propuesta-panel .clase-form .clase-form__checks input[type="checkbox"] {
