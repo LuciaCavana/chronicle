@@ -23,7 +23,7 @@ const menuItems = [
   { label: 'Inventario', icon: Backpack, path: '/inventario' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ mobileOpen = false, onNavigate }: { mobileOpen?: boolean; onNavigate?: () => void }) {
   const [collapsed, setCollapsed] = useState(true)
   const { session } = useAuth()
   const [esAdmin, setEsAdmin] = useState(false)
@@ -36,7 +36,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''}`}
+      className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${mobileOpen ? 'sidebar--mobile-open' : ''}`}
       onMouseEnter={() => setCollapsed(false)}
       onMouseLeave={() => setCollapsed(true)}
     >
@@ -53,6 +53,7 @@ export default function Sidebar() {
           return (
             <NavLink
               key={item.path}
+              onClick={onNavigate}
               to={item.path}
               className={({ isActive }) =>
                 `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
