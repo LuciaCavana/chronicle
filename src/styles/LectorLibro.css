@@ -99,3 +99,10 @@
 .lector-libro__modal-cerrar{position:absolute;right:13px;top:12px;display:grid;place-items:center;width:34px;height:34px;background:transparent;border:1px solid #635d54;border-radius:6px;color:#e4d7c2;cursor:pointer}
 .lector-libro__modal-cerrar:hover{background:#393431}
 @media(max-width:600px){.lector-libro__modal-rasgo{padding:22px 18px}.lector-libro__modal-cabecera{display:block}.lector-libro__modal-cabecera span{display:block;margin-top:8px}}
+
+/* Acceso rápido al inicio de la lectura */
+.lector-libro__volver-arriba{position:fixed;right:24px;bottom:24px;z-index:100;display:grid;place-items:center;width:46px;height:46px;border:1px solid #a78b5a;border-radius:50%;background:#28232b;color:#e8c98c;box-shadow:0 6px 22px #0008;cursor:pointer;transition:background .2s,transform .2s}
+.lector-libro__volver-arriba:hover{background:#3d3340;transform:translateY(-2px)}
+.lector-libro__volver-arriba:focus-visible{outline:2px solid #e8c98c;outline-offset:3px}
+@media(max-width:600px){.lector-libro__volver-arriba{right:16px;bottom:16px}}
+@media(prefers-reduced-motion:reduce){.lector-libro__volver-arriba{transition:none}}
