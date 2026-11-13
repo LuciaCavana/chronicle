@@ -8,4 +8,11 @@ if (!supabaseUrl || !supabaseKey) {
   throw new Error('Falta configurar Supabase')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey)
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storage: window.localStorage,
+  },
+})
