@@ -67,11 +67,11 @@ export default function Biblioteca() {
                 </>
             )
 
-            if (category.id === 'libros' || category.id === 'conjuros') {
+            if (category.id === 'libros' || category.id === 'conjuros' || category.id === 'clases') {
                 return (
                 <Link
                     key={category.id}
-                    to={category.id === "libros" ? "/biblioteca/libros" : "/biblioteca/conjuros"}
+                    to={category.id === "libros" ? "/biblioteca/libros" : category.id === "clases" ? "/biblioteca/clases" : "/biblioteca/conjuros"}
                     className="biblioteca-card biblioteca-card--link"
                 >
                     {content}
