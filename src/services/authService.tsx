@@ -12,7 +12,8 @@ export const authService = {
   register(
     nombre: string,
     email: string,
-    password: string
+    password: string,
+    username?: string
   ) {
     return supabase.auth.signUp({
       email: email.trim(),
@@ -20,6 +21,7 @@ export const authService = {
       options: {
         data: {
           display_name: nombre.trim(),
+          ...(username?.trim() ? { username: username.trim().toLowerCase() } : {}),
         },
         emailRedirectTo: window.location.origin,
       },
