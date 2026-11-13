@@ -20,6 +20,7 @@ import {
 
 import AppLayout from '../components/layout/AppLayout'
 import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrador'
+import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
 import { supabase } from '../lib/supabase'
 import { enviarBorradorAprobacion } from '../services/libros'
 import '../styles/Libros.css'
@@ -105,6 +106,7 @@ export default function Libros() {
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [mensajeAdmin, setMensajeAdmin] = useState('')
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
+  const [historialId, setHistorialId] = useState<string | null>(null)
 
   const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
     id: string
@@ -599,6 +601,7 @@ async function borrarPropuesta(
                     <div className="libros-admin-actions">
                       {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}>Enviar a aprobación</button>}
                       <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}>{compartiendoId === propuesta.id ? 'Cerrar compartido' : 'Compartir'}</button>
+                      <button type="button" className="libros-admin-button" onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}>Historial</button>
                       <Link
                         to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
                         className="libros-admin-button"
@@ -625,6 +628,7 @@ async function borrarPropuesta(
                     </div>
                   )}
                   {compartiendoId === propuesta.id && <ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} />}
+                  {historialId === propuesta.id && <HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} />}
 
                   </article>
                 ))}
@@ -634,7 +638,8 @@ async function borrarPropuesta(
               .map(p=><article className="libros-item" key={p.id}>
                 <div className="libros-item-icon"><FileText size={24}/></div>
                 <div className="libros-item-info"><h3>{p.titulo || 'Libro sin título'}</h3><p>{p.metadatos_libro?.editorial || 'Sin editorial'}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? 'Editora' : 'Lectora'}</span><span>{p.pendiente_aprobacion ? 'Pendiente de aprobación' : 'Borrador compartido'}</span></div></div>
-                <div className="libros-admin-actions"><Link className="libros-admin-button" to={`/biblioteca/libros/editar-borrador/${p.id}`}>{p.rolColaborador === 'editor' ? 'Abrir editor' : 'Ver borrador'}</Link></div>
+                <div className="libros-admin-actions"><Link className="libros-admin-button" to={`/biblioteca/libros/editar-borrador/${p.id}`}>{p.rolColaborador === 'editor' ? 'Abrir editor' : 'Ver borrador'}</Link><button type="button" className="libros-admin-button" onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}>Historial</button></div>
+                {historialId === p.id && <HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} />}
               </article>)}
 
             {librosFiltrados.map((libro) => (
