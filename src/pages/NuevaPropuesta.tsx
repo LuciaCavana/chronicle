@@ -126,6 +126,20 @@ export default function NuevaPropuesta() {
   const [versionRemota, setVersionRemota] = useState<number | null>(null)
   const [accesoCompartido, setAccesoCompartido] = useState<'propietario' | 'editor' | 'lector'>('propietario')
 
+  // Eventos del servidor: aviso inmediato al guardarse una versión nueva.
+  useEffect(() => {
+    if (!propuestaId || rowVersion === null) return
+    const canal = supabase.channel(`chronicle-borrador-${propuestaId}`)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'propuestas', filter: `id=eq.${propuestaId}` }, payload => {
+        const nuevaVersion = (payload.new as { row_version?: number }).row_version
+        if (typeof nuevaVersion === 'number' && nuevaVersion > rowVersion) {
+          setVersionRemota(nuevaVersion)
+        }
+      })
+      .subscribe()
+    return () => { void supabase.removeChannel(canal) }
+  }, [propuestaId, rowVersion])
+
   // Consulta liviana para advertir guardados ajenos sin reemplazar ediciones locales.
   useEffect(() => {
     if (!propuestaId || rowVersion === null) return
