@@ -121,6 +121,7 @@ function AppRoutes() {
         }
       />
       <Route path="/biblioteca/libros/leer/:libroId" element={<ProtectedRoute><LectorLibro /></ProtectedRoute>} />
+      <Route path="/biblioteca/libros/leer-borrador/:propuestaId" element={<ProtectedRoute><LectorLibro /></ProtectedRoute>} />
       <Route
         path="/biblioteca/libros/editor"
         element={<ProtectedRoute><MotorLibros /></ProtectedRoute>}
