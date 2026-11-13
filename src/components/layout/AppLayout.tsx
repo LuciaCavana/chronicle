@@ -1,5 +1,5 @@
 
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import '../../styles/AppLayout.css'
@@ -15,12 +15,14 @@ export default function AppLayout({
   title,
   subtitle,
 }: AppLayoutProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   return (
     <div className="app-layout">
-      <Sidebar />
+      {mobileMenuOpen && <button className="app-mobile-backdrop" type="button" aria-label="Cerrar menú" onClick={() => setMobileMenuOpen(false)} />}
+      <Sidebar mobileOpen={mobileMenuOpen} onNavigate={() => setMobileMenuOpen(false)} />
 
       <div className="app-layout-main">
-        <Header title={title} subtitle={subtitle} />
+        <Header title={title} subtitle={subtitle} onOpenMenu={() => setMobileMenuOpen(true)} />
 
         <main className="app-layout-content">
           {children}
