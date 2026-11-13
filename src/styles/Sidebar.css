@@ -131,3 +131,5 @@
   min-width: 24px;
   flex-shrink: 0;
 }
+@media(max-width:768px){.sidebar,.sidebar.sidebar--collapsed{position:fixed;z-index:50;top:0;bottom:0;left:0;width:min(290px,85vw);min-width:0;height:100dvh;transform:translateX(-105%);transition:transform .22s ease;box-shadow:12px 0 30px #0005;overflow-y:auto}.sidebar.sidebar--mobile-open{transform:translateX(0)}.sidebar .sidebar-header,.sidebar.sidebar--collapsed .sidebar-header{justify-content:center;padding:16px}.sidebar.sidebar--collapsed .sidebar-brand{display:inline}.sidebar.sidebar--collapsed .sidebar-nav{padding:12px}.sidebar.sidebar--collapsed .sidebar-link{justify-content:flex-start;padding:10px 12px}.sidebar.sidebar--collapsed .sidebar-label{display:inline}}
+@media(hover:none) and (min-width:769px){.sidebar{width:72px;min-width:72px}}
