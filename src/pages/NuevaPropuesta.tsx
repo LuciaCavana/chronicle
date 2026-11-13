@@ -4,6 +4,7 @@ import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
 import { reemplazarOAgregar, eliminarPorId } from '../lib/listas'
+import { contenidoDeLibro, metadatosDeLibro } from '../lib/libroMapper'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
 import '../styles/NuevaPropuesta.css'
@@ -421,8 +422,8 @@ export default function NuevaPropuesta() {
           descripcion: datos.descripcion,
           idioma: datos.idioma,
           categorias: datos.categorias,
-          metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
-          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos },
+          metadatos_libro: metadatosDeLibro(datos),
+          contenido: contenidoDeLibro(datos),
         })
       } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
