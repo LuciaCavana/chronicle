@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   BookOpen,
   CheckCircle2,
+  ClipboardCheck,
   Eye,
   EyeOff,
   FileText,
@@ -601,7 +602,7 @@ async function borrarPropuesta(
                                       
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
-                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}>Enviar a aprobación</button>}
+                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title="Enviar a aprobación" aria-label="Enviar a aprobación" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
                       <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-label={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
                       <button type="button" className="libros-admin-button libros-icon-action" title="Historial" aria-label="Historial" aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
                       <Link
