@@ -26,7 +26,6 @@ import {
   guardarPropuesta,
   obtenerLibroParaEditar,
   obtenerPropuestaParaEditar,
-  actualizarPropuesta,
   guardarElementosCompartidos,
 } from '../services/libros'
 
