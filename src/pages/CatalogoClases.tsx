@@ -17,12 +17,17 @@ function Descripcion({ valor }: { valor: unknown }) {
   const contenido = txt(valor).replace(/<[^>]*>/g,' ').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&')
   return contenido ? <p className="catalogo-conjuros__descripcion">{contenido}</p> : null
 }
+const claveRasgo = (rasgo: Registro, origen: string) => `${origen}-${txt(rasgo.id)||`${txt(rasgo.nivel)}-${nombre(rasgo)}`}`
+function irARasgo(rasgo: Registro, origen: string) {
+  const destino = document.getElementById(`catalogo-rasgo-${claveRasgo(rasgo,origen)}`)
+  destino?.scrollIntoView({behavior:'smooth',block:'start'})
+}
 function Rasgos({ clase, subclase }: { clase: Registro; subclase?: Registro }) {
   const base: Registro[]=lista(obj(clase.datos).rasgos).map(r=>({...r,origen:'Clase'}))
   const extras: Registro[]=subclase?lista(obj(subclase.datos).rasgos).map(r=>({...r,origen:nombre(subclase)})):[]
   const rasgos=[...base,...extras].sort((a,b)=>Number(a.nivel||0)-Number(b.nivel||0))
   return rasgos.length ? <section className="catalogo-clases__bloque"><h3>Características por nivel</h3>
-    {rasgos.map((rasgo,i)=><article key={`${txt(rasgo.origen)}:${txt(rasgo.id)||i}`} className={`catalogo-clases__rasgo ${txt(rasgo.origen)==='Clase'?'':'catalogo-clases__rasgo--subclase'}`}>
+    {rasgos.map((rasgo,i)=><article key={`${txt(rasgo.origen)}:${txt(rasgo.id)||i}`} id={`catalogo-rasgo-${claveRasgo(rasgo,txt(rasgo.origen)==='Clase'?'base':'sub')}`} className={`catalogo-clases__rasgo ${txt(rasgo.origen)==='Clase'?'':'catalogo-clases__rasgo--subclase'}`}>
       <h4>Nivel {txt(rasgo.nivel)} · {nombre(rasgo)} <small>{txt(rasgo.origen)}</small></h4>
       <Descripcion valor={rasgo.descripcion}/>
     </article>)}
@@ -51,7 +56,7 @@ function FichaClase({ clase, subclase }: { clase: Registro; subclase?: Registro 
       {lista(datos.equipoOpciones).map((grupo,i)=><div key={i}><strong>Grupo {i+1} · Elegir {txt(grupo.elegir)||'1'}</strong>{lista(grupo.opciones).map((opcion,j)=><p key={j}>Opción {j+1}: {lista(opcion.objetos).map(item=>`${txt(item.cantidad)||'1'} × ${txt(item.nombre)||txt(item.objetoId)}`).join(', ')}{Number(opcion.oro)>0?` · ${txt(opcion.oro)} po`:''}</p>)}</div>)}
     </section>}
     {filas.length>0 && <section className="catalogo-clases__bloque"><h3>Tabla de progresión</h3><div className="catalogo-clases__tabla-scroll"><table><thead><tr><th>Nivel</th><th>Características</th>{columnas.map((col,i)=><th key={i}>{nombre(col)}</th>)}</tr></thead><tbody>
-      {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{(() => { const base=rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)); const extra=rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel)); return base.length||extra.length ? <>{base.map((r,j)=><span key={`base-${j}`} className="catalogo-clases__tabla-rasgo">{nombre(r)}</span>)}{extra.map((r,j)=><span key={`sub-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-rasgo--subclase">{nombre(r)}</span>)}</> : '—' })()}</td>{columnas.map((col,j)=><td key={j}>{txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}
+      {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{(() => { const base=rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)); const extra=rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel)); return base.length||extra.length ? <>{base.map((r,j)=><button type="button" key={`base-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace" onClick={()=>irARasgo(r,'base')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}{extra.map((r,j)=><button type="button" key={`sub-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace catalogo-clases__tabla-rasgo--subclase" onClick={()=>irARasgo(r,'sub')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}</> : '—' })()}</td>{columnas.map((col,j)=><td key={j}>{txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}
     </tbody></table></div></section>}
     <Rasgos clase={clase} subclase={subclase}/>
   </>
