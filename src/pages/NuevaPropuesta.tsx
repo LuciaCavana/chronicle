@@ -123,7 +123,23 @@ export default function NuevaPropuesta() {
   const [errorCarga, setErrorCarga] = useState('')
   const [versionId, setVersionId] = useState<string | null>(null)
   const [rowVersion, setRowVersion] = useState<number | null>(null)
+  const [versionRemota, setVersionRemota] = useState<number | null>(null)
   const [accesoCompartido, setAccesoCompartido] = useState<'propietario' | 'editor' | 'lector'>('propietario')
+
+  // Consulta liviana para advertir guardados ajenos sin reemplazar ediciones locales.
+  useEffect(() => {
+    if (!propuestaId || rowVersion === null) return
+    let activo = true
+    const revisar = async () => {
+      const { data, error } = await supabase.from('propuestas')
+        .select('row_version').eq('id', propuestaId).maybeSingle()
+      if (!activo || error || !data) return
+      if (data.row_version > rowVersion) setVersionRemota(data.row_version)
+    }
+    void revisar()
+    const intervalo = window.setInterval(() => { void revisar() }, 5000)
+    return () => { activo = false; window.clearInterval(intervalo) }
+  }, [propuestaId, rowVersion])
 
   // Guardado
   const [guardando, setGuardando] = useState(false)
@@ -409,6 +425,12 @@ export default function NuevaPropuesta() {
           <p className="nueva-propuesta-help">Cargando propuesta...</p>
         )}
 
+        {versionRemota !== null && (
+          <div role="alert" style={{ border: '1px solid #d8b77b', borderRadius: 10, background: '#342d24', color: '#f0dfbd', padding: 16, marginBottom: 16 }}>
+            <strong>Otro colaborador guardó una versión nueva de este borrador.</strong>
+            <p>Tu edición local no se reemplazó. No guardes encima de los cambios ajenos: el sistema rechazará una versión desactualizada. Para ver la versión nueva, abrí el borrador en otra pestaña. Recargar esta pestaña descartará tus cambios sin guardar.</p>
+          </div>
+        )}
         {errorCarga && (
           <p role="alert" style={{ color: '#e57373' }}>
             {errorCarga}
