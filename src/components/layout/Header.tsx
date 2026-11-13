@@ -88,12 +88,12 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
               <div className="app-header-dropdown-divider" />
 
-              <button type="button" disabled>
+              <button type="button" onClick={() => { setMenuOpen(false); navigate("/perfil") }}>
                 <UserRound size={17} />
                 Mi perfil
               </button>
 
-              <button type="button" disabled>
+              <button type="button" onClick={() => { setMenuOpen(false); navigate("/configuracion") }}>
                 <Settings size={17} />
                 Configuración
               </button>
