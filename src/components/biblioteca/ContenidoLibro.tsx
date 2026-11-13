@@ -101,6 +101,7 @@ export default function ContenidoLibro({
   onDeleteObject,
 }: ContenidoLibroProps) {
   const [showManager, setShowManager] = useState(false)
+  const [openCategory, setOpenCategory] = useState<string | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<Category | null>(null)
   const [speciesToDelete, setSpeciesToDelete] = useState<{
     id: string
@@ -147,144 +148,59 @@ export default function ContenidoLibro({
       </div>
 
       {categories.length === 0 ? (
-        <div className="contenido-libro-empty">
-          No seleccionaste ninguna categoría.
-          Usá «Administrar categorías» para agregar una.
-        </div>
+        <div className="contenido-libro-empty">No seleccionaste ninguna categoría. Usá «Administrar categorías» para agregar una.</div>
       ) : (
         <div className="contenido-libro-list">
-          {categories.map((category) => {
-            const itemCount =
-              category.id === 'especies'
-                ? speciesCount
-                : categoryItemCounts[category.id] ?? 0
-
-            return (
-              <div className="contenido-libro-card" key={category.id}>
-                <div className="contenido-libro-card-info">
-                  <BookOpen size={22} />
-
-                  <div>
-                    <h4>{category.label}</h4>
-                    <p>
-                      {itemCount === 0
-                        ? 'Todavía no agregaste elementos.'
-                        : `${itemCount} elemento(s) cargado(s).`}
-                    </p>
-                    {category.id === 'especies' && species.length > 0 && (
-                      <div className="contenido-libro-species-list">
-                    {species.map((especie) => (
-                      <div
-                        key={especie.id}
-                        className="contenido-libro-species-item"
-                      >
-                        <button
-                          type="button"
-                          className="contenido-libro-species-tag"
-                          onClick={() => onEditSpecies(especie.id)}
-                          title={`Editar ${especie.nombre}`}
-                        >
-                          {especie.nombre}
-                          <Pencil size={13} />
-                        </button>
-
-                        <button
-                          type="button"
-                          className="contenido-libro-species-delete"
-                          onClick={() =>
-                            setSpeciesToDelete({
-                              id: especie.id,
-                              nombre: especie.nombre,
-                            })
-                          }
-                          title={`Eliminar ${especie.nombre}`}
-                          aria-label={`Eliminar ${especie.nombre}`}
-                        >
-                          <Trash2 size={15} />
-                        </button>
-                      </div>
-                    ))}
-                      </div>
-                    )}
-                    {category.id === 'clases' && clases.length > 0 && (
-                      <div className="contenido-libro-species-list">
-                        {clases.map(clase => (
-                          <div className="contenido-libro-species-item" key={clase.id}>
-                            <button type="button" className="contenido-libro-species-tag" onClick={() => onEditClass?.(clase.id)}>
-                              {clase.nombre || 'Clase sin nombre'} <Pencil size={13} />
-                            </button>
-                            <button type="button" className="contenido-libro-species-delete" onClick={() => {
-                              if (window.confirm(`¿Eliminar la clase "${clase.nombre}"?`)) onDeleteClass?.(clase.id)
-                            }} aria-label={`Eliminar ${clase.nombre}`}><Trash2 size={15} /></button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    {category.id === 'subclases' && subclases.length > 0 && <div className="contenido-libro-species-list">{subclases.map(subclase => <div className="contenido-libro-species-item" key={subclase.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditSubclass?.(subclase.id)}>{subclase.nombre || 'Subclase sin nombre'} · {subclase.claseNombre} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la subclase «${subclase.nombre}»?`)) onDeleteSubclass?.(subclase.id) }}><Trash2 size={15}/></button></div>)}</div>}
-                    {category.id === 'objetos' && objetos.length > 0 && <div className="contenido-libro-species-list">{objetos.map(objeto => <div className="contenido-libro-species-item" key={objeto.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditObject?.(objeto.id)}>{objeto.nombre || 'Objeto sin nombre'} · {objeto.tipo} <Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar el objeto «${objeto.nombre}»?`)) onDeleteObject?.(objeto.id) }}><Trash2 size={15}/></button></div>)}</div>}
-                    {category.id === 'criaturas' && criaturas.length > 0 && <div className="contenido-libro-species-list">{criaturas.map(criatura => <div className="contenido-libro-species-item" key={criatura.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditCriatura?.(criatura.id)}>{criatura.nombre} · {criatura.tipo}<Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la criatura «${criatura.nombre}»?`)) onDeleteCriatura?.(criatura.id) }} aria-label={`Eliminar ${criatura.nombre}`}><Trash2 size={15}/></button></div>)}</div>}
-                    {category.id === 'trasfondos' && trasfondos.length > 0 && <div className="contenido-libro-species-list">{trasfondos.map(t => <div className="contenido-libro-species-item" key={t.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditTrasfondo?.(t.id)}>{t.nombre}<Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar el trasfondo «${t.nombre}»?`)) onDeleteTrasfondo?.(t.id) }} aria-label={`Eliminar ${t.nombre}`}><Trash2 size={15}/></button></div>)}</div>}
-                    {category.id === 'dotes' && dotes.length > 0 && <div className="contenido-libro-species-list">{dotes.map(dote => <div className="contenido-libro-species-item" key={dote.id}><button type="button" className="contenido-libro-species-tag" onClick={() => onEditDote?.(dote.id)}>{dote.nombre} · {dote.categoria}<Pencil size={13}/></button><button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar la dote «${dote.nombre}»?`)) onDeleteDote?.(dote.id) }} aria-label={`Eliminar ${dote.nombre}`}><Trash2 size={15}/></button></div>)}</div>}
-                    {category.id === 'conjuros' && conjuros.length > 0 && (
-                    <div className="contenido-libro-species-list">
-                      {conjuros.map(conjuro => (
-                        <div
-                          key={conjuro.id}
-                          className="contenido-libro-species-item"
-                        >
-                          <button type="button" className="contenido-libro-species-tag" onClick={() => onEditConjuro?.(conjuro.id)}>
-                            {conjuro.nombre}
-                            {' · '}
-                            {conjuro.tipo === 'truco'
-                              ? 'Truco'
-                              : `Nivel ${conjuro.nivel}`}
-                            <Pencil size={13} />
-                          </button>
-                          <button type="button" className="contenido-libro-species-delete" onClick={() => { if (window.confirm(`¿Eliminar el conjuro «${conjuro.nombre}»?`)) onDeleteConjuro?.(conjuro.id) }} aria-label={`Eliminar ${conjuro.nombre}`}><Trash2 size={15}/></button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="contenido-libro-add"
-                  disabled={!(category.id === 'especies' || (category.id === 'criaturas' && !!onAddCriatura) || (category.id === 'trasfondos' && !!onAddTrasfondo) || (category.id === 'dotes' && !!onAddDote) || (category.id === 'conjuros' && !!onAddConjuro) || (category.id === 'clases' && !!onAddClass) || (category.id === 'subclases' && !!onAddSubclass) || (category.id === 'objetos' && !!onAddObject))}
-                  title={
-                    category.id === 'especies'
-                      ? 'Agregar especie'
-                      : category.id === 'criaturas' ? 'Agregar criatura' : category.id === 'trasfondos' ? 'Agregar trasfondo' : category.id === 'dotes' ? 'Agregar dote' : category.id === 'conjuros' ? 'Agregar conjuro' : category.id === 'clases' ? 'Agregar clase' : category.id === 'subclases' ? 'Agregar subclase' : category.id === 'objetos' ? 'Agregar objeto' : 'Próximamente'
-                  }
-                  onClick={() => {
-                    if (category.id === 'especies') {
-                      onAddSpecies()
-                    } else if (category.id === 'criaturas') {
-                      onAddCriatura?.()
-                    } else if (category.id === 'trasfondos') {
-                      onAddTrasfondo?.()
-                    } else if (category.id === 'dotes') {
-                      onAddDote?.()
-                    } else if (category.id === 'conjuros') {
-                      onAddConjuro?.()
-                    } else if (category.id === 'clases') {
-                      onAddClass?.()
-                    } else if (category.id === 'subclases') {
-                      onAddSubclass?.()
-                    }
-                    else if (category.id === 'objetos') {
-                      onAddObject?.()
-                    }
-                  }}
-                >
-                  <Plus size={17} />
-                  Agregar
-                </button>
-              </div>
-            )
+          {categories.map(category => {
+            const cantidad = category.id === 'especies' ? speciesCount : categoryItemCounts[category.id] ?? 0
+            return <button key={category.id} type="button" className="contenido-libro-card contenido-libro-category-trigger" onClick={() => setOpenCategory(category.id)}>
+              <BookOpen size={22}/>
+              <span><strong>{category.label}</strong><small>{cantidad === 0 ? 'Sin elementos cargados' : `${cantidad} elemento(s) cargado(s)`}</small></span>
+              <span aria-hidden="true">Ver elementos ›</span>
+            </button>
           })}
         </div>
       )}
+
+      {openCategory && (() => {
+        const category = categories.find(c => c.id === openCategory)
+        if (!category) return null
+        const items: { id: string; nombre: string; detalle?: string; editar: () => void; eliminar: () => void }[] =
+          openCategory === 'especies' ? species.map(x => ({ id:x.id, nombre:x.nombre, editar:()=>onEditSpecies(x.id), eliminar:()=>setSpeciesToDelete({id:x.id,nombre:x.nombre}) })) :
+          openCategory === 'clases' ? clases.map(x => ({ id:x.id, nombre:x.nombre, editar:()=>onEditClass?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la clase «${x.nombre}»?`))onDeleteClass?.(x.id)} })) :
+          openCategory === 'subclases' ? subclases.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.claseNombre, editar:()=>onEditSubclass?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la subclase «${x.nombre}»?`))onDeleteSubclass?.(x.id)} })) :
+          openCategory === 'objetos' ? objetos.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.tipo, editar:()=>onEditObject?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar el objeto «${x.nombre}»?`))onDeleteObject?.(x.id)} })) :
+          openCategory === 'criaturas' ? criaturas.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.tipo, editar:()=>onEditCriatura?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la criatura «${x.nombre}»?`))onDeleteCriatura?.(x.id)} })) :
+          openCategory === 'trasfondos' ? trasfondos.map(x => ({ id:x.id, nombre:x.nombre, editar:()=>onEditTrasfondo?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar el trasfondo «${x.nombre}»?`))onDeleteTrasfondo?.(x.id)} })) :
+          openCategory === 'dotes' ? dotes.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.categoria, editar:()=>onEditDote?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la dote «${x.nombre}»?`))onDeleteDote?.(x.id)} })) :
+          openCategory === 'conjuros' ? conjuros.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.tipo === 'truco' ? 'Truco' : `Nivel ${x.nivel}`, editar:()=>onEditConjuro?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar el conjuro «${x.nombre}»?`))onDeleteConjuro?.(x.id)} })) : []
+        const agregar: Record<string, (() => void) | undefined> = {
+          especies:onAddSpecies, clases:onAddClass, subclases:onAddSubclass, objetos:onAddObject,
+          criaturas:onAddCriatura, trasfondos:onAddTrasfondo, dotes:onAddDote, conjuros:onAddConjuro,
+        }
+        return <div className="contenido-libro-overlay" onMouseDown={e => {if(e.target===e.currentTarget)setOpenCategory(null)}}>
+          <div className="contenido-libro-modal contenido-libro-items-modal" role="dialog" aria-modal="true" aria-label={`Elementos de ${category.label}`}>
+            <div className="contenido-libro-modal-header">
+              <div><h3>{category.label}</h3><p>{items.length} elemento(s) cargado(s)</p></div>
+              <button type="button" className="contenido-libro-close" aria-label="Cerrar" onClick={()=>setOpenCategory(null)}><X size={20}/></button>
+            </div>
+            <div className="contenido-libro-items-grid">
+              {items.map(item => <div className="contenido-libro-item-card" key={item.id}>
+                <button type="button" className="contenido-libro-item-edit" onClick={()=>{setOpenCategory(null);item.editar()}} title={`Editar ${item.nombre}`}>
+                  <strong>{item.nombre || 'Sin nombre'}</strong>
+                  {item.detalle && <small>{item.detalle}</small>}
+                  <Pencil size={16}/>
+                </button>
+                <button type="button" className="contenido-libro-item-delete" aria-label={`Eliminar ${item.nombre}`} title="Eliminar" onClick={item.eliminar}><Trash2 size={17}/></button>
+              </div>)}
+              {items.length === 0 && <p className="contenido-libro-empty">Todavía no agregaste elementos en esta categoría.</p>}
+            </div>
+            <div className="contenido-libro-modal-footer">
+              <button type="button" className="contenido-libro-add" disabled={!agregar[openCategory]} onClick={()=>{setOpenCategory(null);agregar[openCategory]?.()}}><Plus size={17}/> Crear nuevo</button>
+            </div>
+          </div>
+        </div>
+      })()}
 
       {showManager && (
         <div
