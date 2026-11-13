@@ -33,7 +33,7 @@ export default function Register() {
 
     const usuarioLimpio = username.trim().toLowerCase()
     if (usuarioLimpio && !/^[a-z0-9_]{3,30}$/.test(usuarioLimpio)) {
-      setError('El usuario debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.')
+      setError('Escribí el usuario sin @. Debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.')
       return
     }
 
@@ -102,8 +102,10 @@ export default function Register() {
           onChange={(e) => setUsername(e.target.value.toLowerCase())}
           maxLength={30}
           autoComplete="username"
-          placeholder="Se genera automáticamente si lo dejás vacío"
+          placeholder="Ej.: ludaca (sin @)"
         />
+
+        <small>Sin @: Chronicle lo agrega automáticamente. Si lo dejás vacío, generamos un usuario.</small>
 
         <label htmlFor="email">Correo electrónico</label>
         <input
