@@ -57,7 +57,7 @@ export default function Profile() {
     const name = displayName.trim()
     const handle = username.trim().toLowerCase()
     if (!name || name.length > 80) { setError('El nombre visible debe tener entre 1 y 80 caracteres.'); return }
-    if (!/^[a-z0-9_]{3,30}$/.test(handle)) { setError('El usuario debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.'); return }
+    if (!/^[a-z0-9_]{3,30}$/.test(handle)) { setError('Escribí el usuario sin @. Debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.'); return }
     if (bio.length > 500) { setError('La biografía no puede superar 500 caracteres.'); return }
     setSaving(true)
     setError('')
@@ -109,7 +109,7 @@ export default function Profile() {
                 <div className="profile-field">
                   <label htmlFor="profile-username">Nombre de usuario</label>
                   <input id="profile-username" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} maxLength={30} required />
-                  <span className="profile-help">Único en Chronicle. De 3 a 30 caracteres, letras, números o guion bajo.</span>
+                  <span className="profile-help">No escribas @: Chronicle lo agrega automáticamente al mostrar tu usuario. Usá entre 3 y 30 caracteres: letras, números o guion bajo.</span>
                 </div>
                 <div className="profile-field">
                   <label htmlFor="profile-bio">Biografía</label>
