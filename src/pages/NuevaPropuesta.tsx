@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
+import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
 import '../styles/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
@@ -122,6 +123,7 @@ export default function NuevaPropuesta() {
   const [errorCarga, setErrorCarga] = useState('')
   const [versionId, setVersionId] = useState<string | null>(null)
   const [rowVersion, setRowVersion] = useState<number | null>(null)
+  const [accesoCompartido, setAccesoCompartido] = useState<'propietario' | 'editor' | 'lector'>('propietario')
 
   // Guardado
   const [guardando, setGuardando] = useState(false)
@@ -141,6 +143,13 @@ export default function NuevaPropuesta() {
   try {
     if (propuestaId) {
       const propuesta = await obtenerPropuestaParaEditar(propuestaId)
+      const { data: auth } = await supabase.auth.getUser()
+      if (!auth.user) throw new Error('Tenés que iniciar sesión.')
+      if (propuesta.autor_id !== auth.user.id) {
+        const {data: membresia,error: errorMembresia} = await supabase.from('propuesta_colaboradores').select('rol').eq('propuesta_id',propuestaId).eq('usuario_id',auth.user.id).single()
+        if(errorMembresia || !membresia) throw new Error('No tenés acceso a este borrador.')
+        setAccesoCompartido(membresia.rol as 'editor' | 'lector')
+      } else setAccesoCompartido('propietario')
 
       if (cancelado) return
 
@@ -310,7 +319,7 @@ export default function NuevaPropuesta() {
   }
 
   async function handleGuardarLibro() {
-    if (guardando || cargandoLibro || tipoPropuesta !== 'nuevo') {
+    if (guardando || cargandoLibro || accesoCompartido === 'lector' || tipoPropuesta !== 'nuevo') {
       return
     }
 
@@ -411,6 +420,8 @@ export default function NuevaPropuesta() {
           Volver a Libros
         </Link>
 
+        {modoEdicionBorrador && accesoCompartido !== 'propietario' && <p className="nueva-propuesta-help" role="status">Borrador compartido · {accesoCompartido === 'editor' ? 'Permiso de edición' : 'Solo lectura'}</p>}
+        {accesoCompartido === 'lector' ? <section className="nueva-propuesta-panel"><h3>{title}</h3><p>{description || 'Sin descripción.'}</p><p>Categorías: {selectedCategories.join(', ') || 'Sin categorías'}</p><p>Este borrador está compartido en modo lectura. No podés modificarlo ni enviarlo a aprobación.</p></section> : <>
         <div className="nueva-propuesta-heading">
           <BookPlus size={28} />
           <div>
@@ -810,6 +821,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
         </div>
+        </>}
       </div>
     </AppLayout>
   )
