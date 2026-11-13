@@ -191,7 +191,8 @@ function SeccionContenido({ seccion }: { seccion: Seccion }) {
   </section>
 }
 export default function LectorLibro() {
-  const { libroId } = useParams<{ libroId: string }>()
+  const { libroId, propuestaId } = useParams<{ libroId?: string; propuestaId?: string }>()
+  const esBorrador = Boolean(propuestaId)
   const [libro,setLibro] = useState<LibroPublicado|null>(null)
   const [cargando,setCargando] = useState(true)
   const [error,setError] = useState('')
@@ -200,6 +201,31 @@ export default function LectorLibro() {
     let activo=true
     async function cargar() {
       setCargando(true);setError('')
+      if (propuestaId) {
+        const { data, error: fallo } = await supabase.from('propuestas')
+          .select('id,estado,titulo,descripcion,idioma,categorias,metadatos_libro,contenido')
+          .eq('id', propuestaId).eq('estado', 'borrador').maybeSingle()
+        if (!activo) return
+        if (fallo) setError('No se pudo cargar el borrador.')
+        else if (!data) setError('No tenés acceso a este borrador o ya no está disponible.')
+        else {
+          const meta = esObjeto(data.metadatos_libro) ? data.metadatos_libro : {}
+          const contenido = esObjeto(data.contenido) ? data.contenido : {}
+          const version: Version = {
+            id: data.id, idioma: data.idioma ?? 'es', titulo: data.titulo ?? '',
+            descripcion: data.descripcion ?? '', categorias: data.categorias ?? [],
+            especies: contenido.especies ?? [], conjuros: contenido.conjuros ?? [],
+            clases: contenido.clases ?? [], subclases: contenido.subclases ?? [],
+            objetos: contenido.objetos ?? [],
+          }
+          setLibro({ id: data.id, codigo: texto(meta.codigo) || null,
+            edicion: texto(meta.edicion) || null, editorial: texto(meta.editorial) || null,
+            clasificacion: texto(meta.clasificacion) || null, estado: 'borrador', libro_versiones: [version] })
+          setVersionId(version.id)
+        }
+        setCargando(false)
+        return
+      }
       const {data,error:fallo}=await supabase.from('libros')
         .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases,subclases,objetos)')
         .eq('id',libroId ?? '').eq('estado','publicado').maybeSingle()
@@ -211,7 +237,7 @@ export default function LectorLibro() {
     }
     void cargar()
     return ()=>{activo=false}
-  },[libroId])
+  },[libroId,propuestaId])
   const version=libro?.libro_versiones.find(v=>v.id===versionId) ?? libro?.libro_versiones[0]
   const secciones:Seccion[] = version ? [
     {id:'especies',titulo:'Especies',elementos:lista(version.especies)},
@@ -221,15 +247,15 @@ export default function LectorLibro() {
     {id:'conjuros',titulo:'Conjuros',elementos:lista(version.conjuros)}
   ] : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
-  return <AppLayout title="Biblioteca" subtitle="Lectura de libros publicados">
+  return <AppLayout title="Biblioteca" subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"}>
     <main className="lector-libro">
-      <Link className="lector-libro__volver" to="/biblioteca/libros"><ArrowLeft size={17}/> Volver al catálogo</Link>
+      <Link className="lector-libro__volver" to={esBorrador ? "/biblioteca/libros?tab=propuestas" : "/biblioteca/libros"}><ArrowLeft size={17}/> {esBorrador ? "Volver a los borradores" : "Volver al catálogo"}</Link>
       {cargando ? <div className="lector-libro__estado">Abriendo libro...</div>
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>
         <header className="lector-libro__portada">
           <div className="lector-libro__sello"><BookOpen size={30} strokeWidth={1.5}/></div>
-          <span className="lector-libro__sobre">CHRONICLE · BIBLIOTECA</span>
+          <span className="lector-libro__sobre">{esBorrador ? "CHRONICLE · VISTA PREVIA — BORRADOR SIN PUBLICAR" : "CHRONICLE · BIBLIOTECA"}</span>
           <h1>{version.titulo || 'Libro sin título'}</h1>
           <div className="lector-libro__ornamento"><span/>✦<span/></div>
           <p className="lector-libro__subtitulo">{libro.editorial || 'Una obra de la comunidad'}</p>
