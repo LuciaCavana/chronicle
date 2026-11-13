@@ -230,10 +230,12 @@ export default function LectorLibro() {
   const [versionId,setVersionId] = useState('')
   const [mostrarVolverArriba, setMostrarVolverArriba] = useState(false)
   useEffect(() => {
-    const comprobarScroll = () => setMostrarVolverArriba(window.scrollY > 350)
+    const contenedor = document.querySelector<HTMLElement>('.app-layout-content')
+    if (!contenedor) return
+    const comprobarScroll = () => setMostrarVolverArriba(contenedor.scrollTop > 350)
     comprobarScroll()
-    window.addEventListener('scroll', comprobarScroll, { passive: true })
-    return () => window.removeEventListener('scroll', comprobarScroll)
+    contenedor.addEventListener('scroll', comprobarScroll, { passive: true })
+    return () => contenedor.removeEventListener('scroll', comprobarScroll)
   }, [])
   useEffect(()=>{
     let activo=true
@@ -326,7 +328,7 @@ export default function LectorLibro() {
       {mostrarVolverArriba && (
         <button type="button" className="lector-libro__volver-arriba"
           title="Volver al comienzo" aria-label="Volver al comienzo de la lectura"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          onClick={() => document.querySelector<HTMLElement>('.app-layout-content')?.scrollTo({ top: 0, behavior: 'smooth' })}>
           <ArrowUp size={21} aria-hidden="true" />
         </button>
       )}
