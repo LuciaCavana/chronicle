@@ -24,7 +24,7 @@ import { supabase } from '../lib/supabase'
 import { enviarBorradorAprobacion } from '../services/libros'
 import '../styles/Libros.css'
 
-type BooksTab = 'catalogo' | 'propuestas' | 'administracion'
+type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
 
 type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado'
 
@@ -67,6 +67,7 @@ type Libro = {
 const tabs: { id: BooksTab; label: string; icon: LucideIcon }[] = [
   { id: 'catalogo', label: 'Catálogo', icon: LibraryBig },
   { id: 'propuestas', label: 'Mis propuestas', icon: FileText },
+  { id: 'compartidos', label: 'Compartidos conmigo', icon: BookOpen },
   { id: 'administracion', label: 'Administración', icon: Shield },
 ]
 
@@ -88,12 +89,13 @@ export default function Libros() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [activeTab, setActiveTab] = useState<BooksTab>(
-    searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
+    searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'compartidos' ? 'compartidos' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
   )
   const [search, setSearch] = useState('')
 
   const [libros, setLibros] = useState<Libro[]>([])
   const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
+  const [borradoresCompartidos, setBorradoresCompartidos] = useState<(PropuestaNueva & { rolColaborador: 'editor' | 'lector' })[]>([])
   const [borradoresAdministracion, setBorradoresAdministracion] = useState<PropuestaNueva[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [esAdministrador, setEsAdministrador] = useState(false)
@@ -154,10 +156,19 @@ export default function Libros() {
         setEsAdministrador(false)
         setLibros([])
         setBorradoresAdministracion([])
+        setBorradoresCompartidos([])
         return
       }
 
       setUserId(usuario.id)
+      const {data: membresias,error: errorMembresias} = await supabase.from('propuesta_colaboradores').select('propuesta_id,rol').eq('usuario_id',usuario.id)
+      if(errorMembresias) throw errorMembresias
+      const idsCompartidos = (membresias ?? []).map(m => m.propuesta_id as string)
+      if(idsCompartidos.length) {
+        const {data: compartidos,error: errorCompartidos} = await supabase.from('propuestas').select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,pendiente_aprobacion,revision_resultante_id').in('id',idsCompartidos).eq('estado','borrador').order('creado_en',{ascending:false})
+        if(errorCompartidos) throw errorCompartidos
+        setBorradoresCompartidos(((compartidos ?? []) as PropuestaNueva[]).map(p => ({...p,rolColaborador: (membresias ?? []).find(m=>m.propuesta_id===p.id)?.rol as 'editor'|'lector'})))
+      } else setBorradoresCompartidos([])
 
       const { data: rol, error: errorRol } = await supabase
         .from('user_roles')
@@ -453,7 +464,7 @@ async function borrarPropuesta(
             placeholder={
               activeTab === 'catalogo'
                 ? 'Buscar libros...'
-                : activeTab === 'administracion' ? 'Buscar pendientes...' : 'Buscar mis borradores...'
+                : activeTab === 'administracion' ? 'Buscar pendientes...' : activeTab === 'compartidos' ? 'Buscar compartidos...' : 'Buscar mis borradores...'
             }
             aria-label="Buscar"
           />
@@ -493,6 +504,7 @@ async function borrarPropuesta(
           </div>
         ) : librosFiltrados.length === 0 &&
         !(activeTab === 'administracion' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
+        !(activeTab === 'compartidos' && borradoresCompartidos.some(p=>!textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'propuestas' &&
           propuestasNuevas.some((propuesta) => {
             if (propuesta.estado !== 'borrador') return false
@@ -616,6 +628,14 @@ async function borrarPropuesta(
 
                   </article>
                 ))}
+
+            {activeTab === 'compartidos' && borradoresCompartidos
+              .filter(p=>!textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda))
+              .map(p=><article className="libros-item" key={p.id}>
+                <div className="libros-item-icon"><FileText size={24}/></div>
+                <div className="libros-item-info"><h3>{p.titulo || 'Libro sin título'}</h3><p>{p.metadatos_libro?.editorial || 'Sin editorial'}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? 'Editora' : 'Lectora'}</span><span>{p.pendiente_aprobacion ? 'Pendiente de aprobación' : 'Borrador compartido'}</span></div></div>
+                <div className="libros-admin-actions"><Link className="libros-admin-button" to={`/biblioteca/libros/editar-borrador/${p.id}`}>{p.rolColaborador === 'editor' ? 'Abrir editor' : 'Ver borrador'}</Link></div>
+              </article>)}
 
             {librosFiltrados.map((libro) => (
               <article key={libro.id} className="libros-item">
