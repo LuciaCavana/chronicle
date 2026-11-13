@@ -612,6 +612,7 @@ async function borrarPropuesta(
 
                     </div>
                   )}
+                  {compartiendoId === propuesta.id && <ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} />}
 
                   </article>
                 ))}
