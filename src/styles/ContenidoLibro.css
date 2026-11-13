@@ -340,3 +340,18 @@ button.contenido-libro-species-tag:hover {
   background: rgba(180, 60, 60, 0.15);
   color: #ffaaaa;
 }
+/* Navegación por categorías y tarjetas dentro del popup */
+.contenido-libro-category-trigger { width:100%; text-align:left; cursor:pointer; display:flex; align-items:center; gap:16px; color:#e8dfcf; }
+.contenido-libro-category-trigger > span:nth-child(2) { flex:1; display:grid; gap:5px; }
+.contenido-libro-category-trigger small { color:#aaa6b2; font-size:13px; }
+.contenido-libro-category-trigger:hover { border-color:#d8b77b; background:#2c2930; }
+.contenido-libro-items-modal { width:min(920px,94vw); max-height:85vh; display:flex; flex-direction:column; }
+.contenido-libro-items-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; padding:20px 4px; overflow-y:auto; min-height:90px; }
+.contenido-libro-item-card { display:flex; align-items:stretch; background:#28282e; border:1px solid #55515b; border-radius:10px; min-width:0; }
+.contenido-libro-item-card:hover { border-color:#d8b77b; background:#34302c; }
+.contenido-libro-item-edit { flex:1; min-width:0; padding:16px; display:flex; flex-direction:column; align-items:flex-start; gap:8px; text-align:left; color:#eee5d6; border:0; background:transparent; cursor:pointer; }
+.contenido-libro-item-edit strong { overflow-wrap:anywhere; }
+.contenido-libro-item-edit small { color:#bcb4a6; }
+.contenido-libro-item-edit svg { color:#d8b77b; }
+.contenido-libro-item-delete { align-self:flex-start; margin:8px; padding:8px; background:transparent; color:#d5a1a5; border:0; cursor:pointer; border-radius:6px; }
+.contenido-libro-item-delete:hover { background:#483038; }
