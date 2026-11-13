@@ -9,6 +9,7 @@ export default function Register() {
   const { session } = useAuth()
 
   const [nombre, setNombre] = useState('')
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -30,6 +31,12 @@ export default function Register() {
       return
     }
 
+    const usuarioLimpio = username.trim().toLowerCase()
+    if (usuarioLimpio && !/^[a-z0-9_]{3,30}$/.test(usuarioLimpio)) {
+      setError('El usuario debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.')
+      return
+    }
+
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres.')
       return
@@ -46,11 +53,12 @@ export default function Register() {
       const { error: authError } = await authService.register(
         nombreLimpio,
         email,
-        password
+        password,
+        usuarioLimpio
       )
 
       if (authError) {
-        setError(authError.message)
+        setError(authError.message.includes('Database error') ? 'No se pudo crear el perfil. Es posible que el nombre de usuario ya esté ocupado.' : authError.message)
         return
       }
 
@@ -84,6 +92,17 @@ export default function Register() {
           maxLength={80}
           autoComplete="nickname"
           required
+        />
+
+        <label htmlFor="username">Nombre de usuario (opcional)</label>
+        <input
+          id="username"
+          type="text"
+          value={username}
+          onChange={(e) => setUsername(e.target.value.toLowerCase())}
+          maxLength={30}
+          autoComplete="username"
+          placeholder="Se genera automáticamente si lo dejás vacío"
         />
 
         <label htmlFor="email">Correo electrónico</label>
