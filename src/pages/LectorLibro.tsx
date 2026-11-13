@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
+import { ArrowLeft, ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import '../styles/LectorLibro.css'
@@ -197,6 +197,13 @@ export default function LectorLibro() {
   const [cargando,setCargando] = useState(true)
   const [error,setError] = useState('')
   const [versionId,setVersionId] = useState('')
+  const [mostrarVolverArriba, setMostrarVolverArriba] = useState(false)
+  useEffect(() => {
+    const comprobarScroll = () => setMostrarVolverArriba(window.scrollY > 350)
+    comprobarScroll()
+    window.addEventListener('scroll', comprobarScroll, { passive: true })
+    return () => window.removeEventListener('scroll', comprobarScroll)
+  }, [])
   useEffect(()=>{
     let activo=true
     async function cargar() {
@@ -285,6 +292,13 @@ export default function LectorLibro() {
           </div>
         </div>
       </> : null}
+      {mostrarVolverArriba && (
+        <button type="button" className="lector-libro__volver-arriba"
+          title="Volver al comienzo" aria-label="Volver al comienzo de la lectura"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+          <ArrowUp size={21} aria-hidden="true" />
+        </button>
+      )}
     </main>
   </AppLayout>
 }
