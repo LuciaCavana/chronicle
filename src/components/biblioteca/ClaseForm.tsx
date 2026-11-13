@@ -503,7 +503,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           {formulaColumna && <div className="clase-form__overlay" onMouseDown={e => { if (e.target === e.currentTarget) setFormulaColumna(null) }}>
             <div className="clase-form__modal" role="dialog" aria-modal="true" aria-label="Configurar fórmula de columna">
               <div className="clase-form__heading"><h4>Fórmula de columna</h4><button type="button" onClick={() => setFormulaColumna(null)}>Cerrar</button></div>
-              <p className="clase-form__hint">Usá nivel, números, +, -, *, /, paréntesis y comparaciones (>=, <=, >, <, ==, !=). Las comparaciones verdaderas valen 1 y las falsas 0.</p>
+              <p className="clase-form__hint">Usá nivel, números, +, -, *, /, paréntesis y comparaciones (&gt;=, &lt;=, &gt;, &lt;, ==, !=). Las comparaciones verdaderas valen 1 y las falsas 0.</p>
               <input aria-label="Fórmula" value={textoFormula} onChange={e => setTextoFormula(e.target.value)} placeholder="=2 + (nivel >= 3) + (nivel >= 6)" />
               <p className="clase-form__hint">Ejemplo nivel 1: {calcularFormula(textoFormula, 1)} · Nivel 20: {calcularFormula(textoFormula, 20)}</p>
               <div className="clase-form__heading">
