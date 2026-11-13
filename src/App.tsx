@@ -29,7 +29,7 @@ function AvisoNuevaVersion() {
         .sort()
         .join('|')
 
-    const actuales = [...document.querySelectorAll<HTMLScriptElement>('script[src], link[rel="stylesheet"]')]
+    const actuales = Array.from(document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>('script[src], link[rel="stylesheet"]'))
       .map(element => element.getAttribute('src') || element.getAttribute('href') || '')
       .filter(url => url.includes('/assets/') && /\.(?:js|css)(?:\?|$)/.test(url))
       .map(url => url.split('?')[0])
