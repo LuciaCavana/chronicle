@@ -190,6 +190,37 @@ function SeccionContenido({ seccion }: { seccion: Seccion }) {
       </article>)}</div>}
   </section>
 }
+function ConjurosDesplegables({ seccion }: { seccion: Seccion }) {
+  return <section className="lector-libro__seccion" id={seccion.id}>
+    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>Conjuros</h2></div>
+    <div className="lector-libro__clases">{seccion.elementos.map((conjuro,i) => {
+      const nivel = Number(conjuro.nivel ?? 0)
+      const origen = texto(conjuro.libroOrigen)
+      const pagina = Number(conjuro.paginaOrigen)
+      const componentes = texto(conjuro.componentes)
+      const material = texto(conjuro.componenteMaterial)
+      const clases = valoresTexto(conjuro.clases)
+      return <details className="lector-libro__clase" key={texto(conjuro.id)||i}>
+        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><BookOpen size={20}/></span><span className="lector-libro__clase-titulo">{tituloElemento(conjuro,i)}</span><ChevronRight className="lector-libro__clase-flecha" size={20}/></summary>
+        <article className="lector-libro__conjuro">
+          <header className="lector-libro__conjuro-cabecera">
+            <h3>{tituloElemento(conjuro,i)}</h3>
+            {(origen || (Number.isInteger(pagina) && pagina>0)) && <span className="lector-libro__conjuro-fuente">{origen}{origen && pagina>0 ? ' · ' : ''}{pagina>0 ? `pág. ${pagina}` : ''}</span>}
+          </header>
+          <p className="lector-libro__conjuro-escuela"><em>{nivel===0 ? 'Truco' : `Conjuro de nivel ${nivel}`}{texto(conjuro.escuela) ? ` · ${texto(conjuro.escuela)}` : ''}{conjuro.ritual ? ' (ritual)' : ''}</em></p>
+          <div className="lector-libro__conjuro-datos">
+            {texto(conjuro.tiempoLanzamiento) && <p><strong>Tiempo de lanzamiento:</strong> {texto(conjuro.tiempoLanzamiento)}</p>}
+            {texto(conjuro.alcance) && <p><strong>Alcance:</strong> {texto(conjuro.alcance)}</p>}
+            {componentes && <p><strong>Componentes:</strong> {componentes}{material ? ` (${material})` : ''}</p>}
+            {texto(conjuro.duracion) && <p><strong>Duración:</strong> {conjuro.concentracion ? 'Concentración, ' : ''}{texto(conjuro.duracion)}</p>}
+          </div>
+          <TextoSeguro valor={conjuro.descripcion}/>
+          {clases.length>0 && <p className="lector-libro__conjuro-clases"><strong>Clases:</strong> {clases.join(', ')}</p>}
+        </article>
+      </details>
+    })}</div>
+  </section>
+}
 export default function LectorLibro() {
   const { libroId, propuestaId } = useParams<{ libroId?: string; propuestaId?: string }>()
   const esBorrador = Boolean(propuestaId)
@@ -286,7 +317,7 @@ export default function LectorLibro() {
               <TextoSeguro valor={version.descripcion || 'Un nuevo mundo de aventuras te espera entre estas páginas.'}/>
               {categorias.length>0 && <div className="lector-libro__categorias">{categorias.map(c=><span key={c}>{c}</span>)}</div>}
             </section>
-            {secciones.filter(s=>s.elementos.length>0).map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : s.id === 'subclases' ? <SubclasesDesplegables key={s.id} seccion={s} clases={lista(version.clases)}/> : <SeccionContenido key={s.id} seccion={s}/>)}
+            {secciones.filter(s=>s.elementos.length>0).map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : s.id === 'subclases' ? <SubclasesDesplegables key={s.id} seccion={s} clases={lista(version.clases)}/> : s.id === 'conjuros' ? <ConjurosDesplegables key={s.id} seccion={s}/> : <SeccionContenido key={s.id} seccion={s}/>)}
             {secciones.every(s=>s.elementos.length===0) && <p className="lector-libro__vacio">Este libro todavía no tiene entradas estructuradas disponibles para leer.</p>}
             <footer className="lector-libro__pie">✦ <span>Chronicle · Fin del contenido disponible</span> ✦</footer>
           </div>
