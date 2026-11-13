@@ -52,8 +52,8 @@ function calcularFormula(formula: string, nivel: number): string {
   try {
     const expresion = formula.trim().replace(/^=/, '').trim()
     if (!expresion || expresion.length > 300) return 'Error de fórmula'
-    const tokens = expresion.match(/>=|<=|==|!=|[()+*/<>-]|\\d+(?:\\.\\d+)?|nivel/gi) ?? []
-    if (tokens.join('').toLowerCase() !== expresion.replace(/\\s+/g, '').toLowerCase()) return 'Error de fórmula'
+    const tokens = expresion.match(/>=|<=|==|!=|[()+*/<>-]|\d+(?:\.\d+)?|nivel/gi) ?? []
+    if (tokens.join('').toLowerCase() !== expresion.replace(/\s+/g, '').toLowerCase()) return 'Error de fórmula'
     let pos = 0
     const consumir = (token: string) => tokens[pos] === token && (pos++, true)
     const primario = (): number => {
@@ -66,7 +66,7 @@ function calcularFormula(formula: string, nivel: number): string {
       }
       const token = tokens[pos++]
       if (token?.toLowerCase() === 'nivel') return nivel
-      if (!token || !/^\\d+(?:\\.\\d+)?$/.test(token)) throw Error('Valor')
+      if (!token || !/^\d+(?:\.\d+)?$/.test(token)) throw Error('Valor')
       return Number(token)
     }
     const producto = (): number => {
