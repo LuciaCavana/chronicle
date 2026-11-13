@@ -276,7 +276,6 @@ export async function obtenerPropuestaParaEditar(
       row_version
     `)
     .eq('id', propuestaId)
-    .eq('autor_id', usuarioId)
     .eq('estado', 'borrador')
     .single()
 
@@ -300,6 +299,20 @@ export async function actualizarPropuesta(
 
   if (!usuarioId) {
     throw new Error('Tenés que iniciar sesión.')
+  }
+
+  const { data: permiso, error: errorPermiso } = await supabase.from('propuestas').select('autor_id').eq('id', propuestaId).single()
+  if (errorPermiso) throw errorPermiso
+  if (permiso.autor_id !== usuarioId) {
+    const { data: version, error: errorCompartido } = await supabase.rpc('chronicle_guardar_borrador_compartido', {
+      p_propuesta_id: propuestaId, p_version: versionActual,
+      p_idioma: datos.idioma, p_titulo: datos.titulo, p_descripcion: datos.descripcion,
+      p_categorias: datos.categorias,
+      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos },
+      p_metadatos: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
+    })
+    if (errorCompartido) throw errorCompartido
+    return { id: propuestaId, row_version: version as number }
   }
 
   const { data, error } = await supabase
