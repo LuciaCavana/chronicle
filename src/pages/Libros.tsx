@@ -32,7 +32,7 @@ import '../styles/Libros.css'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
 
-type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado'
+type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado' | 'rechazado'
 
 type PropuestaNueva = {
   id: string
@@ -68,6 +68,7 @@ type Libro = {
   clasificacion: string
   creado_por: string
   estado: EstadoLibro
+  motivo_rechazo: string | null
   libro_versiones: VersionLibro[]
 }
 
@@ -83,6 +84,7 @@ const etiquetasEstado: Record<EstadoLibro, string> = {
   publicado: 'Publicado',
   oculto: 'Oculto',
   eliminado: 'Eliminado',
+  rechazado: 'Rechazado',
 }
 
 const mensajesEstado: Record<EstadoLibro, string> = {
@@ -90,6 +92,7 @@ const mensajesEstado: Record<EstadoLibro, string> = {
   publicado: 'El libro está publicado.',
   oculto: 'El libro fue ocultado.',
   eliminado: 'El libro fue enviado a la papelera.',
+  rechazado: 'El libro fue rechazado.',
 }
 
 export default function Libros() {
@@ -114,6 +117,7 @@ export default function Libros() {
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
   const [rechazandoId,setRechazandoId] = useState<string | null>(null)
+  const [rechazandoLibroId,setRechazandoLibroId] = useState<string | null>(null)
   const [motivoRechazo,setMotivoRechazo] = useState('')
 
   const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
@@ -131,7 +135,8 @@ export default function Libros() {
       return esAdministrador && libro.estado !== 'eliminado'
     }
 
-    return false // Las propuestas editables están en 'propuestas'; no mezclar libros publicados.
+    if (activeTab === 'propuestas') return libro.creado_por === userId && (libro.estado === 'pendiente' || libro.estado === 'rechazado')
+    return false // No mezclar libros publicados.
   })
 
   const textoBusqueda = search.trim().toLowerCase()
@@ -211,6 +216,7 @@ export default function Libros() {
           clasificacion,
           creado_por,
           estado,
+          motivo_rechazo,
           libro_versiones (
             id,
             idioma,
@@ -433,6 +439,19 @@ async function borrarPropuesta(
       setMensajeAdmin('Propuesta rechazada. El motivo quedó disponible para su autor en Mis propuestas.')
       await cargarLibros()
     } catch(e){setError(e instanceof Error?e.message:'No se pudo rechazar la propuesta.')}
+    finally{setActualizandoId(null)}
+  }
+
+  async function rechazarLibro() {
+    if(!esAdministrador||!rechazandoLibroId||actualizandoId||!motivoRechazo.trim())return
+    setActualizandoId(rechazandoLibroId);setError('')
+    try {
+      const {error:err}=await supabase.rpc('chronicle_rechazar_libro',{p_libro_id:rechazandoLibroId,p_motivo:motivoRechazo.trim()})
+      if(err)throw err
+      setRechazandoLibroId(null);setMotivoRechazo('')
+      setMensajeAdmin('Libro rechazado. El motivo quedó disponible para su autor en Mis propuestas.')
+      await cargarLibros()
+    } catch(e){setError(e instanceof Error?e.message:'No se pudo rechazar el libro.')}
     finally{setActualizandoId(null)}
   }
 
@@ -696,12 +715,14 @@ async function borrarPropuesta(
                   </div>
                 </div>
 
+                {activeTab === 'propuestas' && libro.estado === 'rechazado' && libro.motivo_rechazo && <p className="libros-rechazo-motivo">Motivo del rechazo: {libro.motivo_rechazo}</p>}
+
                 {libro.estado === 'publicado' && activeTab !== 'administracion' && (
                   <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer libro</Link>
                 )}
 
                 {activeTab === 'propuestas' &&
-                  libro.estado === 'pendiente' &&
+                  (libro.estado === 'pendiente' || libro.estado === 'rechazado') &&
                   libro.creado_por === userId && (
                     <div className="libros-admin-actions">
                       <Link
@@ -742,6 +763,10 @@ async function borrarPropuesta(
                       </button>
                     )}
 
+                    {libro.estado === 'pendiente' && (
+                      <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoLibroId(libro.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
+                    )}
+
                     {libro.estado === 'publicado' && (
                       <button
                         type="button"
@@ -774,6 +799,14 @@ async function borrarPropuesta(
           </div>
         )}
       </div>
+
+      {rechazandoLibroId && <ModalBorrador titulo="Rechazar libro" onClose={()=>setRechazandoLibroId(null)}>
+        <div className="libros-rechazo-modal"><h3>Rechazar libro</h3><p>El motivo quedará disponible para el autor en Mis propuestas.</p>
+        <label htmlFor="motivo-rechazo-libro">Motivo del rechazo (obligatorio)</label>
+        <textarea id="motivo-rechazo-libro" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder="Indicá qué debe corregirse." />
+        {error&&<p role="alert">{error}</p>}
+        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoLibroId(null)}>Cancelar</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarLibro()}>Confirmar rechazo</button></div></div>
+      </ModalBorrador>}
 
       {rechazandoId && <ModalBorrador titulo="Rechazar propuesta" onClose={()=>setRechazandoId(null)}>
         <div className="libros-rechazo-modal"><h3>Rechazar propuesta</h3><p>Explicá al autor por qué se rechaza. El motivo quedará visible en Mis propuestas.</p>
