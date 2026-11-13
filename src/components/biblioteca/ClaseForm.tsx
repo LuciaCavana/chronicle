@@ -8,7 +8,7 @@ import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type Co
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
 type Nivel = { nivel: number; bonificadorCompetencia: number; notas: string }
-type ColumnaProgresion = { id: string; nombre: string; tipo?: 'texto' | 'caracteristicas' }
+type ColumnaProgresion = { id: string; nombre: string; tipo?: 'texto' | 'caracteristicas' | 'formula'; formula?: string }
 type DatosClase = {
   dadoGolpe: number
   caracteristicaPrincipal: string
@@ -45,6 +45,66 @@ const progresionInicial = (): Nivel[] => Array.from({ length: 20 }, (_, i) => ({
   bonificadorCompetencia: 2 + Math.floor(i / 4),
   notas: '',
 }))
+
+// Evaluador limitado a números, nivel, operaciones aritméticas y comparaciones.
+// No ejecuta JavaScript ni permite acceder a propiedades o funciones externas.
+function calcularFormula(formula: string, nivel: number): string {
+  try {
+    const expresion = formula.trim().replace(/^=/, '').trim()
+    if (!expresion || expresion.length > 300) return 'Error de fórmula'
+    const tokens = expresion.match(/>=|<=|==|!=|[()+*/<>-]|\\d+(?:\\.\\d+)?|nivel/gi) ?? []
+    if (tokens.join('').toLowerCase() !== expresion.replace(/\\s+/g, '').toLowerCase()) return 'Error de fórmula'
+    let pos = 0
+    const consumir = (token: string) => tokens[pos] === token && (pos++, true)
+    const primario = (): number => {
+      if (consumir('+')) return primario()
+      if (consumir('-')) return -primario()
+      if (consumir('(')) {
+        const valor = comparacion()
+        if (!consumir(')')) throw Error('Paréntesis')
+        return valor
+      }
+      const token = tokens[pos++]
+      if (token?.toLowerCase() === 'nivel') return nivel
+      if (!token || !/^\\d+(?:\\.\\d+)?$/.test(token)) throw Error('Valor')
+      return Number(token)
+    }
+    const producto = (): number => {
+      let valor = primario()
+      while (tokens[pos] === '*' || tokens[pos] === '/') {
+        const op = tokens[pos++]
+        const otro = primario()
+        valor = op === '*' ? valor * otro : valor / otro
+      }
+      return valor
+    }
+    const suma = (): number => {
+      let valor = producto()
+      while (tokens[pos] === '+' || tokens[pos] === '-') {
+        const op = tokens[pos++]
+        const otro = producto()
+        valor = op === '+' ? valor + otro : valor - otro
+      }
+      return valor
+    }
+    const comparacion = (): number => {
+      let valor = suma()
+      while (['>=', '<=', '>', '<', '==', '!='].includes(tokens[pos])) {
+        const op = tokens[pos++]
+        const otro = suma()
+        valor = Number(op === '>=' ? valor >= otro : op === '<=' ? valor <= otro :
+          op === '>' ? valor > otro : op === '<' ? valor < otro :
+          op === '==' ? valor === otro : valor !== otro)
+      }
+      return valor
+    }
+    const resultado = comparacion()
+    if (pos !== tokens.length || !Number.isFinite(resultado)) throw Error('Expresión')
+    return String(Number(resultado.toFixed(6)))
+  } catch {
+    return 'Error de fórmula'
+  }
+}
 
 function normalizarDatos(valor: Record<string, unknown>): DatosClase {
   return {
@@ -121,6 +181,8 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
   const [columnaArrastrada, setColumnaArrastrada] = useState<string | null>(null)
   const [filaArrastrada, setFilaArrastrada] = useState<number | null>(null)
   const [menuFila, setMenuFila] = useState<{ nivel: number; x: number; y: number } | null>(null)
+  const [formulaColumna, setFormulaColumna] = useState<string | null>(null)
+  const [textoFormula, setTextoFormula] = useState('')
   const [menuColumna, setMenuColumna] = useState<{ id: string; x: number; y: number } | null>(null)
   const [menuRasgo, setMenuRasgo] = useState<{ nivel: number; columna: string; rasgoId?: string; x: number; y: number } | null>(null)
   const abrirMenuFila = (nivel: number, x: number, y: number) => {
@@ -187,7 +249,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
     actualizar({ columnasProgresion: columnas })
     setColumnaArrastrada(null)
   }
-  const cambiarTipoColumna = (id: string, tipo: 'texto' | 'caracteristicas') => {
+  const cambiarTipoColumna = (id: string, tipo: 'texto' | 'caracteristicas' | 'formula') => {
     actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === id ? { ...c, tipo } : c) })
     setMenuColumna(null)
   }
@@ -429,7 +491,31 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
               onClick={e => e.stopPropagation()}>
               <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'caracteristicas')}>Asignar características</button>
               <button type="button" role="menuitem" onClick={() => cambiarTipoColumna(menuColumna.id, 'texto')}>Convertir a texto libre</button>
+              <button type="button" role="menuitem" onClick={() => {
+                const columna = datos.columnasProgresion.find(c => c.id === menuColumna.id)
+                setFormulaColumna(menuColumna.id)
+                setTextoFormula(columna?.formula ?? '')
+                setMenuColumna(null)
+              }}>Configurar fórmula</button>
               <button type="button" role="menuitem" onClick={() => { agregarFila(); setMenuColumna(null) }}>Agregar fila</button>
+            </div>
+          </div>}
+          {formulaColumna && <div className="clase-form__overlay" onMouseDown={e => { if (e.target === e.currentTarget) setFormulaColumna(null) }}>
+            <div className="clase-form__modal" role="dialog" aria-modal="true" aria-label="Configurar fórmula de columna">
+              <div className="clase-form__heading"><h4>Fórmula de columna</h4><button type="button" onClick={() => setFormulaColumna(null)}>Cerrar</button></div>
+              <p className="clase-form__hint">Usá nivel, números, +, -, *, /, paréntesis y comparaciones (>=, <=, >, <, ==, !=). Las comparaciones verdaderas valen 1 y las falsas 0.</p>
+              <input aria-label="Fórmula" value={textoFormula} onChange={e => setTextoFormula(e.target.value)} placeholder="=2 + (nivel >= 3) + (nivel >= 6)" />
+              <p className="clase-form__hint">Ejemplo nivel 1: {calcularFormula(textoFormula, 1)} · Nivel 20: {calcularFormula(textoFormula, 20)}</p>
+              <div className="clase-form__heading">
+                <button type="button" onClick={() => {
+                  actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === formulaColumna ? { ...c, tipo: 'texto', formula: undefined } : c) })
+                  setFormulaColumna(null)
+                }}>Quitar fórmula</button>
+                <button type="button" disabled={!textoFormula.trim() || calcularFormula(textoFormula, 1) === 'Error de fórmula' || calcularFormula(textoFormula, 20) === 'Error de fórmula'} onClick={() => {
+                  actualizar({ columnasProgresion: datos.columnasProgresion.map(c => c.id === formulaColumna ? { ...c, tipo: 'formula', formula: textoFormula.trim() } : c) })
+                  setFormulaColumna(null)
+                }}>Guardar fórmula</button>
+              </div>
             </div>
           </div>}
           {menuRasgo && <div className="clase-form__menu-capa" onClick={() => setMenuRasgo(null)} onContextMenu={e => e.preventDefault()}>
@@ -486,7 +572,9 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
                     e.stopPropagation()
                     abrirMenuRasgo(fila.nivel, columna.id, e.clientX, e.clientY)
                   }}>
-                  {columna.tipo === 'caracteristicas' ? (
+                  {columna.tipo === 'formula' ? (
+                    <output className="clase-form__formula-valor">{calcularFormula(columna.formula ?? '', fila.nivel)}</output>
+                  ) : columna.tipo === 'caracteristicas' ? (
                     <div className="clase-form__vinculos" title="Clic derecho para administrar características">
                       {datos.rasgos.filter(r => r.nivel === fila.nivel && !(datos.caracteristicasOcultas[fila.nivel]?.[columna.id] ?? []).includes(r.id)).map(r =>
                         <div key={r.id} className="clase-form__rasgo-etiqueta" title="Clic derecho para quitar de la tabla"
