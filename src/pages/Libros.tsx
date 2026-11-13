@@ -11,6 +11,8 @@ import {
   Pencil,
   Plus,
   RefreshCw,
+  History,
+  Share2,
   Search,
   Shield,
   ShieldCheck,
@@ -600,19 +602,22 @@ async function borrarPropuesta(
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
                       {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}>Enviar a aprobación</button>}
-                      <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}>{compartiendoId === propuesta.id ? 'Cerrar compartido' : 'Compartir'}</button>
-                      <button type="button" className="libros-admin-button" onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}>Historial</button>
+                      <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-label={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
+                      <button type="button" className="libros-admin-button libros-icon-action" title="Historial" aria-label="Historial" aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
                       <Link
                         to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
-                        className="libros-admin-button"
+                        className="libros-admin-button libros-icon-action"
+                        title="Editar"
+                        aria-label="Editar"
                       >
-                        <Pencil size={16} />
-                        Editar
+                        <Pencil size={18} aria-hidden="true" />
                       </Link>
                       
                       <button
                         type="button"
-                        className="libros-admin-button libros-admin-button--delete"
+                        className="libros-admin-button libros-admin-button--delete libros-icon-action"
+                        title="Borrar"
+                        aria-label="Borrar"
                         disabled={actualizandoId !== null}
                         onClick={() =>
                           setPropuestaParaBorrar({
@@ -621,8 +626,7 @@ async function borrarPropuesta(
                           })
                         }
                       >
-                        <Trash2 size={16} />
-                        Borrar
+                        <Trash2 size={18} aria-hidden="true" />
                       </button>
 
                     </div>
