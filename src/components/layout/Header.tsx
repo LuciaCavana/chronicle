@@ -1,9 +1,11 @@
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Bell, CircleUserRound, LogOut, Settings, UserRound, Menu } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
+import { supabase } from '../../lib/supabase'
+import { EVENTO_AVATAR, urlAvatar, type AvatarPerfil } from '../../services/avatar'
 import '../../styles/Header.css'
 
 type HeaderProps = {
@@ -22,6 +24,18 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
 
   const email = session?.user.email ?? ''
   const initial = email.charAt(0).toUpperCase() || '?'
+  const userId = session?.user.id
+  const [avatar, setAvatar] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!userId) { setAvatar(null); return }
+    let activo = true
+    void supabase.from('profiles').select('avatar_url,avatar_source').eq('id', userId).maybeSingle()
+      .then(({ data }) => { if (activo) setAvatar(urlAvatar(data)) })
+    const alCambiar = (evento: Event) => setAvatar(urlAvatar((evento as CustomEvent<AvatarPerfil>).detail))
+    window.addEventListener(EVENTO_AVATAR, alCambiar)
+    return () => { activo = false; window.removeEventListener(EVENTO_AVATAR, alCambiar) }
+  }, [userId])
 
   async function handleLogout() {
     if (loading) return
@@ -78,7 +92,7 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
             aria-expanded={menuOpen}
             aria-label="Abrir menú de usuario"
           >
-            {initial}
+            {avatar ? <img src={avatar} alt="" className="app-header-avatar-img" /> : initial}
           </button>
 
           {menuOpen && (
