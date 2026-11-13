@@ -313,19 +313,11 @@ async function borrarPropuesta(
         actuales.filter((propuesta) => propuesta.id !== id)
       )
     } else {
-      const { data, error } = await supabase
-        .from('libros')
-        .update({ estado: 'eliminado' })
-        .eq('id', id)
-        .eq('creado_por', userId)
-        .eq('estado', 'pendiente')
-        .select('id')
-        .maybeSingle()
+      const { error } = await supabase.rpc('chronicle_eliminar_libro_propio', {
+        p_libro_id: id,
+      })
 
       if (error) throw error
-      if (!data) {
-        throw new Error('No se encontró una propuesta que puedas borrar.')
-      }
 
       setLibros((actuales) =>
         actuales.map((libro) =>
