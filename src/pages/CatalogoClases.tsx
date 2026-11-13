@@ -18,8 +18,8 @@ function Descripcion({ valor }: { valor: unknown }) {
   return contenido ? <p className="catalogo-conjuros__descripcion">{contenido}</p> : null
 }
 function Rasgos({ clase, subclase }: { clase: Registro; subclase?: Registro }) {
-  const base=lista(obj(clase.datos).rasgos).map(r=>({...r,origen:'Clase'}))
-  const extras=subclase?lista(obj(subclase.datos).rasgos).map(r=>({...r,origen:nombre(subclase)})):[]
+  const base: Registro[]=lista(obj(clase.datos).rasgos).map(r=>({...r,origen:'Clase'}))
+  const extras: Registro[]=subclase?lista(obj(subclase.datos).rasgos).map(r=>({...r,origen:nombre(subclase)})):[]
   const rasgos=[...base,...extras].sort((a,b)=>Number(a.nivel||0)-Number(b.nivel||0))
   return rasgos.length ? <section className="catalogo-clases__bloque"><h3>Características por nivel</h3>
     {rasgos.map((rasgo,i)=><article key={`${txt(rasgo.origen)}:${txt(rasgo.id)||i}`} className="catalogo-clases__rasgo">
