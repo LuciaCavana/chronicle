@@ -1,5 +1,8 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import AppLayout from '../components/layout/AppLayout'
+import { Link } from 'react-router-dom'
+import { Settings } from 'lucide-react'
+import '../styles/Profile.css'
 import { useAuth } from '../contexts/useAuth'
 import { supabase } from '../lib/supabase'
 
@@ -79,27 +82,51 @@ export default function Profile() {
 
   return (
     <AppLayout title="Mi perfil" subtitle="Administrá tu identidad en Chronicle">
-      {loading ? <p>Cargando perfil...</p> : !profile ? <p role="alert">{error || 'No se encontró el perfil.'}</p> : (
-        <form onSubmit={save} style={{ maxWidth: 620, display: 'grid', gap: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div aria-label="Avatar" style={{ width: 72, height: 72, borderRadius: '50%', background: '#554936', display: 'grid', placeItems: 'center', fontSize: 28, overflow: 'hidden' }}>
-              {profile.avatar_url ? <img src={profile.avatar_url} alt="Avatar de perfil" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : '👤'}
-            </div>
-            <div><strong>{profile.display_name || profile.username}</strong><div>@{profile.username}</div></div>
-          </div>
-          <label htmlFor="profile-display-name">Nombre visible</label>
-          <input id="profile-display-name" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={80} required />
-          <label htmlFor="profile-username">Nombre de usuario</label>
-          <input id="profile-username" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} maxLength={30} required />
-          <label htmlFor="profile-bio">Biografía</label>
-          <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value)} maxLength={500} rows={5} style={{ resize: 'vertical', font: 'inherit' }} />
-          <small>{bio.length}/500 caracteres</small>
-          <p>Miembro desde {new Date(profile.created_at).toLocaleDateString('es-AR')}</p>
-          {error && <p role="alert">{error}</p>}
-          {message && <p role="status">{message}</p>}
-          <button type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar cambios'}</button>
-        </form>
-      )}
+      <div className="profile-page">
+        {loading ? <p>Cargando perfil...</p> : !profile ? <p role="alert" className="profile-alert profile-alert--error">{error || 'No se encontró el perfil.'}</p> : (
+          <>
+            <section className="profile-hero">
+              <div className="profile-identity">
+                <div className="profile-avatar" aria-label="Avatar">
+                  {profile.avatar_url ? <img src={profile.avatar_url} alt="Avatar de perfil" /> : '👤'}
+                </div>
+                <div>
+                  <div className="profile-name">{profile.display_name || profile.username}</div>
+                  <div className="profile-handle">@{profile.username}</div>
+                  <div className="profile-meta">Miembro desde {new Date(profile.created_at).toLocaleDateString('es-AR')}</div>
+                </div>
+              </div>
+              <Link className="profile-settings-link" to="/configuracion"><Settings size={18} /> Configuración</Link>
+            </section>
+            <section className="profile-card">
+              <h2>Información personal</h2>
+              <p className="profile-description">Estos datos son privados por ahora y solo vos podés modificarlos.</p>
+              <form className="profile-form" onSubmit={save}>
+                <div className="profile-field">
+                  <label htmlFor="profile-display-name">Nombre visible</label>
+                  <input id="profile-display-name" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={80} required />
+                </div>
+                <div className="profile-field">
+                  <label htmlFor="profile-username">Nombre de usuario</label>
+                  <input id="profile-username" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} maxLength={30} required />
+                  <span className="profile-help">Único en Chronicle. De 3 a 30 caracteres, letras, números o guion bajo.</span>
+                </div>
+                <div className="profile-field">
+                  <label htmlFor="profile-bio">Biografía</label>
+                  <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value)} maxLength={500} rows={5} />
+                  <span className="profile-help">{bio.length}/500 caracteres</span>
+                </div>
+                {error && <p role="alert" className="profile-alert profile-alert--error">{error}</p>}
+                {message && <p role="status" className="profile-alert profile-alert--success">{message}</p>}
+                <div className="profile-form-footer">
+                  <span className="profile-meta">Tus cambios se guardan en Chronicle.</span>
+                  <button className="profile-save" type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar cambios'}</button>
+                </div>
+              </form>
+            </section>
+          </>
+        )}
+      </div>
     </AppLayout>
   )
 }
