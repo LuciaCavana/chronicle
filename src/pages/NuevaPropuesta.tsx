@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
+import { reemplazarOAgregar, eliminarPorId } from '../lib/listas'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
 import '../styles/NuevaPropuesta.css'
@@ -312,41 +313,35 @@ export default function NuevaPropuesta() {
   }
 
   function guardarEspecie(especie: Especie) {
-    setEspecies((actuales) => {
-      const existe = actuales.some((item) => item.id === especie.id)
-
-      return existe
-        ? actuales.map((item) => (item.id === especie.id ? especie : item))
-        : [...actuales, especie]
-    })
+    setEspecies(actuales => reemplazarOAgregar(actuales, especie))
 
     cerrarFormularioEspecie()
   }
 
   function eliminarEspecie(id: string) {
-    setEspecies((actuales) => actuales.filter((especie) => especie.id !== id))
+    setEspecies(actuales => eliminarPorId(actuales, id))
   }
 
   function guardarCriatura(criatura: Criatura) {
-    setCriaturas(actuales => actuales.some(c => c.id === criatura.id) ? actuales.map(c => c.id === criatura.id ? criatura : c) : [...actuales, criatura])
+    setCriaturas(actuales => reemplazarOAgregar(actuales, criatura))
     setShowCriaturaForm(false)
     setEditingCriaturaId(null)
   }
 
   function guardarTrasfondo(trasfondo: Trasfondo) {
-    setTrasfondos(actuales => actuales.some(t => t.id === trasfondo.id) ? actuales.map(t => t.id === trasfondo.id ? trasfondo : t) : [...actuales, trasfondo])
+    setTrasfondos(actuales => reemplazarOAgregar(actuales, trasfondo))
     setShowTrasfondoForm(false)
     setEditingTrasfondoId(null)
   }
 
   function guardarDote(dote: Dote) {
-    setDotes(actuales => actuales.some(d => d.id === dote.id) ? actuales.map(d => d.id === dote.id ? dote : d) : [...actuales, dote])
+    setDotes(actuales => reemplazarOAgregar(actuales, dote))
     setShowDoteForm(false)
     setEditingDoteId(null)
   }
 
   function guardarConjuro(conjuro: Conjuro) {
-    setConjuros(actuales => actuales.some(c => c.id === conjuro.id) ? actuales.map(c => c.id === conjuro.id ? conjuro : c) : [...actuales, conjuro])
+    setConjuros(actuales => reemplazarOAgregar(actuales, conjuro))
     setShowConjuroForm(false)
     setEditingConjuroId(null)
   }
