@@ -1,7 +1,7 @@
 
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CircleUserRound, LogOut, Settings, UserRound } from 'lucide-react'
+import { Bell, CircleUserRound, LogOut, Settings, UserRound, Menu } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
 import '../../styles/Header.css'
@@ -9,9 +9,10 @@ import '../../styles/Header.css'
 type HeaderProps = {
   title: string
   subtitle?: string
+  onOpenMenu?: () => void
 }
 
-export default function Header({ title, subtitle }: HeaderProps) {
+export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
   const { session } = useAuth()
   const navigate = useNavigate()
 
@@ -46,6 +47,7 @@ export default function Header({ title, subtitle }: HeaderProps) {
 
   return (
     <header className="app-header">
+      <button type="button" className="app-header-mobile-menu" aria-label="Abrir menú" onClick={onOpenMenu}><Menu size={24} /></button>
       <div className="app-header-title">
         <h1>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
