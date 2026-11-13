@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
+import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrador'
 import { supabase } from '../lib/supabase'
 import { enviarBorradorAprobacion } from '../services/libros'
 import '../styles/Libros.css'
@@ -101,6 +102,7 @@ export default function Libros() {
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [mensajeAdmin, setMensajeAdmin] = useState('')
+  const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
 
   const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
     id: string
@@ -584,6 +586,7 @@ async function borrarPropuesta(
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
                       {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}>Enviar a aprobación</button>}
+                      <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}>{compartiendoId === propuesta.id ? 'Cerrar compartido' : 'Compartir'}</button>
                       <Link
                         to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
                         className="libros-admin-button"
