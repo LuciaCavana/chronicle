@@ -24,6 +24,7 @@ import {
 import AppLayout from '../components/layout/AppLayout'
 import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrador'
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
+import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
 import { enviarBorradorAprobacion } from '../services/libros'
 import '../styles/Libros.css'
@@ -632,8 +633,8 @@ async function borrarPropuesta(
 
                     </div>
                   )}
-                  {compartiendoId === propuesta.id && <ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} />}
-                  {historialId === propuesta.id && <HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} />}
+                  {compartiendoId === propuesta.id && <ModalBorrador titulo="Compartir borrador" onClose={() => setCompartiendoId(null)}><ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} /></ModalBorrador>}
+                  {historialId === propuesta.id && <ModalBorrador titulo="Historial de versiones" onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
 
                   </article>
                 ))}
@@ -644,7 +645,7 @@ async function borrarPropuesta(
                 <div className="libros-item-icon"><FileText size={24}/></div>
                 <div className="libros-item-info"><h3>{p.titulo || 'Libro sin título'}</h3><p>{p.metadatos_libro?.editorial || 'Sin editorial'}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? 'Editora' : 'Lectora'}</span><span>{p.pendiente_aprobacion ? 'Pendiente de aprobación' : 'Borrador compartido'}</span></div></div>
                 <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? 'Editar' : 'Ver borrador'} aria-label={p.rolColaborador === 'editor' ? 'Editar' : 'Ver borrador'}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title="Historial" aria-label="Historial" aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
-                {historialId === p.id && <HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} />}
+                {historialId === p.id && <ModalBorrador titulo="Historial de versiones" onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
               </article>)}
 
             {librosFiltrados.map((libro) => (
