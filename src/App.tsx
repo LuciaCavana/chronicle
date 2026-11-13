@@ -17,6 +17,7 @@ import NuevaPropuesta from './pages/NuevaPropuesta'
 import MotorLibros from './pages/MotorLibros'
 import Administracion from './pages/Administracion'
 import Profile from './pages/Profile'
+import Settings from './pages/Settings'
 
 
 
@@ -161,6 +162,7 @@ function AppRoutes() {
 
 
       <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+      <Route path="/configuracion" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/administracion" element={<ProtectedRoute><Administracion /></ProtectedRoute>} />
       <Route
         path="/home"
