@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
+  XCircle,
   Eye,
   EyeOff,
   FileText,
@@ -39,6 +40,7 @@ type PropuestaNueva = {
   estado: string
   pendiente_aprobacion: boolean
   revision_resultante_id?: string | null
+  motivo_resolucion?: string | null
   titulo: string
   idioma: string
   autor_id: string
@@ -111,6 +113,8 @@ export default function Libros() {
   const [mensajeAdmin, setMensajeAdmin] = useState('')
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
+  const [rechazandoId,setRechazandoId] = useState<string | null>(null)
+  const [motivoRechazo,setMotivoRechazo] = useState('')
 
   const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
     id: string
@@ -171,7 +175,7 @@ export default function Libros() {
       if(errorMembresias) throw errorMembresias
       const idsCompartidos = (membresias ?? []).map(m => m.propuesta_id as string)
       if(idsCompartidos.length) {
-        const {data: compartidos,error: errorCompartidos} = await supabase.from('propuestas').select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,pendiente_aprobacion,revision_resultante_id').in('id',idsCompartidos).eq('estado','borrador').order('creado_en',{ascending:false})
+        const {data: compartidos,error: errorCompartidos} = await supabase.from('propuestas').select('id,tipo,estado,titulo,idioma,autor_id,creado_en,metadatos_libro,pendiente_aprobacion,revision_resultante_id,motivo_resolucion').in('id',idsCompartidos).eq('estado','borrador').order('creado_en',{ascending:false})
         if(errorCompartidos) throw errorCompartidos
         setBorradoresCompartidos(((compartidos ?? []) as PropuestaNueva[]).map(p => ({...p,rolColaborador: (membresias ?? []).find(m=>m.propuesta_id===p.id)?.rol as 'editor'|'lector'})))
       } else setBorradoresCompartidos([])
@@ -418,6 +422,19 @@ async function borrarPropuesta(
     }
   }
 
+  async function rechazarBorrador() {
+    if(!esAdministrador||!rechazandoId||actualizandoId||!motivoRechazo.trim())return
+    setActualizandoId(rechazandoId);setError('')
+    try {
+      const {error:err}=await supabase.rpc('chronicle_rechazar_propuesta',{p_propuesta_id:rechazandoId,p_motivo:motivoRechazo.trim()})
+      if(err)throw err
+      setRechazandoId(null);setMotivoRechazo('')
+      setMensajeAdmin('Propuesta rechazada. El motivo quedó disponible para su autor en Mis propuestas.')
+      await cargarLibros()
+    } catch(e){setError(e instanceof Error?e.message:'No se pudo rechazar la propuesta.')}
+    finally{setActualizandoId(null)}
+  }
+
   return (
     <AppLayout title="Libros" subtitle="Explorá los libros de Chronicle">
       <div className="libros">
@@ -555,11 +572,10 @@ async function borrarPropuesta(
                     </div>
                   </div>
                   <div className="libros-admin-actions">
-                    <button type="button" className="libros-admin-button libros-admin-button--approve"
-                      disabled={actualizandoId !== null}
-                      onClick={() => void aprobarBorrador(propuesta.id)}>
-                      <CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? 'Guardando...' : propuesta.revision_resultante_id ? 'Aprobar cambios' : 'Aprobar y publicar'}
-                    </button>
+                    {propuesta.pendiente_aprobacion && <>
+                    <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void aprobarBorrador(propuesta.id)}><CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? 'Guardando...' : propuesta.revision_resultante_id ? 'Aprobar cambios' : 'Aprobar y publicar'}</button>
+                    <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoId(propuesta.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
+                    </>}
                   </div>
                 </article>
               ))}
@@ -598,6 +614,7 @@ async function borrarPropuesta(
                       <div className="libros-item-details">
                         <span>{propuesta.idioma.toUpperCase()}</span>
                         <span>{propuesta.pendiente_aprobacion ? 'Pendiente de aprobación' : propuesta.revision_resultante_id ? 'Versión aprobada / Sin cambios enviados' : 'Sin enviar a aprobación'}</span>
+                        {!propuesta.pendiente_aprobacion && propuesta.motivo_resolucion && <span className="libros-rechazo-motivo">Rechazada: {propuesta.motivo_resolucion}</span>}
                       </div>
                     </div>
                                       
@@ -756,6 +773,14 @@ async function borrarPropuesta(
           </div>
         )}
       </div>
+
+      {rechazandoId && <ModalBorrador titulo="Rechazar propuesta" onClose={()=>setRechazandoId(null)}>
+        <div className="libros-rechazo-modal"><h3>Rechazar propuesta</h3><p>Explicá al autor por qué se rechaza. El motivo quedará visible en Mis propuestas.</p>
+        <label htmlFor="motivo-rechazo">Motivo del rechazo (obligatorio)</label>
+        <textarea id="motivo-rechazo" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder="Indicá qué debe corregirse para volver a enviar la propuesta." />
+        {error&&<p role="alert">{error}</p>}
+        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoId(null)}>Cancelar</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarBorrador()}>Confirmar rechazo</button></div></div>
+      </ModalBorrador>}
 
       {propuestaParaBorrar && (
         <div
