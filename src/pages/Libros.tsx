@@ -238,7 +238,8 @@ export default function Libros() {
             creado_en,
             metadatos_libro,
             pendiente_aprobacion,
-            revision_resultante_id
+            revision_resultante_id,
+            motivo_resolucion
           `)
           .eq('autor_id', usuario.id)
           .order('creado_en', { ascending: false })
