@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase'
 import { contenidoDeLibro, metadatosDeLibro } from '../lib/libroMapper'
+import { requerirUsuarioId } from './sesion'
 import type { Especie } from '../types/especie'
 import type { Trasfondo } from '../types/trasfondo'
 import type { Criatura } from '../types/criatura'
@@ -48,16 +49,7 @@ export async function guardarLibro(datos: NuevoLibro) {
 }
 
 export async function guardarPropuesta(datos: NuevoLibro) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw usuarioError
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  const usuarioId = await requerirUsuarioId()
 
   const { data, error } = await supabase
     .from('propuestas')
@@ -159,16 +151,7 @@ export async function actualizarLibro(
   versionId: string,
   datos: NuevoLibro
 ) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw usuarioError
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  const usuarioId = await requerirUsuarioId()
 
   const { data: libro, error: errorLibro } = await supabase
     .from('libros')
@@ -236,16 +219,7 @@ export async function actualizarLibro(
 export async function obtenerPropuestaParaEditar(
   propuestaId: string
 ) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw usuarioError
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  const usuarioId = await requerirUsuarioId()
 
   const { data, error } = await supabase
     .from('propuestas')
@@ -277,16 +251,7 @@ export async function actualizarPropuesta(
   datos: NuevoLibro,
   versionActual: number
 ) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw usuarioError
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  const usuarioId = await requerirUsuarioId()
 
   const { data: permiso, error: errorPermiso } = await supabase.from('propuestas').select('autor_id').eq('id', propuestaId).single()
   if (errorPermiso) throw errorPermiso
