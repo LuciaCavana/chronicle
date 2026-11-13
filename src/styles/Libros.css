@@ -411,3 +411,6 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+.libros-item:has(> .historial-panel){flex-wrap:wrap}
+.libros-item > .historial-panel{flex:1 0 100%;width:100%;margin-top:1rem}
