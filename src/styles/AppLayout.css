@@ -25,3 +25,7 @@
   padding: 28px;
   color: #e8dfcf;
 }
+
+.app-mobile-backdrop{display:none}
+@media(max-width:768px){.app-layout-content{padding:16px;overflow-x:hidden}.app-layout-content>*,.app-layout-content section{max-width:100%}.app-layout-content img{max-width:100%;height:auto}.app-layout-content table{max-width:100%}.app-mobile-backdrop{display:block;position:fixed;inset:0;z-index:40;background:#0009;border:0;cursor:pointer}.app-layout-main{width:100%}}
+@media(min-width:769px) and (max-width:1024px){.app-layout-content{padding:20px}}
