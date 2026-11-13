@@ -279,3 +279,24 @@
   outline: 2px solid #f0cc8c;
   outline-offset: 3px;
 }
+
+/* Progresión sin barras de desplazamiento: la tabla se ajusta al panel
+   y las características pasan a la línea siguiente en lugar de scrollear. */
+.clase-form__tabla-scroll { overflow: visible; }
+.clase-form__tabla { table-layout: fixed; width: 100%; min-width: 0; }
+.clase-form__tabla thead th:first-child { width: 58px; }
+.clase-form__tabla tbody th { min-width: 0; }
+.clase-form__tabla td,
+.clase-form__tabla tbody td { min-width: 0; max-width: none; }
+.clase-form__tabla tbody tr,
+.clase-form__tabla tbody th,
+.clase-form__tabla tbody td { height: auto; min-height: 38px; }
+.clase-form__tabla input,
+.clase-form__columna-cabecera input { min-width: 0; }
+.clase-form__columna-cabecera { min-width: 0; }
+.clase-form__tabla .clase-form__vinculos {
+  flex-wrap: wrap;
+  min-width: 0;
+  overflow: visible;
+}
+.clase-form__tabla .clase-form__rasgo-etiqueta { max-width: 100%; }
