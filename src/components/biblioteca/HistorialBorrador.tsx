@@ -23,8 +23,8 @@ export default function HistorialBorrador({propuestaId,puedeRestaurar,onClose,on
    if(!vivo)return
    setVersiones((historial??[]) as Version[]);setVersionActual(propuesta.row_version as number)
    const ids=[...new Set((historial??[]).map(v=>v.autor_cambio_id).filter(Boolean))] as string[]
-   if(ids.length){const {data:usuarios}=await supabase.from('profiles').select('id,username').in('id',ids)
-    if(vivo)setNombres(Object.fromEntries((usuarios??[]).map(u=>[u.id,u.username || 'Usuario'])))}
+   if(ids.length){const {data:usuarios}=await supabase.rpc('chronicle_autores_historial',{p_propuesta_id:propuestaId})
+    if(vivo)setNombres(Object.fromEntries((usuarios??[]).map(u=>[u.usuario_id,u.nombre || 'Usuario'])))}
   } catch(e){if(vivo)setError(e instanceof Error?e.message:'No se pudo cargar el historial.')}
   finally{if(vivo)setCargando(false)}
  })();return()=>{vivo=false}},[propuestaId])
