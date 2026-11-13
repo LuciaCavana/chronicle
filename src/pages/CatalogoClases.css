@@ -1,0 +1,11 @@
+.catalogo-clases__bloque{margin-top:24px;padding-top:14px;border-top:1px solid #514757}
+.catalogo-clases__bloque h3{color:#e5b35c;font-family:Georgia,serif;margin:0 0 14px;font-size:20px}
+.catalogo-clases__datos{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.catalogo-clases__datos div{padding:10px;background:#1a1b23;border:1px solid #45404b;border-radius:6px}
+.catalogo-clases__datos dt{font-size:12px;color:#b7a788}.catalogo-clases__datos dd{margin:6px 0 0}
+.catalogo-clases__rasgo{padding:12px 0;border-bottom:1px solid #3c3942}
+.catalogo-clases__rasgo h4{margin:0 0 8px;color:#e2c68e}
+.catalogo-clases__tabla-scroll{overflow-x:auto}
+.catalogo-clases__tabla-scroll table{border-collapse:collapse;width:100%;font-size:13px}
+.catalogo-clases__tabla-scroll th,.catalogo-clases__tabla-scroll td{border:1px solid #514757;padding:9px;text-align:left;white-space:normal}
+.catalogo-clases__tabla-scroll th{background:#282630;color:#e2c68e}
