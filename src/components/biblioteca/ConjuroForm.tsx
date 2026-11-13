@@ -18,12 +18,15 @@ export default function ConjuroForm({ initialData, conjuros, onSave, onCancel }:
   const [ritual, setRitual] = useState(initialData?.ritual ?? false)
   const [clases, setClases] = useState((initialData?.clases ?? []).join(', '))
   const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
+  const [libroOrigen, setLibroOrigen] = useState(initialData?.libroOrigen ?? '')
+  const [paginaOrigen, setPaginaOrigen] = useState(initialData?.paginaOrigen?.toString() ?? '')
   const [error, setError] = useState('')
   function guardar() {
     const limpio = nombre.trim()
     if (!limpio) { setError('Ingresá un nombre.'); return }
     if (conjuros.some(c => c.id !== initialData?.id && c.nombre.trim().toLocaleLowerCase('es') === limpio.toLocaleLowerCase('es'))) { setError('Ya existe un conjuro con ese nombre.'); return }
-    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: limpio, tipo, nivel: tipo === 'truco' ? 0 : nivel, escuela: escuela.trim(), tiempoLanzamiento: tiempoLanzamiento.trim(), alcance: alcance.trim(), componentes: componentes.join(', '), componenteMaterial: componentes.includes('M') ? componenteMaterial.trim() : '', duracion: duracion.trim(), concentracion, ritual, clases: clases.split(',').map(c => c.trim()).filter(Boolean), descripcion: descripcion.trim() })
+    if (paginaOrigen && (!Number.isInteger(Number(paginaOrigen)) || Number(paginaOrigen) < 1)) { setError('La página de origen debe ser un número entero positivo.'); return }
+    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: limpio, tipo, nivel: tipo === 'truco' ? 0 : nivel, escuela: escuela.trim(), tiempoLanzamiento: tiempoLanzamiento.trim(), alcance: alcance.trim(), componentes: componentes.join(', '), componenteMaterial: componentes.includes('M') ? componenteMaterial.trim() : '', duracion: duracion.trim(), concentracion, ritual, clases: clases.split(',').map(c => c.trim()).filter(Boolean), descripcion: descripcion.trim(), libroOrigen: libroOrigen.trim(), paginaOrigen: paginaOrigen ? Number(paginaOrigen) : undefined })
   }
   return <section className="nueva-propuesta-panel especie-form">
     <h3>{initialData ? 'Editar conjuro' : 'Agregar conjuro'}</h3>
@@ -39,6 +42,8 @@ export default function ConjuroForm({ initialData, conjuros, onSave, onCancel }:
     <label><input type="checkbox" checked={concentracion} onChange={e => setConcentracion(e.target.checked)}/> Requiere concentración</label>
     <label><input type="checkbox" checked={ritual} onChange={e => setRitual(e.target.checked)}/> Ritual</label>
     <div className="nueva-propuesta-field"><label>Clases (separadas por coma)</label><input value={clases} onChange={e => setClases(e.target.value)} /></div>
+    <div className="nueva-propuesta-field"><label>Libro de origen (opcional)</label><input value={libroOrigen} onChange={e => setLibroOrigen(e.target.value)} placeholder="Ej.: GH:PG\u002724" /></div>
+    <div className="nueva-propuesta-field"><label>Página de origen (opcional)</label><input type="number" min="1" step="1" value={paginaOrigen} onChange={e => setPaginaOrigen(e.target.value)} placeholder="Ej.: 186" /></div>
     <div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={6} value={descripcion} onChange={e => setDescripcion(e.target.value)}/></div>
     {error && <p role="alert">{error}</p>}
     <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-cancel" onClick={onCancel}>Cancelar</button><button type="button" className="nueva-propuesta-next" onClick={guardar}>Guardar conjuro</button></div>
