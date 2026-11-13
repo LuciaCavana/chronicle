@@ -126,3 +126,6 @@
   color: #f2a7a7;
   font-size: 12px;
 }
+
+.app-header-mobile-menu{display:none}
+@media(max-width:768px){.app-header{height:66px;min-height:66px;padding:0 14px;gap:12px}.app-header-mobile-menu{display:grid;place-items:center;flex-shrink:0;width:40px;height:40px;border:1px solid #444453;border-radius:9px;background:#292b39;color:#e9c98d;cursor:pointer}.app-header-title{flex:1;min-width:0}.app-header-title h1{font-size:17px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app-header-title p{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app-header-actions{gap:8px}.app-header-icon-button{display:none}.app-header-avatar{width:36px;height:36px}.app-header-dropdown{width:min(270px,calc(100vw - 28px))}.app-header-error{max-width:100px;font-size:11px}}
