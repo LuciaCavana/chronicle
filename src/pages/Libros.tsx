@@ -132,7 +132,7 @@ export default function Libros() {
     }
 
     if (activeTab === 'administracion') {
-      return esAdministrador && libro.estado !== 'eliminado'
+      return esAdministrador && libro.estado === 'pendiente'
     }
 
     if (activeTab === 'propuestas') return libro.creado_por === userId && (libro.estado === 'pendiente' || libro.estado === 'rechazado')
