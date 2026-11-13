@@ -22,6 +22,8 @@ export type Conjuro = {
   clases: string[]
 
   descripcion: string
+  libroOrigen?: string
+  paginaOrigen?: number
 }
 
 
