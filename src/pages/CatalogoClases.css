@@ -29,3 +29,11 @@
 .catalogo-clases__rasgo--subclase h4,.catalogo-clases__rasgo--subclase h4 small{color:#d5afff}
 .catalogo-clases__tabla-rasgo{display:block;margin:2px 0}
 .catalogo-clases__tabla-rasgo--subclase{color:#d5afff;font-weight:600}
+
+.catalogo-clases__tabla-enlace{padding:2px 0;border:0;background:transparent;color:#e2c68e;text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer;font:inherit}
+.catalogo-clases__tabla-enlace:hover{color:#fff0c9}
+.catalogo-clases__tabla-enlace.catalogo-clases__tabla-rasgo--subclase{color:#d5afff}
+.catalogo-clases__tabla-enlace.catalogo-clases__tabla-rasgo--subclase:hover{color:#f0d8ff}
+.catalogo-clases__tabla-enlace:focus-visible{outline:2px solid #d8b77b;outline-offset:2px}
+.catalogo-clases__rasgo{scroll-margin-top:24px}
+.catalogo-clases__rasgo:target{outline:1px solid #b89762}
