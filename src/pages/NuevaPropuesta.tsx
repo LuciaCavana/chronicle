@@ -387,7 +387,7 @@ export default function NuevaPropuesta() {
       }
 
 
-      navigate('/biblioteca/libros?tab=propuestas')
+      navigate(accesoCompartido === 'editor' ? '/biblioteca/libros?tab=compartidos' : '/biblioteca/libros?tab=propuestas')
     } catch (error) {
       console.error('Error al guardar el libro:', error)
 
@@ -415,7 +415,7 @@ export default function NuevaPropuesta() {
           </p>
         )}
 
-        <Link to="/biblioteca/libros?tab=propuestas"className="nueva-propuesta-back">
+        <Link to={accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'} className="nueva-propuesta-back">
           <ArrowLeft size={18} />
           Volver a Libros
         </Link>
