@@ -9,3 +9,13 @@
 .catalogo-clases__tabla-scroll table{border-collapse:collapse;width:100%;font-size:13px}
 .catalogo-clases__tabla-scroll th,.catalogo-clases__tabla-scroll td{border:1px solid #514757;padding:9px;text-align:left;white-space:normal}
 .catalogo-clases__tabla-scroll th{background:#282630;color:#e2c68e}
+
+.catalogo-clases__selector{margin:20px 0;padding:16px;border:1px solid #6b5740;border-radius:8px;background:#25232a}
+.catalogo-clases__selector label{display:block;color:#e5b35c;font-weight:600;margin-bottom:8px}
+.catalogo-clases__selector select{width:100%;padding:10px;background:#1a1b23;color:#e8dfcf;border:1px solid #71624e;border-radius:6px;font:inherit}
+.catalogo-clases__selector h3{color:#e5b35c;margin:16px 0 8px}
+.catalogo-clases__rasgo h4 small{margin-left:8px;font-size:12px;color:#b8a68b;font-weight:400}
+.catalogo-clases__volver-arriba{position:fixed;right:24px;bottom:24px;z-index:100;display:grid;place-items:center;width:46px;height:46px;border:1px solid #a78b5a;border-radius:50%;background:#28232b;color:#e8c98c;box-shadow:0 6px 22px #0008;cursor:pointer}
+.catalogo-clases__volver-arriba:hover{background:#3d3340}
+.catalogo-clases__volver-arriba:focus-visible{outline:2px solid #e8c98c;outline-offset:3px}
+@media(max-width:600px){.catalogo-clases__volver-arriba{right:16px;bottom:16px}}
