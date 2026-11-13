@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { contenidoDeLibro, metadatosDeLibro } from '../lib/libroMapper'
 import type { Especie } from '../types/especie'
 import type { Trasfondo } from '../types/trasfondo'
 import type { Criatura } from '../types/criatura'
@@ -69,22 +70,8 @@ export async function guardarPropuesta(datos: NuevoLibro) {
       titulo: datos.titulo,
       descripcion: datos.descripcion,
       categorias: datos.categorias,
-      contenido: {
-        especies: datos.especies,
-        conjuros: datos.conjuros,
-        dotes: datos.dotes,
-        trasfondos: datos.trasfondos,
-        criaturas: datos.criaturas,
-        clases: datos.clases,
-        subclases: datos.subclases,
-        objetos: datos.objetos,
-      },
-      metadatos_libro: {
-        codigo: datos.codigo,
-        edicion: datos.edicion,
-        editorial: datos.editorial,
-        clasificacion: datos.clasificacion,
-      },
+      contenido: contenidoDeLibro(datos),
+      metadatos_libro: metadatosDeLibro(datos),
     })
     .select('id')
     .single()
@@ -308,8 +295,8 @@ export async function actualizarPropuesta(
       p_propuesta_id: propuestaId, p_version: versionActual,
       p_idioma: datos.idioma, p_titulo: datos.titulo, p_descripcion: datos.descripcion,
       p_categorias: datos.categorias,
-      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos },
-      p_metadatos: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
+      p_contenido: contenidoDeLibro(datos),
+      p_metadatos: metadatosDeLibro(datos),
     })
     if (errorCompartido) throw errorCompartido
     return { id: propuestaId, row_version: version as number }
@@ -322,22 +309,8 @@ export async function actualizarPropuesta(
       titulo: datos.titulo,
       descripcion: datos.descripcion,
       categorias: datos.categorias,
-      contenido: {
-        especies: datos.especies,
-        conjuros: datos.conjuros,
-        dotes: datos.dotes,
-        trasfondos: datos.trasfondos,
-        criaturas: datos.criaturas,
-        clases: datos.clases,
-        subclases: datos.subclases,
-        objetos: datos.objetos,
-      },
-      metadatos_libro: {
-        codigo: datos.codigo,
-        edicion: datos.edicion,
-        editorial: datos.editorial,
-        clasificacion: datos.clasificacion,
-      },
+      contenido: contenidoDeLibro(datos),
+      metadatos_libro: metadatosDeLibro(datos),
       pendiente_aprobacion: false,
       row_version: versionActual + 1,
       actualizado_en: new Date().toISOString(),
