@@ -16,6 +16,7 @@ import LectorLibro from './pages/LectorLibro'
 import NuevaPropuesta from './pages/NuevaPropuesta'
 import MotorLibros from './pages/MotorLibros'
 import Administracion from './pages/Administracion'
+import Profile from './pages/Profile'
 
 
 
@@ -159,6 +160,7 @@ function AppRoutes() {
       />
 
 
+      <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/administracion" element={<ProtectedRoute><Administracion /></ProtectedRoute>} />
       <Route
         path="/home"
