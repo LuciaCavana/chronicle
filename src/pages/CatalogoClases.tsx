@@ -22,7 +22,7 @@ function Rasgos({ clase, subclase }: { clase: Registro; subclase?: Registro }) {
   const extras: Registro[]=subclase?lista(obj(subclase.datos).rasgos).map(r=>({...r,origen:nombre(subclase)})):[]
   const rasgos=[...base,...extras].sort((a,b)=>Number(a.nivel||0)-Number(b.nivel||0))
   return rasgos.length ? <section className="catalogo-clases__bloque"><h3>Características por nivel</h3>
-    {rasgos.map((rasgo,i)=><article key={`${txt(rasgo.origen)}:${txt(rasgo.id)||i}`} className="catalogo-clases__rasgo">
+    {rasgos.map((rasgo,i)=><article key={`${txt(rasgo.origen)}:${txt(rasgo.id)||i}`} className={`catalogo-clases__rasgo ${txt(rasgo.origen)==='Clase'?'':'catalogo-clases__rasgo--subclase'}`}>
       <h4>Nivel {txt(rasgo.nivel)} · {nombre(rasgo)} <small>{txt(rasgo.origen)}</small></h4>
       <Descripcion valor={rasgo.descripcion}/>
     </article>)}
@@ -51,7 +51,7 @@ function FichaClase({ clase, subclase }: { clase: Registro; subclase?: Registro 
       {lista(datos.equipoOpciones).map((grupo,i)=><div key={i}><strong>Grupo {i+1} · Elegir {txt(grupo.elegir)||'1'}</strong>{lista(grupo.opciones).map((opcion,j)=><p key={j}>Opción {j+1}: {lista(opcion.objetos).map(item=>`${txt(item.cantidad)||'1'} × ${txt(item.nombre)||txt(item.objetoId)}`).join(', ')}{Number(opcion.oro)>0?` · ${txt(opcion.oro)} po`:''}</p>)}</div>)}
     </section>}
     {filas.length>0 && <section className="catalogo-clases__bloque"><h3>Tabla de progresión</h3><div className="catalogo-clases__tabla-scroll"><table><thead><tr><th>Nivel</th><th>Características</th>{columnas.map((col,i)=><th key={i}>{nombre(col)}</th>)}</tr></thead><tbody>
-      {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{[...rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)),...rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel))].map(r=>nombre(r)).join(', ')||'—'}</td>{columnas.map((col,j)=><td key={j}>{txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}
+      {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{(() => { const base=rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)); const extra=rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel)); return base.length||extra.length ? <>{base.map((r,j)=><span key={`base-${j}`} className="catalogo-clases__tabla-rasgo">{nombre(r)}</span>)}{extra.map((r,j)=><span key={`sub-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-rasgo--subclase">{nombre(r)}</span>)}</> : '—' })()}</td>{columnas.map((col,j)=><td key={j}>{txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}
     </tbody></table></div></section>}
     <Rasgos clase={clase} subclase={subclase}/>
   </>
@@ -63,11 +63,11 @@ function FichaSeleccionada({ entrada }: { entrada: Entrada }) {
     <div className="catalogo-conjuros__cabecera"><h2>{nombre(entrada.elemento)}</h2><span>{entrada.codigo}</span></div>
     <p className="catalogo-conjuros__escuela">Clase</p>
     {entrada.subclases.length>0 && <section className="catalogo-clases__selector">
-      <label htmlFor="catalogo-subclase">Subclase</label>
-      <select id="catalogo-subclase" value={subclaseId} onChange={e=>setSubclaseId(e.target.value)}>
-        <option value="">Sin subclase seleccionada</option>
-        {entrada.subclases.map((s,i)=><option key={txt(s.id)||i} value={txt(s.id)||String(i)}>{nombre(s)}</option>)}
-      </select>
+      <h3>Elegir subclase</h3>
+      <div className="catalogo-clases__opciones" role="group" aria-label="Elegir subclase">
+        <button type="button" className={`catalogo-clases__opcion ${!subclaseId?'catalogo-clases__opcion--activa':''}`} aria-pressed={!subclaseId} onClick={()=>setSubclaseId('')}>Sin subclase</button>
+        {entrada.subclases.map((s,i)=>{const id=txt(s.id)||String(i);return <button type="button" key={id} className={`catalogo-clases__opcion ${subclaseId===id?'catalogo-clases__opcion--activa':''}`} aria-pressed={subclaseId===id} onClick={()=>setSubclaseId(id)}>{nombre(s)}</button>})}
+      </div>
       {subclase && <><h3>{nombre(subclase)}</h3><Descripcion valor={subclase.descripcion}/></>}
     </section>}
     <FichaClase clase={entrada.elemento} subclase={subclase}/>
