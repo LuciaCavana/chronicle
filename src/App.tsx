@@ -10,6 +10,7 @@ import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
 import Biblioteca from './pages/Biblioteca'
 import CatalogoConjuros from './pages/CatalogoConjuros'
+import CatalogoClases from './pages/CatalogoClases'
 import Libros from './pages/Libros'
 import LectorLibro from './pages/LectorLibro'
 import NuevaPropuesta from './pages/NuevaPropuesta'
@@ -121,6 +122,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/biblioteca/clases" element={<ProtectedRoute><CatalogoClases /></ProtectedRoute>} />
       <Route path="/biblioteca/conjuros" element={<ProtectedRoute><CatalogoConjuros /></ProtectedRoute>} />
       <Route path="/biblioteca/libros/leer/:libroId" element={<ProtectedRoute><LectorLibro /></ProtectedRoute>} />
       <Route path="/biblioteca/libros/leer-borrador/:propuestaId" element={<ProtectedRoute><LectorLibro /></ProtectedRoute>} />
