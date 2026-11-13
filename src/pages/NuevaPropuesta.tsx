@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 
@@ -27,6 +27,7 @@ import {
   obtenerLibroParaEditar,
   obtenerPropuestaParaEditar,
   actualizarPropuesta,
+  guardarElementosCompartidos,
 } from '../services/libros'
 
 import type { Conjuro } from '../types/conjuro'
@@ -123,6 +124,7 @@ export default function NuevaPropuesta() {
   const [errorCarga, setErrorCarga] = useState('')
   const [versionId, setVersionId] = useState<string | null>(null)
   const [rowVersion, setRowVersion] = useState<number | null>(null)
+  const baseColaborativa = useRef<Record<string, unknown> | null>(null)
   const [versionRemota, setVersionRemota] = useState<number | null>(null)
   const [accesoCompartido, setAccesoCompartido] = useState<'propietario' | 'editor' | 'lector'>('propietario')
 
@@ -217,6 +219,15 @@ export default function NuevaPropuesta() {
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
       setObjetos(contenido.objetos ?? [])
+      baseColaborativa.current = {
+        row_version: propuesta.row_version,
+        titulo: propuesta.titulo ?? '',
+        descripcion: propuesta.descripcion ?? '',
+        idioma: propuesta.idioma ?? 'es',
+        categorias: propuesta.categorias ?? [],
+        metadatos_libro: propuesta.metadatos_libro ?? {},
+        contenido: propuesta.contenido ?? {},
+      }
       setRowVersion(propuesta.row_version)
       setTipoPropuesta('nuevo')
       setCurrentStep(1)
@@ -409,7 +420,16 @@ export default function NuevaPropuesta() {
       }
 
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
-        await actualizarPropuesta(propuestaId, datos, rowVersion)
+        if (!baseColaborativa.current) throw new Error('No se pudo recuperar la versión original del borrador.')
+        await guardarElementosCompartidos(propuestaId, baseColaborativa.current, {
+          row_version: rowVersion,
+          titulo: datos.titulo,
+          descripcion: datos.descripcion,
+          idioma: datos.idioma,
+          categorias: datos.categorias,
+          metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
+          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos },
+        })
       } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
       } else {
