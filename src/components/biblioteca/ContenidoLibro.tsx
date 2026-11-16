@@ -1,3 +1,4 @@
+import type { CaracteristicaLibro } from '../../types/caracteristicaLibro'
 import type { Trasfondo } from '../../types/trasfondo'
 import type { Criatura } from '../../types/criatura'
 import type { Dote } from '../../types/trasfondo'
@@ -24,6 +25,10 @@ type ContenidoLibroProps = {
   allCategories: Category[]
   selectedCategories: string[]
   onToggleCategory: (id: string) => void
+  caracteristicas?: CaracteristicaLibro[]
+  onAddCaracteristica?: () => void
+  onEditCaracteristica?: (id: string) => void
+  onDeleteCaracteristica?: (id: string) => void
   categoryItemCounts?: Record<string, number>
   onAddSpecies: () => void
   speciesCount: number
@@ -66,6 +71,7 @@ export default function ContenidoLibro({
   selectedCategories,
   onToggleCategory,
   categoryItemCounts = {},
+  caracteristicas = [], onAddCaracteristica, onEditCaracteristica, onDeleteCaracteristica,
   onAddSpecies,
   speciesCount,
   species,
@@ -173,9 +179,10 @@ export default function ContenidoLibro({
           openCategory === 'criaturas' ? criaturas.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.tipo, editar:()=>onEditCriatura?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la criatura «${x.nombre}»?`))onDeleteCriatura?.(x.id)} })) :
           openCategory === 'trasfondos' ? trasfondos.map(x => ({ id:x.id, nombre:x.nombre, editar:()=>onEditTrasfondo?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar el trasfondo «${x.nombre}»?`))onDeleteTrasfondo?.(x.id)} })) :
           openCategory === 'dotes' ? dotes.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.categoria, editar:()=>onEditDote?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la dote «${x.nombre}»?`))onDeleteDote?.(x.id)} })) :
+          openCategory === 'otras' ? caracteristicas.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.tipo === 'maestria_arma' ? 'Maestría de arma' : 'Otra característica', editar:()=>onEditCaracteristica?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar la característica «${x.nombre}»?`))onDeleteCaracteristica?.(x.id)} })) :
           openCategory === 'conjuros' ? conjuros.map(x => ({ id:x.id, nombre:x.nombre, detalle:x.tipo === 'truco' ? 'Truco' : `Nivel ${x.nivel}`, editar:()=>onEditConjuro?.(x.id), eliminar:()=>{if(window.confirm(`¿Eliminar el conjuro «${x.nombre}»?`))onDeleteConjuro?.(x.id)} })) : []
         const agregar: Record<string, (() => void) | undefined> = {
-          especies:onAddSpecies, clases:onAddClass, subclases:onAddSubclass, objetos:onAddObject,
+          otras:onAddCaracteristica, especies:onAddSpecies, clases:onAddClass, subclases:onAddSubclass, objetos:onAddObject,
           criaturas:onAddCriatura, trasfondos:onAddTrasfondo, dotes:onAddDote, conjuros:onAddConjuro,
         }
         return <div className="contenido-libro-overlay" onMouseDown={e => {if(e.target===e.currentTarget)setOpenCategory(null)}}>
