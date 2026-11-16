@@ -46,7 +46,24 @@ export async function guardarLibro(datos: NuevoLibro) {
   return data as string
 }
 
-export async function guardarPropuesta(datos: NuevoLibro) {
+export type OrigenTraduccion = {
+  libroId: string
+  versionId: string
+}
+
+export async function listarVersionesPublicadas() {
+  const { data, error } = await supabase.from('libros')
+    .select('id, codigo, edicion, editorial, clasificacion, libro_versiones(id, idioma, titulo, descripcion, categorias, especies, conjuros, clases, subclases, objetos)')
+    .eq('estado', 'publicado')
+    .order('creado_en', { ascending: false })
+  if (error) throw error
+  return (data ?? []).flatMap(libro => (libro.libro_versiones ?? []).map(version => ({
+    libroId: libro.id, codigo: libro.codigo, edicion: libro.edicion,
+    editorial: libro.editorial, clasificacion: libro.clasificacion, ...version,
+  })))
+}
+
+export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraduccion) {
   const { data: usuarioData, error: usuarioError } =
     await supabase.auth.getUser()
 
@@ -61,7 +78,9 @@ export async function guardarPropuesta(datos: NuevoLibro) {
   const { data, error } = await supabase
     .from('propuestas')
     .insert({
-      tipo: 'libro_nuevo',
+      tipo: origen ? 'traduccion' : 'libro_nuevo',
+      libro_id: origen?.libroId ?? null,
+      version_traduccion_origen_id: origen?.versionId ?? null,
       estado: 'borrador',
       pendiente_aprobacion: false,
       autor_id: usuarioId,
@@ -223,6 +242,8 @@ export async function obtenerPropuestaParaEditar(
     .select(`
       id,
       tipo,
+      libro_id,
+      version_traduccion_origen_id,
       estado,
       autor_id,
       idioma,
