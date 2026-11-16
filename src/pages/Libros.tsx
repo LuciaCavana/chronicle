@@ -665,7 +665,7 @@ async function borrarPropuesta(
                   <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
                     {cambiosRevision.map((cambio, indice) => (
                       <div key={indice} style={{padding: '12px 0', borderBottom: '1px solid var(--border-color, #888)'}}>
-                        <strong>{cambio.accion === 'agregar' ? 'Agregado' : cambio.accion === 'retirar' ? 'Retirado' : cambio.accion === 'desactivar_categoria' ? 'Categoría desactivada' : cambio.accion === 'activar_categoria' ? 'Categoría activada' : 'Modificado'} — {cambio.categoria}</strong>
+                        <strong>{cambio.accion === 'modificar_campo' ? 'Dato general modificado' : cambio.accion === 'agregar' ? 'Agregado' : cambio.accion === 'retirar' ? 'Retirado' : cambio.accion === 'desactivar_categoria' ? 'Categoría desactivada' : cambio.accion === 'activar_categoria' ? 'Categoría activada' : 'Modificado'} — {cambio.categoria === 'datos_generales' ? cambio.elemento_id : cambio.categoria}</strong>
                         {cambio.elemento_id != null && <p>{String((cambio.despues as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.despues as {titulo?: string} | null)?.titulo ?? (cambio.antes as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.antes as {titulo?: string} | null)?.titulo ?? cambio.elemento_id)}</p>}
                         {cambio.antes != null && <details><summary>Antes</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.antes, null, 2)}</pre></details>}
                         {cambio.despues != null && <details><summary>Después</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.despues, null, 2)}</pre></details>}
