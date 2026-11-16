@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
@@ -297,7 +297,7 @@ export default function LectorLibro() {
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
   return <AppLayout title="Biblioteca" subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"}>
     <main className="lector-libro">
-      <Link className="lector-libro__volver" to={esBorrador ? "/biblioteca/libros?tab=propuestas" : "/biblioteca/libros"}><ArrowLeft size={17}/> {esBorrador ? "Volver a los borradores" : "Volver al catálogo"}</Link>
+      <Link className="lector-libro__volver" to={destinoVolver}><ArrowLeft size={17}/> {desdeRevision ? "Volver a la revisión" : esBorrador ? "Volver a los borradores" : "Volver al catálogo"}</Link>
       {cargando ? <div className="lector-libro__estado">Abriendo libro...</div>
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>
