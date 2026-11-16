@@ -314,6 +314,7 @@ export async function actualizarPropuesta(
         clases: datos.clases,
         subclases: datos.subclases,
         objetos: datos.objetos,
+        caracteristicas: datos.caracteristicas ?? [],
       },
       metadatos_libro: {
         codigo: datos.codigo,
