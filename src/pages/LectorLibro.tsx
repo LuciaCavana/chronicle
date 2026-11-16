@@ -225,6 +225,11 @@ function ConjurosDesplegables({ seccion }: { seccion: Seccion }) {
 export default function LectorLibro() {
   const { libroId, propuestaId } = useParams<{ libroId?: string; propuestaId?: string }>()
   const esBorrador = Boolean(propuestaId)
+  const [parametros] = useSearchParams()
+  const desdeRevision = esBorrador && parametros.get('origen') === 'revision'
+  const destinoVolver = desdeRevision
+    ? `/biblioteca/libros/revision/${propuestaId}`
+    : esBorrador ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros'
   const [libro,setLibro] = useState<LibroPublicado|null>(null)
   const [cargando,setCargando] = useState(true)
   const [error,setError] = useState('')
