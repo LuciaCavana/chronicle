@@ -791,9 +791,6 @@ async function borrarPropuesta(
                     )}
 
                     {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}?origen=administracion`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
-                    {(['publicado','oculto','eliminado'] as EstadoLibro[]).includes(libro.estado) && (
-                      <span className="libros-admin-message">{etiquetasEstado[libro.estado]}</span>
-                    )}
                     {libro.estado === 'publicado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'ocultar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><EyeOff size={16}/> Ocultar</button>}
                     {libro.estado === 'oculto' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'mostrar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Eye size={16}/> Volver a mostrar</button>}
                     {(libro.estado === 'publicado'||libro.estado === 'oculto') && <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'eliminar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Trash2 size={16}/> Borrar</button>}
