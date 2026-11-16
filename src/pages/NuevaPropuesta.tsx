@@ -929,7 +929,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && !showCriaturaForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
+          {currentStep === 2 && editingCaracteristicaId === null && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && !showCriaturaForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
