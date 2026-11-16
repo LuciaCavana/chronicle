@@ -40,3 +40,36 @@ export async function rechazarRevision(propuestaId: string, motivo: string) {
  const { error } = await supabase.rpc('chronicle_rechazar_propuesta', { p_propuesta_id: propuestaId, p_motivo: motivo })
  if (error) throw error
 }
+
+export type ActividadAutor = {
+ nombre: string
+ username: string | null
+ publicaciones: number
+ aprobadas: number
+ rechazadas: number
+ pendientes: number
+ publicacionesRecientes: { id: string; titulo: string }[]
+}
+export async function cargarActividadAutor(autorId: string): Promise<ActividadAutor> {
+ const [{ data: perfil, error: errorPerfil }, { data: libros, error: errorLibros }, { data: propuestas, error: errorPropuestas }] = await Promise.all([
+  supabase.from('profiles').select('display_name,username').eq('id', autorId).maybeSingle(),
+  supabase.from('libros').select('id,libro_versiones(titulo)').eq('creado_por', autorId).eq('estado','publicado'),
+  supabase.from('propuestas').select('id,estado,pendiente_aprobacion,revision_resultante_id,resuelto_en').eq('autor_id',autorId),
+ ])
+ if(errorPerfil) throw errorPerfil
+ if(errorLibros) throw errorLibros
+ if(errorPropuestas) throw errorPropuestas
+ const publicacionesRecientes=(libros??[]).slice(0,10).map(libro=>{
+  const versiones=libro.libro_versiones as unknown as {titulo:string}[] | null
+  return {id:libro.id,titulo:versiones?.[0]?.titulo??'Libro publicado'}
+ })
+ return {
+  nombre: perfil?.display_name?.trim() || perfil?.username || 'Usuario sin nombre público',
+  username: perfil?.username ?? null,
+  publicaciones: libros?.length??0,
+  aprobadas: (propuestas??[]).filter(p=>p.resuelto_en && p.revision_resultante_id).length,
+  rechazadas: (propuestas??[]).filter(p=>p.estado==='rechazado').length,
+  pendientes: (propuestas??[]).filter(p=>p.pendiente_aprobacion).length,
+  publicacionesRecientes,
+ }
+}
