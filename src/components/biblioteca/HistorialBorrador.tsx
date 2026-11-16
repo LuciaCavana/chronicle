@@ -80,9 +80,9 @@ export default function HistorialBorrador({propuestaId,puedeRestaurar,onClose,on
   {mensaje&&<p role="status">{mensaje}</p>}
   {!cargando&&versiones.length===0&&<p>{t('draft.noHistory')}</p>}
   <ul>{versiones.map(v=><li key={v.id}>
-   <div><strong>{t('draft.version')} {v.numero_version}</strong><span>{new Date(v.creado_en).toLocaleString(language === 'en' ? 'en-US' : 'es-AR')}</span><span>{v.autor_cambio_id ? nombres[v.autor_cambio_id] || `Usuario ${v.autor_cambio_id.slice(0,8)}` : t('draft.unknownAuthor')}</span><span>{v.accion==='restauracion'?t('draft.preRestore'):t('draft.saved')}</span><small>{v.titulo||t('draft.untitled')}</small></div>
+   <div><strong>{t('draft.version')} {v.numero_version}</strong><span>{new Date(v.creado_en).toLocaleString(language === 'en' ? 'en-US' : 'es-AR')}</span><span>{v.autor_cambio_id ? nombres[v.autor_cambio_id] || `${t('draft.user')} ${v.autor_cambio_id.slice(0,8)}` : t('draft.unknownAuthor')}</span><span>{v.accion==='restauracion'?t('draft.preRestore'):t('draft.saved')}</span><small>{v.titulo||t('draft.untitled')}</small></div>
    <div className="historial-acciones"><button type="button" onClick={()=>setComparando(a=>a===v.numero_version?null:v.numero_version)}>{comparando===v.numero_version?t('draft.hideDiff'):t('draft.compare')}</button>{puedeRestaurar&&<button type="button" disabled={restaurando} onClick={()=>restaurar(v.numero_version)}>{t('draft.restore')}</button>}</div>
-   {comparando===v.numero_version&&documentoActual&&<div className="historial-diferencias"><strong>{t('draft.diffTitle')}</strong>{diferencias(documentoActual,v,t).length===0?<p>{t('draft.noDiff')}</p>:<ul>{diferencias(documentoActual,v).map((c,i)=><li key={i}>{c}</li>)}</ul>}<small>{t('draft.diffNote')}</small></div>}
+   {comparando===v.numero_version&&documentoActual&&<div className="historial-diferencias"><strong>{t('draft.diffTitle')}</strong>{diferencias(documentoActual,v,t).length===0?<p>{t('draft.noDiff')}</p>:<ul>{diferencias(documentoActual,v,t).map((c,i)=><li key={i}>{c}</li>)}</ul>}<small>{t('draft.diffNote')}</small></div>}
   </li>)}</ul>
  </section>
 }
