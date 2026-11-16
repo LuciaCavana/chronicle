@@ -33,6 +33,28 @@ import '../styles/Libros.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
 
+type DiferenciaCampo = { ruta: string; antes: unknown; despues: unknown }
+function diferenciasCampos(antes: unknown, despues: unknown, ruta = ''): DiferenciaCampo[] {
+  if (JSON.stringify(antes) === JSON.stringify(despues)) return []
+  const objeto = (valor: unknown): valor is Record<string, unknown> =>
+    typeof valor === 'object' && valor !== null && !Array.isArray(valor)
+  if (objeto(antes) && objeto(despues)) {
+    return [...new Set([...Object.keys(antes), ...Object.keys(despues)])]
+      .flatMap(clave => diferenciasCampos(antes[clave], despues[clave], ruta ? `${ruta} › ${clave}` : clave))
+  }
+  if (Array.isArray(antes) && Array.isArray(despues)) {
+    return Array.from({length: Math.max(antes.length, despues.length)}, (_, indice) =>
+      diferenciasCampos(antes[indice], despues[indice], `${ruta} › #${indice + 1}`)).flat()
+  }
+  return [{ ruta: ruta || 'Valor', antes, despues }]
+}
+function valorDiferencia(valor: unknown): string {
+  if (valor === undefined || valor === null) return '—'
+  if (typeof valor === 'string') return valor || '(vacío)'
+  if (typeof valor === 'number' || typeof valor === 'boolean') return String(valor)
+  return JSON.stringify(valor)
+}
+
 type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
 
 type EstadoLibro = 'pendiente' | 'publicado' | 'oculto' | 'eliminado' | 'rechazado'
@@ -666,9 +688,23 @@ async function borrarPropuesta(
                     {cambiosRevision.map((cambio, indice) => (
                       <div key={indice} style={{padding: '12px 0', borderBottom: '1px solid var(--border-color, #888)'}}>
                         <strong>{cambio.accion === 'modificar_campo' ? 'Dato general modificado' : cambio.accion === 'agregar' ? 'Agregado' : cambio.accion === 'retirar' ? 'Retirado' : cambio.accion === 'desactivar_categoria' ? 'Categoría desactivada' : cambio.accion === 'activar_categoria' ? 'Categoría activada' : 'Modificado'} — {cambio.categoria === 'datos_generales' ? cambio.elemento_id : cambio.categoria}</strong>
-                        {cambio.elemento_id != null && <p>{String((cambio.despues as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.despues as {titulo?: string} | null)?.titulo ?? (cambio.antes as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.antes as {titulo?: string} | null)?.titulo ?? cambio.elemento_id)}</p>}
-                        {cambio.antes != null && <details><summary>Antes</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.antes, null, 2)}</pre></details>}
-                        {cambio.despues != null && <details><summary>Después</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.despues, null, 2)}</pre></details>}
+                        {cambio.accion !== 'modificar_campo' && cambio.elemento_id != null && <p>{String((cambio.despues as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.despues as {titulo?: string} | null)?.titulo ?? (cambio.antes as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.antes as {titulo?: string} | null)?.titulo ?? cambio.elemento_id)}</p>}
+                        {cambio.accion !== 'activar_categoria' && cambio.accion !== 'desactivar_categoria' && (
+                          <div style={{overflowX:'auto'}}>
+                            <table style={{width:'100%',borderCollapse:'collapse',textAlign:'left'}}>
+                              <thead><tr><th style={{padding:8}}>Campo modificado</th><th style={{padding:8}}>Antes</th><th style={{padding:8}}>Después</th></tr></thead>
+                              <tbody>
+                                {diferenciasCampos(cambio.antes, cambio.despues).map((diferencia, i) => (
+                                  <tr key={i} style={{borderTop:'1px solid var(--border-color, #666)'}}>
+                                    <th scope="row" style={{padding:8,verticalAlign:'top'}}>{diferencia.ruta}</th>
+                                    <td style={{padding:8,verticalAlign:'top',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{valorDiferencia(diferencia.antes)}</td>
+                                    <td style={{padding:8,verticalAlign:'top',whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{valorDiferencia(diferencia.despues)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
