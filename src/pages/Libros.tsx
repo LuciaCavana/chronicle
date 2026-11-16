@@ -679,10 +679,10 @@ async function borrarPropuesta(
                           <button type="button" className="libros-admin-button" onClick={() => setHistorialId(propuesta.id)}><History size={16}/> Historial de versiones</button>
                           <button type="button" className="libros-admin-button" onClick={() => setHistorialAprobacionId(propuesta.id)}><History size={16}/> Historial de aprobaciones</button>
                           <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
-                          <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button"><Pencil size={16}/> Editar borrador</Link>
-                          <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Borrar borrador'} onClick={() => setPropuestaParaBorrar({id:propuesta.id,origen:'nueva'})}><Trash2 size={16}/> Borrar borrador</button>
                         </div>
                       </details>
+                      <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
+                      <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Borrar borrador'} onClick={() => setPropuestaParaBorrar({id:propuesta.id,origen:'nueva'})}><Trash2 size={16}/> Borrar borrador</button>
                     </div>
                   )}
                   {compartiendoId === propuesta.id && <ModalBorrador titulo={t('books.shareDraft')} onClose={() => setCompartiendoId(null)}><ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} /></ModalBorrador>}
