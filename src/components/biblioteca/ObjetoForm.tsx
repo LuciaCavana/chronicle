@@ -2,7 +2,7 @@ import type { CaracteristicaLibro } from '../../types/caracteristicaLibro'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/NuevaPropuesta.css'
 import '../../styles/ObjetoForm.css'
-import { useLanguage } from '../../i18n/LanguageContext'
+import { useLanguage } from '../../i18n/useLanguage'
 
 type Datos = Record<string, unknown>
 type Props = { elemento: Elemento; objetos: Elemento[]; caracteristicas?: CaracteristicaLibro[]; onChange: (elemento: Elemento) => void }

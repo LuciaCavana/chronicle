@@ -3,7 +3,7 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { useAuth } from '../contexts/useAuth'
 import '../styles/Profile.css'
-import { useLanguage } from '../i18n/LanguageContext'
+import { useLanguage } from '../i18n/useLanguage'
 
 export default function Settings() {
   const { session } = useAuth()

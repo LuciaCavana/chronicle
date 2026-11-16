@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useAuth } from '../../contexts/useAuth'
 import { NavLink } from 'react-router-dom'
 import '../../styles/Sidebar.css'
-import { useLanguage } from '../../i18n/LanguageContext'
+import { useLanguage } from '../../i18n/useLanguage'
 import type { TranslationKey } from '../../i18n/translations'
 import {
   House,

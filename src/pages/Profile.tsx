@@ -6,7 +6,7 @@ import '../styles/Profile.css'
 import { useAuth } from '../contexts/useAuth'
 import { supabase } from '../lib/supabase'
 import { cambiarAvatar, quitarAvatar, urlAvatar } from '../services/avatar'
-import { useLanguage } from '../i18n/LanguageContext'
+import { useLanguage } from '../i18n/useLanguage'
 
 type ProfileData = {
   id: string
@@ -55,7 +55,7 @@ export default function Profile() {
       setLoading(false)
     })()
     return () => { active = false }
-  }, [session?.user.id])
+  }, [session?.user.id, t])
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
