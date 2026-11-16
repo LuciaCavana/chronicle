@@ -1,10 +1,11 @@
+import type { CaracteristicaLibro } from '../../types/caracteristicaLibro'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/NuevaPropuesta.css'
 import '../../styles/ObjetoForm.css'
 import { useLanguage } from '../../i18n/LanguageContext'
 
 type Datos = Record<string, unknown>
-type Props = { elemento: Elemento; objetos: Elemento[]; onChange: (elemento: Elemento) => void }
+type Props = { elemento: Elemento; objetos: Elemento[]; caracteristicas?: CaracteristicaLibro[]; onChange: (elemento: Elemento) => void }
 
 const tipos = [
   ['arma','Arma'],['armadura','Armadura o escudo'],['herramienta','Herramienta'],['juego','Juego'],
@@ -20,9 +21,11 @@ const danos = ['','Contundente','Cortante','Perforante','Ácido','Frío','Fuego'
 const texto = (v: unknown) => typeof v === 'string' ? v : v == null ? '' : String(v)
 const lista = (v: unknown): string[] => Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
 
-export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
+export default function ObjetoForm({ elemento, objetos, caracteristicas = [], onChange }: Props) {
   const { t } = useLanguage()
   const datos: Datos = elemento.datos ?? {}
+  const propiedadesDisponibles = caracteristicas.filter(c => c.tipo === 'propiedad_arma')
+  const maestriasDisponibles = caracteristicas.filter(c => c.tipo === 'maestria_arma')
   const tipo = texto(datos.tipo) || 'equipo'
   const actualizar = (campo: string, valor: unknown) => onChange({ ...elemento, datos: { ...datos, [campo]: valor } })
   const campo = (nombre: string, clave: string, placeholder = '') => <label className="nueva-propuesta-field">{nombre}<input value={texto(datos[clave])} placeholder={placeholder} onChange={e => actualizar(clave, e.target.value)}/></label>
@@ -57,12 +60,12 @@ export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
         {campo('Daño versátil','danioVersatil','1d8')}
         {numero('Alcance normal (pies)','alcanceNormal')}
         {numero('Alcance largo (pies)','alcanceLargo')}
-        {seleccionarMaestria()}
+        {maestriasDisponibles.length > 0 ? <label className="nueva-propuesta-field">Maestría del libro<select value={texto(datos.maestriaCaracteristicaId)} onChange={e=>actualizar('maestriaCaracteristicaId',e.target.value)}><option value="">Sin seleccionar</option>{maestriasDisponibles.map(c=><option key={c.id} value={c.id}>{c.nombre}</option>)}</select></label> : seleccionarMaestria()}
         {numero('Bonificador al ataque','bonoAtaque',-20)}
         {numero('Bonificador al daño','bonoDanio',-20)}
       </div>
       <strong>Propiedades</strong>
-      <div className="objeto-form__checks">{propiedadesArma.map(prop=><label key={prop} className="objeto-form__checkbox"><input type="checkbox" checked={lista(datos.propiedades).includes(prop)} onChange={e=>actualizar('propiedades',e.target.checked?[...lista(datos.propiedades),prop]:lista(datos.propiedades).filter(p=>p!==prop))}/>{prop}</label>)}</div>
+      <div className="objeto-form__checks">{propiedadesDisponibles.length > 0 ? propiedadesDisponibles.map(prop=><label key={prop.id} className="objeto-form__checkbox"><input type="checkbox" checked={lista(datos.propiedadCaracteristicaIds).includes(prop.id)} onChange={e=>actualizar('propiedadCaracteristicaIds',e.target.checked?[...lista(datos.propiedadCaracteristicaIds),prop.id]:lista(datos.propiedadCaracteristicaIds).filter(id=>id!==prop.id))}/>{prop.nombre}</label>) : propiedadesArma.map(prop=><label key={prop} className="objeto-form__checkbox"><input type="checkbox" checked={lista(datos.propiedades).includes(prop)} onChange={e=>actualizar('propiedades',e.target.checked?[...lista(datos.propiedades),prop]:lista(datos.propiedades).filter(p=>p!==prop))}/>{prop}</label>)}</div>
     </section>}
     {tipo === 'armadura' && <section style={{display:'grid',gap:12}}>
       <h3>Estadísticas de armadura</h3>
