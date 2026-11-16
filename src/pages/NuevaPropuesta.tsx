@@ -795,6 +795,7 @@ export default function NuevaPropuesta() {
                 categories={activeCategories}
                 caracteristicas={caracteristicas}
                 onAddCaracteristica={() => { const id = crypto.randomUUID(); setCaracteristicas(actuales => [...actuales, { id, tipo: 'otra', nombre: '', descripcion: '' }]); setEditingCaracteristicaId(id) }}
+                onSeedMaestrias={() => setCaracteristicas(actuales => [...actuales, ...crearMaestrias().filter(item => !actuales.some(c => c.tipo === 'maestria_arma' && c.codigo === item.codigo))])}
                 onEditCaracteristica={setEditingCaracteristicaId}
                 onDeleteCaracteristica={id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id))}
                 allCategories={categories}
