@@ -119,7 +119,34 @@ export default function Libros() {
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
   const [propuestaParaEnviar, setPropuestaParaEnviar] = useState<string | null>(null)
-  const [descripcionEnvio, setDescripcionEnvio] = useState('')
+  const [revisionId, setRevisionId] = useState<string | null>(null)
+  const [revisionSeccion, setRevisionSeccion] = useState<'cambios' | 'borrador'>('cambios')
+  const [cambiosRevision, setCambiosRevision] = useState<Array<{categoria: string; accion: string; elemento_id: string; antes: unknown; despues: unknown}>>([])
+  const [cargandoRevision, setCargandoRevision] = useState(false)
+  const [errorRevision, setErrorRevision] = useState('')
+
+  async function abrirRevision(id: string) {
+    setRevisionId(id)
+    setRevisionSeccion('cambios')
+    setCambiosRevision([])
+    setErrorRevision('')
+    setCargandoRevision(true)
+    try {
+      const { data, error: errorEnvio } = await supabase.from('propuesta_envios')
+        .select('operaciones_snapshot')
+        .eq('propuesta_id', id)
+        .order('enviado_en', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (errorEnvio) throw errorEnvio
+      if (!data) throw new Error('No se encontró el envío para revisar.')
+      setCambiosRevision(Array.isArray(data.operaciones_snapshot) ? data.operaciones_snapshot as typeof cambiosRevision : [])
+    } catch (err) {
+      setErrorRevision(err instanceof Error ? err.message : 'No se pudieron cargar los cambios.')
+    } finally {
+      setCargandoRevision(false)
+    }
+  }
   async function proponerCorreccion(libroId: string, versionId: string) {
     if (actualizandoId) return
     setActualizandoId(libroId)
@@ -409,14 +436,13 @@ async function borrarPropuesta(
     }
   }
 
-  async function enviarARevision(propuestaId: string, descripcion: string) {
+  async function enviarARevision(propuestaId: string) {
     if (actualizandoId) return
     setActualizandoId(propuestaId)
     setError('')
     try {
-      await enviarBorradorAprobacion(propuestaId, descripcion)
+      await enviarBorradorAprobacion(propuestaId)
       setPropuestaParaEnviar(null)
-      setDescripcionEnvio('')
       setPropuestasNuevas(actuales => actuales.map(p => p.id === propuestaId ? { ...p, pendiente_aprobacion: true } : p))
       await cargarLibros()
     } catch (err) {
@@ -623,6 +649,7 @@ async function borrarPropuesta(
                     </div>
                   </div>
                   <div className="libros-admin-actions">
+                    {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" onClick={() => void abrirRevision(propuesta.id)}><BookOpen size={16}/> Revisar contenido</button>}
                     {propuesta.pendiente_aprobacion && <>
                     <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void aprobarBorrador(propuesta.id)}><CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? t('books.saving') : propuesta.revision_resultante_id ? t('books.approveChanges') : t('books.approvePublish')}</button>
                     <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoId(propuesta.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
@@ -632,6 +659,34 @@ async function borrarPropuesta(
               ))}
 
                       
+            {revisionId && (
+              <ModalBorrador titulo="Revisión de propuesta" onClose={() => setRevisionId(null)}>
+                <div className="libros-admin-actions">
+                  <button type="button" className="libros-admin-button" aria-pressed={revisionSeccion === 'cambios'} onClick={() => setRevisionSeccion('cambios')}>1 - Cambios hechos</button>
+                  <button type="button" className="libros-admin-button" aria-pressed={revisionSeccion === 'borrador'} onClick={() => setRevisionSeccion('borrador')}>2 - Borrador</button>
+                </div>
+                {revisionSeccion === 'cambios' ? (
+                  cargandoRevision ? <p>Cargando cambios...</p> : errorRevision ? <p role="alert">{errorRevision}</p> :
+                  cambiosRevision.length === 0 ? <p>No se detectaron cambios en el contenido.</p> :
+                  <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
+                    {cambiosRevision.map((cambio, indice) => (
+                      <div key={indice} style={{padding: '12px 0', borderBottom: '1px solid var(--border-color, #888)'}}>
+                        <strong>{cambio.accion === 'agregar' ? 'Agregado' : cambio.accion === 'retirar' ? 'Retirado' : 'Modificado'} — {cambio.categoria}</strong>
+                        <p>{String((cambio.despues as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.despues as {titulo?: string} | null)?.titulo ?? (cambio.antes as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.antes as {titulo?: string} | null)?.titulo ?? cambio.elemento_id)}</p>
+                        {cambio.antes != null && <details><summary>Antes</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.antes, null, 2)}</pre></details>}
+                        {cambio.despues != null && <details><summary>Después</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.despues, null, 2)}</pre></details>}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div>
+                    <p>Leé todas las categorías y los elementos del borrador enviado, sin editarlo.</p>
+                    <Link className="libros-admin-button" to={`/biblioteca/libros/leer-borrador/${revisionId}`}>Abrir borrador completo</Link>
+                  </div>
+                )}
+              </ModalBorrador>
+            )}
+
             {activeTab === 'propuestas' &&
               propuestasNuevas
                 .filter((propuesta) => propuesta.estado === 'borrador')
@@ -671,26 +726,17 @@ async function borrarPropuesta(
                                       
                   {propuestaParaEnviar === propuesta.id && (
                     <ModalBorrador titulo="Enviar a aprobación" onClose={() => setPropuestaParaEnviar(null)}>
-                      <p>Describí los cambios realizados. Esta descripción quedará registrada en el historial del envío.</p>
-                      <textarea
-                        aria-label="Descripción de los cambios"
-                        value={descripcionEnvio}
-                        onChange={event => setDescripcionEnvio(event.target.value)}
-                        rows={5}
-                        maxLength={4000}
-                        style={{ width: '100%', boxSizing: 'border-box' }}
-                        placeholder="Ej.: Agregué dos dotes y corregí una habilidad..."
-                      />
+                      <p>Chronicle detectará automáticamente los elementos agregados, modificados y retirados. No hace falta redactar los cambios.</p>
                       <button type="button" className="libros-admin-button libros-admin-button--approve"
-                        disabled={!descripcionEnvio.trim() || actualizandoId !== null}
-                        onClick={() => void enviarARevision(propuesta.id, descripcionEnvio)}>
+                        disabled={actualizandoId !== null}
+                        onClick={() => void enviarARevision(propuesta.id)}>
                         Confirmar envío
                       </button>
                     </ModalBorrador>
                   )}
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
-                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => { setPropuestaParaEnviar(propuesta.id); setDescripcionEnvio('') }}><ClipboardCheck size={18} aria-hidden="true" /></button>}
+                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => setPropuestaParaEnviar(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
                       {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-icon-action" title={t('books.withdraw')} aria-label={t('books.withdraw')} disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={18} aria-hidden="true" /></button>}
                       <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-label={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
                       <button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
