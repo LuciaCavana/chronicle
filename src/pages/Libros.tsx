@@ -107,6 +107,7 @@ export default function Libros() {
     searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'compartidos' ? 'compartidos' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
   )
   const [search, setSearch] = useState('')
+  const [filtroAdministracion, setFiltroAdministracion] = useState<'pendientes'|'publicados'|'ocultos'|'borrados'>('pendientes')
 
   const [libros, setLibros] = useState<Libro[]>([])
   const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
@@ -153,7 +154,7 @@ export default function Libros() {
     }
 
     if (activeTab === 'administracion') {
-      return esAdministrador && ['pendiente','publicado','oculto','eliminado'].includes(libro.estado)
+      return esAdministrador && libro.estado === ({pendientes:'pendiente',publicados:'publicado',ocultos:'oculto',borrados:'eliminado'} as const)[filtroAdministracion]
     }
 
     if (activeTab === 'propuestas') return libro.creado_por === userId && (libro.estado === 'pendiente' || libro.estado === 'rechazado')
@@ -516,6 +517,18 @@ async function borrarPropuesta(
           </div>
         )}
 
+        {activeTab === 'administracion' && esAdministrador && (
+          <div className="libros-tabs" aria-label="Secciones de administración">
+            {([
+              ['pendientes','Pendientes de aprobación'],
+              ['publicados','Libros publicados'],
+              ['ocultos','Libros ocultos'],
+              ['borrados','Libros borrados']
+            ] as const).map(([clave, nombre]) => (
+              <button key={clave} type="button" className={`libros-tab ${filtroAdministracion === clave ? 'libros-tab--active' : ''}`} onClick={() => {setFiltroAdministracion(clave);setSearch('')}}>{nombre}</button>
+            ))}
+          </div>
+        )}
         <div className="libros-search">
           <Search size={20} aria-hidden="true" />
           <input
@@ -564,7 +577,7 @@ async function borrarPropuesta(
             </button>
           </div>
         ) : librosFiltrados.length === 0 &&
-        !(activeTab === 'administracion' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
+        !(activeTab === 'administracion' && filtroAdministracion === 'pendientes' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'compartidos' && borradoresCompartidos.some(p=>!textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'propuestas' &&
           propuestasNuevas.some((propuesta) => {
@@ -595,7 +608,7 @@ async function borrarPropuesta(
           </div>
         ) : (
           <div className="libros-lista">
-            {activeTab === 'administracion' && borradoresAdministracion
+            {activeTab === 'administracion' && filtroAdministracion === 'pendientes' && borradoresAdministracion
               .filter(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))
               .map(propuesta => (
                 <article className="libros-item" key={`admin-borrador-${propuesta.id}`}>
@@ -802,13 +815,13 @@ async function borrarPropuesta(
                       <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoLibroId(libro.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
                     )}
 
-                    {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
+                    {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}?origen=administracion`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
                     {(['publicado','oculto','eliminado'] as EstadoLibro[]).includes(libro.estado) && (
                       <span className="libros-admin-message">{etiquetasEstado[libro.estado]}</span>
                     )}
                     {libro.estado === 'publicado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'ocultar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><EyeOff size={16}/> Ocultar</button>}
                     {libro.estado === 'oculto' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'mostrar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Eye size={16}/> Volver a mostrar</button>}
-                    {(libro.estado === 'publicado'||libro.estado === 'oculto') && <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'eliminar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Trash2 size={16}/> Eliminar (baja lógica)</button>}
+                    {(libro.estado === 'publicado'||libro.estado === 'oculto') && <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'eliminar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Trash2 size={16}/> Borrar</button>}
                     {libro.estado === 'eliminado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'restaurar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Undo2 size={16}/> Restaurar como oculto</button>}
 
                   </div>
@@ -822,12 +835,12 @@ async function borrarPropuesta(
       {gestionLibro && <ModalBorrador titulo="Gestionar libro publicado" onClose={() => setGestionLibro(null)}>
         <div className="libros-rechazo-modal">
           <h3>{gestionLibro.titulo}</h3>
-          <p>{gestionLibro.accion === 'eliminar' ? 'La baja es lógica: se conservan el libro, sus versiones y el historial. Dejará de estar disponible para usuarios comunes.' : gestionLibro.accion === 'restaurar' ? 'El libro se restaurará como oculto. Podrás volver a mostrarlo después.' : gestionLibro.accion === 'ocultar' ? 'El libro dejará de estar visible en el catálogo.' : 'El libro volverá a estar visible en el catálogo.'}</p>
+          <p>{gestionLibro.accion === 'eliminar' ? '¿Querés borrar este libro? Se conservarán sus versiones y su historial, pero dejará de estar disponible para los usuarios comunes.' : gestionLibro.accion === 'restaurar' ? 'El libro se restaurará como oculto. Podrás volver a mostrarlo después.' : gestionLibro.accion === 'ocultar' ? 'El libro dejará de estar visible en el catálogo.' : 'El libro volverá a estar visible en el catálogo.'}</p>
           <label htmlFor="motivo-gestion-libro">Motivo obligatorio</label>
           <textarea id="motivo-gestion-libro" rows={4} maxLength={2000} value={motivoGestion} onChange={e => setMotivoGestion(e.target.value)}/>
           <div className="libros-admin-actions">
             <button type="button" className="libros-admin-button" onClick={() => setGestionLibro(null)}>Cancelar</button>
-            <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={!motivoGestion.trim() || actualizandoId !== null} onClick={() => void ejecutarGestionLibro()}>Confirmar {gestionLibro.accion}</button>
+            <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={!motivoGestion.trim() || actualizandoId !== null} onClick={() => void ejecutarGestionLibro()}>{gestionLibro.accion === 'eliminar' ? 'Confirmar borrado' : `Confirmar ${gestionLibro.accion}`}</button>
           </div>
         </div>
       </ModalBorrador>}
