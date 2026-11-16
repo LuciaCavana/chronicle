@@ -76,14 +76,14 @@ type Libro = {
 }
 
 const tabs: { id: BooksTab; label: TranslationKey; icon: LucideIcon }[] = [
-  { id: 'catalogo', label: t('books.catalog'), icon: LibraryBig },
-  { id: 'propuestas', label: t('books.proposals'), icon: FileText },
-  { id: 'compartidos', label: t('books.shared'), icon: BookOpen },
-  { id: 'administracion', label: t('books.admin'), icon: Shield },
+  { id: 'catalogo', label: 'books.catalog', icon: LibraryBig },
+  { id: 'propuestas', label: 'books.proposals', icon: FileText },
+  { id: 'compartidos', label: 'books.shared', icon: BookOpen },
+  { id: 'administracion', label: 'books.admin', icon: Shield },
 ]
 
 const etiquetasEstado: Record<EstadoLibro, string> = {
-  pendiente: t('books.pending'),
+  pendiente: 'Pendiente de aprobación',
   publicado: 'Publicado',
   oculto: 'Oculto',
   eliminado: 'Eliminado',
@@ -472,7 +472,7 @@ async function borrarPropuesta(
       <div className="libros">
         <Link to="/biblioteca" className="libros-back">
           <ArrowLeft size={18} />
-          Volver a Biblioteca
+          {t('books.back')}
         </Link>
 
         <div className="libros-tabs">
@@ -505,7 +505,7 @@ async function borrarPropuesta(
               className="libros-new-button"
             >
               <Plus size={18} />
-              Nueva propuesta
+              {t('books.new')}
             </Link>
           </div>
         )}
