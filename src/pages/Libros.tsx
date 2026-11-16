@@ -444,6 +444,23 @@ async function borrarPropuesta(
     }
   }
 
+  async function actualizarBaseBorrador(propuestaId: string) {
+    if (actualizandoId) return
+    setActualizandoId(propuestaId)
+    setError('')
+    setMensajeAdmin('')
+    try {
+      const { data, error: fallo } = await supabase.rpc('chronicle_actualizar_base_borrador', { p_propuesta_id: propuestaId })
+      if (fallo) throw fallo
+      setMensajeAdmin(`Borrador sincronizado con la revisión publicada ${data}. Tus cambios propios se conservaron.`)
+      await cargarLibros()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la base del borrador.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
   async function retirarDeRevision(propuestaId: string) {
     if (actualizandoId) return
     setActualizandoId(propuestaId)
@@ -685,6 +702,7 @@ async function borrarPropuesta(
                           <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(propuesta.id)}><Share2 size={16}/> Compartir</button>
                           <button type="button" className="libros-admin-button" onClick={() => setHistorialId(propuesta.id)}><History size={16}/> Historial de versiones</button>
                           <button type="button" className="libros-admin-button" onClick={() => setHistorialAprobacionId(propuesta.id)}><History size={16}/> Historial de aprobaciones</button>
+                          {propuesta.tipo === 'modificacion' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Integrar los cambios de la versión publicada'} onClick={() => void actualizarBaseBorrador(propuesta.id)}><RefreshCw size={16}/> Actualizar desde versión publicada</button>}
                           <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}?origen=propuestas`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
                         </div>
                       </details>
