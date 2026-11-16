@@ -357,11 +357,9 @@ export async function guardarElementosCompartidos(propuestaId: string, base: Rec
 }
 
 /** Envía la versión guardada del borrador a revisión administrativa. */
-export async function enviarBorradorAprobacion(propuestaId: string, descripcionCambios: string) {
-  if (!descripcionCambios.trim()) throw new Error('Describí los cambios realizados.')
-  const { error } = await supabase.rpc('chronicle_enviar_propuesta_con_cambios', {
+export async function enviarBorradorAprobacion(propuestaId: string) {
+  const { error } = await supabase.rpc('chronicle_enviar_propuesta_automatica', {
     p_propuesta_id: propuestaId,
-    p_descripcion_cambios: descripcionCambios.trim(),
   })
   if (error) throw error
 }
