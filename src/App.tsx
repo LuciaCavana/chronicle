@@ -1,5 +1,5 @@
 
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './contexts/useAuth'
@@ -99,10 +99,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 function AppRoutes() {
-  const { session, loading } = useAuth()
+  const { session, loading, isPasswordRecovery } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return <p>Verificando sesión...</p>
+  }
+
+  // Una sesión abierta desde un enlace de recuperación sólo sirve para
+  // cambiar la contraseña: no da acceso al resto de la app.
+  if (
+    session &&
+    isPasswordRecovery &&
+    location.pathname !== '/reset-password'
+  ) {
+    return <Navigate to="/reset-password" replace />
   }
 
   return (

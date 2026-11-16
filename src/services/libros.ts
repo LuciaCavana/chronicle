@@ -167,82 +167,40 @@ export async function obtenerLibroParaEditar(libroId: string) {
 }
 
 
+/**
+ * Actualiza un libro propio pendiente de aprobación.
+ * Libro y versión se guardan en una sola transacción en el servidor
+ * (RPC chronicle_actualizar_libro_pendiente): o se guarda todo o nada.
+ */
 export async function actualizarLibro(
   libroId: string,
   versionId: string,
   datos: NuevoLibro
 ) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
+  const { data, error } = await supabase.rpc(
+    'chronicle_actualizar_libro_pendiente',
+    {
+      p_libro_id: libroId,
+      p_version_id: versionId,
+      p_codigo: datos.codigo,
+      p_edicion: datos.edicion,
+      p_editorial: datos.editorial,
+      p_clasificacion: datos.clasificacion,
+      p_idioma: datos.idioma,
+      p_titulo: datos.titulo,
+      p_descripcion: datos.descripcion,
+      p_categorias: datos.categorias,
+      p_especies: datos.especies,
+      p_conjuros: datos.conjuros,
+      p_clases: datos.clases,
+      p_subclases: datos.subclases,
+      p_objetos: datos.objetos,
+    }
+  )
 
-  if (usuarioError) throw usuarioError
+  if (error) throw error
 
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
-
-  const { data: libro, error: errorLibro } = await supabase
-    .from('libros')
-    .select('id')
-    .eq('id', libroId)
-    .eq('creado_por', usuarioId)
-    .eq('estado', 'pendiente')
-    .single()
-
-  if (errorLibro) throw errorLibro
-
-  if (!libro) {
-    throw new Error('No se encontró una propuesta editable.')
-  }
-
-  const { data: version, error: errorVersion } = await supabase
-    .from('libro_versiones')
-    .select('id')
-    .eq('id', versionId)
-    .eq('libro_id', libroId)
-    .single()
-
-  if (errorVersion) throw errorVersion
-
-  if (!version) {
-    throw new Error('No se encontró la versión del libro.')
-  }
-
-  const { error: errorActualizarLibro } = await supabase
-    .from('libros')
-    .update({
-      codigo: datos.codigo,
-      edicion: datos.edicion,
-      editorial: datos.editorial,
-      clasificacion: datos.clasificacion,
-    })
-    .eq('id', libroId)
-    .eq('creado_por', usuarioId)
-    .eq('estado', 'pendiente')
-
-  if (errorActualizarLibro) throw errorActualizarLibro
-
-  const { error: errorActualizarVersion } = await supabase
-    .from('libro_versiones')
-    .update({
-      idioma: datos.idioma,
-      titulo: datos.titulo,
-      descripcion: datos.descripcion,
-      categorias: datos.categorias,
-      especies: datos.especies,
-      conjuros: datos.conjuros,
-      clases: datos.clases,
-      subclases: datos.subclases,
-      objetos: datos.objetos,
-    })
-    .eq('id', versionId)
-    .eq('libro_id', libroId)
-
-  if (errorActualizarVersion) throw errorActualizarVersion
-
-  return libroId
+  return (data as string | null) ?? libroId
 }
 
 

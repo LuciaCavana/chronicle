@@ -5,7 +5,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
+import { recuperacionDetectadaEnUrl, supabase } from '../lib/supabase'
 import { AuthContext } from './useAuth'
 
 const RECOVERY_KEY = 'chronicle_password_recovery'
@@ -18,9 +18,13 @@ export function AuthProvider({
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const [isPasswordRecovery, setIsPasswordRecovery] = useState(
-    () => sessionStorage.getItem(RECOVERY_KEY) === 'true'
-  )
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => {
+    if (recuperacionDetectadaEnUrl) {
+      sessionStorage.setItem(RECOVERY_KEY, 'true')
+      return true
+    }
+    return sessionStorage.getItem(RECOVERY_KEY) === 'true'
+  })
 
   function finishPasswordRecovery() {
     sessionStorage.removeItem(RECOVERY_KEY)
@@ -35,11 +39,7 @@ export function AuthProvider({
     } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
         if (!active) return
-console.log('[Chronicle Auth]', {
-  event,
-  path: window.location.pathname,
-  hasSession: Boolean(newSession),
-})
+
         if (event === 'PASSWORD_RECOVERY') {
           sessionStorage.setItem(RECOVERY_KEY, 'true')
           setIsPasswordRecovery(true)

@@ -30,7 +30,9 @@ export default function ForgotPassword() {
       })
 
       setError(
-        'No se pudo procesar la solicitud. Intentá nuevamente más tarde.'
+        authError.status === 429
+          ? 'Se enviaron demasiados correos. Esperá unos minutos antes de pedir otro enlace.'
+          : 'No se pudo procesar la solicitud. Intentá nuevamente más tarde.'
       )
       return
     }

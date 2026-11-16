@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout from '../../components/auth/AuthLayout'
 import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
+import { errorEnlaceAuth } from '../../lib/supabase'
 import BackToHome from '../../components/auth/BackToHome'
 
 export default function ResetPassword() {
@@ -42,7 +43,7 @@ export default function ResetPassword() {
         await authService.updatePassword(password)
 
       if (authError) {
-        setError('No se pudo actualizar la contraseña.')
+        setError(mensajeErrorContrasena(authError.code))
         return
       }
       finishPasswordRecovery()
@@ -95,8 +96,9 @@ if (session && !isPasswordRecovery) {
         <BackToHome />
         <h2>Enlace no disponible</h2>
         <p>
-          El enlace es inválido, expiró o ya fue utilizado.
-          Solicitá uno nuevo.
+          {errorEnlaceAuth === 'otp_expired'
+            ? 'El enlace expiró o ya fue utilizado. Solicitá uno nuevo.'
+            : 'El enlace es inválido, expiró o ya fue utilizado. Solicitá uno nuevo.'}
         </p>
 
         <Link className="auth-link" to="/forgot-password">
@@ -149,4 +151,20 @@ if (session && !isPasswordRecovery) {
       </form>
     </AuthLayout>
   )
+}
+
+function mensajeErrorContrasena(codigo?: string) {
+  switch (codigo) {
+    case 'same_password':
+      return 'La nueva contraseña tiene que ser distinta de la anterior.'
+    case 'weak_password':
+      return 'La contraseña es demasiado débil o aparece en filtraciones conocidas. Elegí otra.'
+    case 'session_not_found':
+    case 'session_expired':
+      return 'El enlace de recuperación expiró. Solicitá uno nuevo.'
+    case 'over_request_rate_limit':
+      return 'Demasiados intentos. Esperá unos minutos y volvé a intentar.'
+    default:
+      return 'No se pudo actualizar la contraseña.'
+  }
 }
