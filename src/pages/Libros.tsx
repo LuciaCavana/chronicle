@@ -108,7 +108,7 @@ export default function Libros() {
     searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'compartidos' ? 'compartidos' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
   )
   const [search, setSearch] = useState('')
-  const [filtroAdministracion, setFiltroAdministracion] = useState<'pendientes'|'publicados'|'ocultos'|'borrados'>('pendientes')
+  const [filtroAdministracion, setFiltroAdministracion] = useState<'pendientes'|'publicados'|'ocultos'|'borrados'>(() => { const valor = searchParams.get('seccion'); return valor === 'publicados' || valor === 'ocultos' || valor === 'borrados' ? valor : 'pendientes' })
 
   const [libros, setLibros] = useState<Libro[]>([])
   const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
@@ -297,6 +297,13 @@ export default function Libros() {
     void Promise.resolve().then(cargarLibros)
   }, [])
 
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    setActiveTab(tab === 'administracion' || tab === 'propuestas' || tab === 'compartidos' ? tab : 'catalogo')
+    const seccion = searchParams.get('seccion')
+    setFiltroAdministracion(seccion === 'publicados' || seccion === 'ocultos' || seccion === 'borrados' ? seccion : 'pendientes')
+  }, [searchParams])
+
   function changeTab(tab: BooksTab) {
     setActiveTab(tab)
     setSearch('')
@@ -304,7 +311,7 @@ export default function Libros() {
     if (tab === 'catalogo') {
       setSearchParams({})
     } else {
-      setSearchParams({ tab })
+      setSearchParams(tab === 'administracion' ? { tab, seccion: filtroAdministracion } : { tab })
     }
   }
 
@@ -516,7 +523,7 @@ async function borrarPropuesta(
               ['ocultos','Libros ocultos'],
               ['borrados','Libros borrados']
             ] as const).map(([clave, nombre]) => (
-              <button key={clave} type="button" className={`libros-tab ${filtroAdministracion === clave ? 'libros-tab--active' : ''}`} onClick={() => {setFiltroAdministracion(clave);setSearch('')}}>{nombre}</button>
+              <button key={clave} type="button" className={`libros-tab ${filtroAdministracion === clave ? 'libros-tab--active' : ''}`} onClick={() => {setFiltroAdministracion(clave);setSearch('');setSearchParams({tab:'administracion',seccion:clave})}}>{nombre}</button>
             ))}
           </div>
         )}
@@ -678,7 +685,7 @@ async function borrarPropuesta(
                           <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(propuesta.id)}><Share2 size={16}/> Compartir</button>
                           <button type="button" className="libros-admin-button" onClick={() => setHistorialId(propuesta.id)}><History size={16}/> Historial de versiones</button>
                           <button type="button" className="libros-admin-button" onClick={() => setHistorialAprobacionId(propuesta.id)}><History size={16}/> Historial de aprobaciones</button>
-                          <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
+                          <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}?origen=propuestas`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
                         </div>
                       </details>
                       <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
@@ -697,7 +704,7 @@ async function borrarPropuesta(
               .map(p=><article className="libros-item" key={p.id}>
                 <div className="libros-item-icon"><FileText size={24}/></div>
                 <div className="libros-item-info"><h3>{p.titulo || t('books.untitled')}</h3><p>{p.metadatos_libro?.editorial || t('books.noPublisher')}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? t('books.editorRole') : t('books.readerRole')}</span><span>{p.pendiente_aprobacion ? t('books.pending') : t('books.sharedDraft')}</span></div></div>
-                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
+                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}?origen=compartidos`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
                 {historialId === p.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
               </article>)}
 
@@ -790,7 +797,7 @@ async function borrarPropuesta(
                       <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoLibroId(libro.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
                     )}
 
-                    {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}?origen=administracion`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
+                    {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}?origen=administracion&seccion=${filtroAdministracion}`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
                     {libro.estado === 'publicado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'ocultar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><EyeOff size={16}/> Ocultar</button>}
                     {libro.estado === 'oculto' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'mostrar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Eye size={16}/> Volver a mostrar</button>}
                     {(libro.estado === 'publicado'||libro.estado === 'oculto') && <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'eliminar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Trash2 size={16}/> Borrar</button>}
