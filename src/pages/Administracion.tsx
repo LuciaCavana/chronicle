@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/useAuth'
-import { soyAdminMotor } from '../services/chronicleLibros'
 import '../styles/Administracion.css'
 
 type Rol = 'creator' | 'admin' | 'user'
@@ -18,10 +17,8 @@ type Filtro = 'todos' | Rol
 const etiquetas: Record<Rol, string> = { creator: 'Creador', admin: 'Administrador', user: 'Usuario' }
 
 export default function Administracion() {
-  const { session, loading: cargandoSesion } = useAuth()
-  const [autorizado, setAutorizado] = useState<boolean | null>(null)
+  const { session, loading: cargandoSesion, role, roleLoading } = useAuth()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
-  const [esPropietario, setEsPropietario] = useState(false)
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
@@ -35,37 +32,29 @@ export default function Administracion() {
     setUsuarios((data ?? []) as Usuario[])
   }
 
+  // Permisos derivados del rol de la sesión; Supabase vuelve a verificarlos en cada RPC.
+  const userId = session?.user.id
+  const verificando = cargandoSesion || roleLoading
+  const esPropietario = role === 'creator'
+  const puedeAdministrar = role === 'creator' || role === 'admin'
+  const [falloCarga, setFalloCarga] = useState(false)
+  const autorizado = verificando ? null : Boolean(userId) && puedeAdministrar && !falloCarga
+
   useEffect(() => {
-    if (cargandoSesion) return
-    if (!session) { setAutorizado(false); setCargandoUsuarios(false); return }
+    if (verificando || !userId || !puedeAdministrar) return
     let activo = true
-    setAutorizado(null)
-    setCargandoUsuarios(true)
-    setError('')
-    async function iniciar() {
-      try {
-        const [{ data: propietario, error: errorPropietario }, admin] = await Promise.all([
-          supabase.rpc('chronicle_es_propietario'),
-          soyAdminMotor(),
-        ])
-        if (errorPropietario) throw errorPropietario
-        if (!activo) return
-        const owner = Boolean(propietario)
-        setEsPropietario(owner)
-        setAutorizado(owner || admin)
-        if (!owner && !admin) return
-        const { data, error: errorLista } = await supabase.rpc('chronicle_listar_usuarios_roles')
-        if (errorLista) throw errorLista
-        if (activo) setUsuarios((data ?? []) as Usuario[])
-      } catch (err) {
-        if (activo) { setError(err instanceof Error ? err.message : 'No se pudieron consultar los usuarios.'); setAutorizado(false) }
-      } finally {
-        if (activo) setCargandoUsuarios(false)
+    void supabase.rpc('chronicle_listar_usuarios_roles').then(({ data, error: errorLista }) => {
+      if (!activo) return
+      if (errorLista) {
+        setError(errorLista.message || 'No se pudieron consultar los usuarios.')
+        setFalloCarga(true)
+      } else {
+        setUsuarios((data ?? []) as Usuario[])
       }
-    }
-    void iniciar()
+      setCargandoUsuarios(false)
+    })
     return () => { activo = false }
-  }, [session?.user.id, cargandoSesion])
+  }, [verificando, userId, puedeAdministrar])
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase()

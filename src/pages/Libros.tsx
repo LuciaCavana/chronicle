@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
+  Undo2,
   XCircle,
   Eye,
   EyeOff,
@@ -27,8 +28,10 @@ import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrado
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
-import { enviarBorradorAprobacion } from '../services/libros'
+import { enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
 import '../styles/Libros.css'
+import { useLanguage } from '../i18n/useLanguage'
+import type { TranslationKey } from '../i18n/translations'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
 
@@ -72,11 +75,11 @@ type Libro = {
   libro_versiones: VersionLibro[]
 }
 
-const tabs: { id: BooksTab; label: string; icon: LucideIcon }[] = [
-  { id: 'catalogo', label: 'Catálogo', icon: LibraryBig },
-  { id: 'propuestas', label: 'Mis propuestas', icon: FileText },
-  { id: 'compartidos', label: 'Compartidos conmigo', icon: BookOpen },
-  { id: 'administracion', label: 'Administración', icon: Shield },
+const tabs: { id: BooksTab; label: TranslationKey; icon: LucideIcon }[] = [
+  { id: 'catalogo', label: 'books.catalog', icon: LibraryBig },
+  { id: 'propuestas', label: 'books.proposals', icon: FileText },
+  { id: 'compartidos', label: 'books.shared', icon: BookOpen },
+  { id: 'administracion', label: 'books.admin', icon: Shield },
 ]
 
 const etiquetasEstado: Record<EstadoLibro, string> = {
@@ -97,6 +100,7 @@ const mensajesEstado: Record<EstadoLibro, string> = {
 
 export default function Libros() {
   const [searchParams, setSearchParams] = useSearchParams()
+  const { t } = useLanguage()
 
   const [activeTab, setActiveTab] = useState<BooksTab>(
     searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'compartidos' ? 'compartidos' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
@@ -269,7 +273,8 @@ export default function Libros() {
   }
 
   useEffect(() => {
-    void cargarLibros()
+    // La carga corre como callback de una promesa: el efecto no actualiza estado de forma síncrona.
+    void Promise.resolve().then(cargarLibros)
   }, [])
 
   function changeTab(tab: BooksTab) {
@@ -402,6 +407,21 @@ async function borrarPropuesta(
     }
   }
 
+  async function retirarDeRevision(propuestaId: string) {
+    if (actualizandoId) return
+    setActualizandoId(propuestaId)
+    setError('')
+    try {
+      await retirarDeAprobacion(propuestaId)
+      setPropuestasNuevas(actuales => actuales.map(p => p.id === propuestaId ? { ...p, pendiente_aprobacion: false } : p))
+      await cargarLibros()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo retirar de aprobación.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
   async function aprobarBorrador(propuestaId: string) {
     if (!esAdministrador || actualizandoId) return
     setActualizandoId(propuestaId)
@@ -448,11 +468,11 @@ async function borrarPropuesta(
   }
 
   return (
-    <AppLayout title="Libros" subtitle="Explorá los libros de Chronicle">
+    <AppLayout title={t('books.title')} subtitle={t('books.subtitle')}>
       <div className="libros">
         <Link to="/biblioteca" className="libros-back">
           <ArrowLeft size={18} />
-          Volver a Biblioteca
+          {t('books.back')}
         </Link>
 
         <div className="libros-tabs">
@@ -468,7 +488,7 @@ async function borrarPropuesta(
                 onClick={() => changeTab(id)}
               >
                 <Icon size={18} />
-                {label}
+                {t(label)}
               </button>
             ))}
         </div>
@@ -476,8 +496,8 @@ async function borrarPropuesta(
         {activeTab === 'propuestas' && (
           <div className="libros-propuestas-header">
             <div>
-              <h2>Mis propuestas</h2>
-              <p>Gestioná los libros que querés incorporar a Chronicle.</p>
+              <h2>{t('books.proposals')}</h2>
+              <p>{t('books.manage')}</p>
             </div>
 
             <Link
@@ -485,7 +505,7 @@ async function borrarPropuesta(
               className="libros-new-button"
             >
               <Plus size={18} />
-              Nueva propuesta
+              {t('books.new')}
             </Link>
           </div>
         )}
@@ -498,17 +518,17 @@ async function borrarPropuesta(
             onChange={(event) => setSearch(event.target.value)}
             placeholder={
               activeTab === 'catalogo'
-                ? 'Buscar libros...'
-                : activeTab === 'administracion' ? 'Buscar pendientes...' : activeTab === 'compartidos' ? 'Buscar compartidos...' : 'Buscar mis borradores...'
+                ? t('books.searchCatalog')
+                : activeTab === 'administracion' ? t('books.searchAdmin') : activeTab === 'compartidos' ? t('books.searchShared') : t('books.searchDrafts')
             }
-            aria-label="Buscar"
+            aria-label={t('books.search')}
           />
         </div>
 
         {esAdministrador && (
           <div className="libros-admin-info">
             <ShieldCheck size={18} />
-            <span>Tenés permisos de administración.</span>
+            <span>{t('books.adminAccess')}</span>
           </div>
         )}
 
@@ -527,11 +547,11 @@ async function borrarPropuesta(
         {cargando ? (
           <div className="libros-empty">
             <RefreshCw size={32} />
-            <p>Cargando libros...</p>
+            <p>{t('books.loading')}</p>
           </div>
         ) : error ? (
           <div className="libros-empty">
-            <h2>No se pudieron cargar los libros</h2>
+            <h2>{t('books.loadError')}</h2>
             <p role="alert">{error}</p>
             <button type="button" onClick={cargarLibros}>
               Reintentar
@@ -556,14 +576,14 @@ async function borrarPropuesta(
             {activeTab === 'catalogo' ? (
               <>
                 <BookOpen size={46} strokeWidth={1.4} />
-                <h2>No hay libros disponibles</h2>
-                <p>Los libros publicados aparecerán en este catálogo.</p>
+                <h2>{t('books.emptyCatalog')}</h2>
+                <p>{t('books.emptyCatalogDescription')}</p>
               </>
             ) : (
               <>
                 <FileText size={46} strokeWidth={1.4} />
-                <h2>No se encontraron propuestas</h2>
-                <p>Podés crear una desde Nueva propuesta.</p>
+                <h2>{t('books.emptyProposals')}</h2>
+                <p>{t('books.emptyProposalsDescription')}</p>
               </>
             )}
           </div>
@@ -575,17 +595,17 @@ async function borrarPropuesta(
                 <article className="libros-item" key={`admin-borrador-${propuesta.id}`}>
                   <div className="libros-item-icon"><FileText size={24}/></div>
                   <div className="libros-item-info">
-                    <h3>{propuesta.titulo || 'Libro sin título'}</h3>
-                    <p>{propuesta.metadatos_libro?.editorial || 'Sin editorial'}</p>
+                    <h3>{propuesta.titulo || t('books.untitled')}</h3>
+                    <p>{propuesta.metadatos_libro?.editorial || t('books.noPublisher')}</p>
                     <div className="libros-item-details">
-                      <span>{propuesta.revision_resultante_id ? 'Borrador con copia publicada' : 'Borrador sin publicar'}</span>
+                      <span>{propuesta.revision_resultante_id ? t('books.draftPublished') : t('books.draftUnpublished')}</span>
                       <span>{propuesta.idioma.toUpperCase()}</span>
                       {propuesta.metadatos_libro?.codigo && <span>{propuesta.metadatos_libro.codigo}</span>}
                     </div>
                   </div>
                   <div className="libros-admin-actions">
                     {propuesta.pendiente_aprobacion && <>
-                    <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void aprobarBorrador(propuesta.id)}><CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? 'Guardando...' : propuesta.revision_resultante_id ? 'Aprobar cambios' : 'Aprobar y publicar'}</button>
+                    <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void aprobarBorrador(propuesta.id)}><CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? t('books.saving') : propuesta.revision_resultante_id ? t('books.approveChanges') : t('books.approvePublish')}</button>
                     <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoId(propuesta.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
                     </>}
                   </div>
@@ -625,22 +645,23 @@ async function borrarPropuesta(
 
                       <div className="libros-item-details">
                         <span>{propuesta.idioma.toUpperCase()}</span>
-                        <span>{propuesta.pendiente_aprobacion ? 'Pendiente de aprobación' : propuesta.revision_resultante_id ? 'Versión aprobada / Sin cambios enviados' : 'Sin enviar a aprobación'}</span>
-                        {!propuesta.pendiente_aprobacion && propuesta.motivo_resolucion && <span className="libros-rechazo-motivo">Rechazada: {propuesta.motivo_resolucion}</span>}
+                        <span>{propuesta.pendiente_aprobacion ? t('books.pending') : propuesta.revision_resultante_id ? t('books.approvedNoChanges') : t('books.unsent')}</span>
+                        {!propuesta.pendiente_aprobacion && propuesta.motivo_resolucion && <span className="libros-rechazo-motivo">{t('books.rejectedPrefix')} {propuesta.motivo_resolucion}</span>}
                       </div>
                     </div>
                                       
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
-                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title="Enviar a aprobación" aria-label="Enviar a aprobación" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
-                      <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-label={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
-                      <button type="button" className="libros-admin-button libros-icon-action" title="Historial" aria-label="Historial" aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
-                      <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button libros-icon-action" title="Lectura" aria-label="Lectura"><BookOpen size={18} aria-hidden="true" /></Link>
+                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
+                      {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-icon-action" title={t('books.withdraw')} aria-label={t('books.withdraw')} disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={18} aria-hidden="true" /></button>}
+                      <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-label={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
+                      <button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
+                      <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button libros-icon-action" title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link>
                       <Link
                         to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
                         className="libros-admin-button libros-icon-action"
-                        title="Editar"
-                        aria-label="Editar"
+                        title={t('books.edit')}
+                        aria-label={t('books.edit')}
                       >
                         <Pencil size={18} aria-hidden="true" />
                       </Link>
@@ -648,8 +669,8 @@ async function borrarPropuesta(
                       <button
                         type="button"
                         className="libros-admin-button libros-admin-button--delete libros-icon-action"
-                        title="Borrar"
-                        aria-label="Borrar"
+                        title={t('books.delete')}
+                        aria-label={t('books.delete')}
                         disabled={actualizandoId !== null}
                         onClick={() =>
                           setPropuestaParaBorrar({
@@ -663,8 +684,8 @@ async function borrarPropuesta(
 
                     </div>
                   )}
-                  {compartiendoId === propuesta.id && <ModalBorrador titulo="Compartir borrador" onClose={() => setCompartiendoId(null)}><ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} /></ModalBorrador>}
-                  {historialId === propuesta.id && <ModalBorrador titulo="Historial de versiones" onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
+                  {compartiendoId === propuesta.id && <ModalBorrador titulo={t('books.shareDraft')} onClose={() => setCompartiendoId(null)}><ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} /></ModalBorrador>}
+                  {historialId === propuesta.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
 
                   </article>
                 ))}
@@ -673,9 +694,9 @@ async function borrarPropuesta(
               .filter(p=>!textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda))
               .map(p=><article className="libros-item" key={p.id}>
                 <div className="libros-item-icon"><FileText size={24}/></div>
-                <div className="libros-item-info"><h3>{p.titulo || 'Libro sin título'}</h3><p>{p.metadatos_libro?.editorial || 'Sin editorial'}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? 'Editora' : 'Lectora'}</span><span>{p.pendiente_aprobacion ? 'Pendiente de aprobación' : 'Borrador compartido'}</span></div></div>
-                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}`} title="Lectura" aria-label="Lectura"><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? 'Editar' : 'Ver borrador'} aria-label={p.rolColaborador === 'editor' ? 'Editar' : 'Ver borrador'}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title="Historial" aria-label="Historial" aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
-                {historialId === p.id && <ModalBorrador titulo="Historial de versiones" onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
+                <div className="libros-item-info"><h3>{p.titulo || t('books.untitled')}</h3><p>{p.metadatos_libro?.editorial || t('books.noPublisher')}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? t('books.editorRole') : t('books.readerRole')}</span><span>{p.pendiente_aprobacion ? t('books.pending') : t('books.sharedDraft')}</span></div></div>
+                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
+                {historialId === p.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
               </article>)}
 
             {librosFiltrados.map((libro) => (
@@ -691,8 +712,8 @@ async function borrarPropuesta(
                   </h3>
 
                   <p>
-                    {libro.editorial || 'Sin editorial'}
-                    {libro.edicion ? ` · Edición ${libro.edicion}` : ''}
+                    {libro.editorial || t('books.noPublisher')}
+                    {libro.edicion ? ` · ${t('books.edition')} ${libro.edicion}` : ''}
                   </p>
 
                   <div className="libros-item-details">
@@ -704,11 +725,11 @@ async function borrarPropuesta(
                       </span>
                     ))}
 
-                    <span>{etiquetasEstado[libro.estado]}</span>
+                    <span>{t(({pendiente:'books.pending',publicado:'books.published',oculto:'books.hidden',eliminado:'books.deleted',rechazado:'books.rejected'} as const)[libro.estado])}</span>
                   </div>
                 </div>
 
-                {activeTab === 'propuestas' && libro.estado === 'rechazado' && libro.motivo_rechazo && <p className="libros-rechazo-motivo">Motivo del rechazo: {libro.motivo_rechazo}</p>}
+                {activeTab === 'propuestas' && libro.estado === 'rechazado' && libro.motivo_rechazo && <p className="libros-rechazo-motivo">{t('books.rejectionReason')} {libro.motivo_rechazo}</p>}
 
                 {libro.estado === 'publicado' && activeTab !== 'administracion' && (
                   <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer libro</Link>
@@ -794,19 +815,19 @@ async function borrarPropuesta(
       </div>
 
       {rechazandoLibroId && <ModalBorrador titulo="Rechazar libro" onClose={()=>setRechazandoLibroId(null)}>
-        <div className="libros-rechazo-modal"><h3>Rechazar libro</h3><p>El motivo quedará disponible para el autor en Mis propuestas.</p>
-        <label htmlFor="motivo-rechazo-libro">Motivo del rechazo (obligatorio)</label>
-        <textarea id="motivo-rechazo-libro" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder="Indicá qué debe corregirse." />
+        <div className="libros-rechazo-modal"><h3>{t('books.rejectBook')}</h3><p>{t('books.rejectBookInfo')}</p>
+        <label htmlFor="motivo-rechazo-libro">{t('books.reason')}</label>
+        <textarea id="motivo-rechazo-libro" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder={t('books.reasonPlaceholder')} />
         {error&&<p role="alert">{error}</p>}
-        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoLibroId(null)}>Cancelar</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarLibro()}>Confirmar rechazo</button></div></div>
+        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoLibroId(null)}>{t('books.cancel')}</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarLibro()}>{t('books.confirmReject')}</button></div></div>
       </ModalBorrador>}
 
       {rechazandoId && <ModalBorrador titulo="Rechazar propuesta" onClose={()=>setRechazandoId(null)}>
-        <div className="libros-rechazo-modal"><h3>Rechazar propuesta</h3><p>Explicá al autor por qué se rechaza. El motivo quedará visible en Mis propuestas.</p>
-        <label htmlFor="motivo-rechazo">Motivo del rechazo (obligatorio)</label>
-        <textarea id="motivo-rechazo" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder="Indicá qué debe corregirse para volver a enviar la propuesta." />
+        <div className="libros-rechazo-modal"><h3>{t('books.rejectProposal')}</h3><p>{t('books.rejectProposalInfo')}</p>
+        <label htmlFor="motivo-rechazo">{t('books.reason')}</label>
+        <textarea id="motivo-rechazo" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder={t('books.reasonProposalPlaceholder')} />
         {error&&<p role="alert">{error}</p>}
-        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoId(null)}>Cancelar</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarBorrador()}>Confirmar rechazo</button></div></div>
+        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoId(null)}>{t('books.cancel')}</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarBorrador()}>{t('books.confirmReject')}</button></div></div>
       </ModalBorrador>}
 
       {propuestaParaBorrar && (

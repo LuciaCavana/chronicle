@@ -5,6 +5,8 @@ import type { Session } from '@supabase/supabase-js'
 export type AuthContextType = {
   session: Session | null
   loading: boolean
+  role: 'creator' | 'admin' | 'user' | null
+  roleLoading: boolean
   isPasswordRecovery: boolean
   finishPasswordRecovery: () => void
 }

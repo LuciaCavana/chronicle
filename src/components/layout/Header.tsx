@@ -7,6 +7,7 @@ import { authService } from '../../services/authService'
 import { supabase } from '../../lib/supabase'
 import { EVENTO_AVATAR, urlAvatar, type AvatarPerfil } from '../../services/avatar'
 import '../../styles/Header.css'
+import { useLanguage } from '../../i18n/useLanguage'
 
 type HeaderProps = {
   title: string
@@ -16,6 +17,7 @@ type HeaderProps = {
 
 export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
   const { session } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -25,14 +27,15 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
   const email = session?.user.email ?? ''
   const initial = email.charAt(0).toUpperCase() || '?'
   const userId = session?.user.id
-  const [avatar, setAvatar] = useState<string | null>(null)
+  const [avatarCargado, setAvatarCargado] = useState<{ userId: string; url: string | null } | null>(null)
+  const avatar = userId && avatarCargado?.userId === userId ? avatarCargado.url : null
 
   useEffect(() => {
-    if (!userId) { setAvatar(null); return }
+    if (!userId) return
     let activo = true
     void supabase.from('profiles').select('avatar_url,avatar_source').eq('id', userId).maybeSingle()
-      .then(({ data }) => { if (activo) setAvatar(urlAvatar(data)) })
-    const alCambiar = (evento: Event) => setAvatar(urlAvatar((evento as CustomEvent<AvatarPerfil>).detail))
+      .then(({ data }) => { if (activo) setAvatarCargado({ userId, url: urlAvatar(data) }) })
+    const alCambiar = (evento: Event) => setAvatarCargado({ userId, url: urlAvatar((evento as CustomEvent<AvatarPerfil>).detail) })
     window.addEventListener(EVENTO_AVATAR, alCambiar)
     return () => { activo = false; window.removeEventListener(EVENTO_AVATAR, alCambiar) }
   }, [userId])
@@ -106,12 +109,12 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
 
               <button type="button" onClick={() => { setMenuOpen(false); navigate("/perfil") }}>
                 <UserRound size={17} />
-                Mi perfil
+                {t('nav.profile')}
               </button>
 
               <button type="button" onClick={() => { setMenuOpen(false); navigate("/configuracion") }}>
                 <Settings size={17} />
-                Configuración
+                {t('nav.settings')}
               </button>
 
               <div className="app-header-dropdown-divider" />
@@ -122,7 +125,7 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
                 disabled={loading}
               >
                 <LogOut size={17} />
-                {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
+                {loading ? t('nav.loggingOut') : t('nav.logout')}
               </button>
             </div>
           )}

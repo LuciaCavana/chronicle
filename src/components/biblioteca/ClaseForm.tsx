@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { ChevronDown, GripVertical } from 'lucide-react'
 import { EditorDescripcion } from '../shared/EditorDescripcion'
 import type { Elemento } from '../../services/chronicleLibros'
@@ -148,8 +148,9 @@ type CampoNumeroProps = { value: number; min: number; max?: number; onChange: (v
 function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
   const [texto, setTexto] = useState(String(value))
   const [enEdicion, setEnEdicion] = useState(false)
-  useEffect(() => { if (!enEdicion) setTexto(String(value)) }, [value, enEdicion])
   const ajustar = (numero: number) => Math.max(min, Math.min(max ?? Number.MAX_SAFE_INTEGER, Math.floor(numero)))
+  // Fuera de edición se muestra siempre el valor recibido.
+  const textoVisible = enEdicion ? texto : String(value)
   const confirmar = () => {
     const nuevo = texto === '' ? min : ajustar(Number(texto))
     setEnEdicion(false)
@@ -157,15 +158,15 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
     if (nuevo !== value) onChange(nuevo)
   }
   const paso = (incremento: number) => {
-    const nuevo = ajustar((texto === '' ? value : Number(texto)) + incremento)
+    const nuevo = ajustar((textoVisible === '' ? value : Number(textoVisible)) + incremento)
     setEnEdicion(false)
     setTexto(String(nuevo))
     if (nuevo !== value) onChange(nuevo)
   }
   return (
     <div className="clase-form__numero">
-      <input type="text" inputMode="numeric" pattern="[0-9]*" value={texto}
-        onFocus={() => setEnEdicion(true)}
+      <input type="text" inputMode="numeric" pattern="[0-9]*" value={textoVisible}
+        onFocus={() => { setTexto(String(value)); setEnEdicion(true) }}
         onChange={e => { if (/^\d*$/.test(e.target.value)) setTexto(e.target.value) }}
         onBlur={confirmar} />
       <div className="clase-form__numero-controles">

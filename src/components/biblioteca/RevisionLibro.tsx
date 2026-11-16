@@ -1,3 +1,4 @@
+import { useLanguage } from '../../i18n/useLanguage'
 
 type Categoria = {
   id: string
@@ -35,6 +36,7 @@ export default function RevisionLibro({
   cantidadSubclases = 0,
   cantidadObjetos = 0,
 }: RevisionLibroProps) {
+  const { t } = useLanguage()
   const clasificaciones: Record<string, string> = {
     source: 'Source',
     partnered: 'Partnered',
@@ -55,7 +57,7 @@ export default function RevisionLibro({
 const advertencias: string[] = []
 
 if (categorias.length === 0) {
-  advertencias.push('No seleccionaste ninguna categoría.')
+  advertencias.push(t('review.warningCategory'))
 }
 
 if (
@@ -63,20 +65,20 @@ if (
   cantidadEspecies === 0
 ) {
   advertencias.push(
-    'La categoría Especies no tiene elementos cargados.'
+    t('review.warningSpecies')
   )
 }
 
 if (categorias.some(categoria => categoria.id === 'objetos') && cantidadObjetos === 0) {
-  advertencias.push('La categoría Objetos y equipo no tiene elementos cargados.')
+  advertencias.push(t('review.warningItems'))
 }
 
 if (categorias.some(categoria => categoria.id === 'subclases') && cantidadSubclases === 0) {
-  advertencias.push('La categoría Subclases no tiene elementos cargados.')
+  advertencias.push(t('review.warningSubclasses'))
 }
 
 if (categorias.some(categoria => categoria.id === 'clases') && cantidadClases === 0) {
-  advertencias.push('La categoría Clases no tiene elementos cargados.')
+  advertencias.push(t('review.warningClasses'))
 }
 
 if (
@@ -84,7 +86,7 @@ if (
   cantidadConjuros === 0
 ) {
   advertencias.push(
-    'La categoría Conjuros no tiene elementos cargados.'
+    t('review.warningSpells')
   )
 }
 
@@ -92,41 +94,41 @@ if (
   return (
     <div className="revision-libro">
       <section className="nueva-propuesta-panel">
-        <h3>Información general</h3>
+        <h3>{t('review.general')}</h3>
 
-        <p><strong>Título:</strong> {titulo || 'Sin completar'}</p>
-        <p><strong>Referencia:</strong> {codigo || 'No especificada'}</p>
-        <p><strong>Edición:</strong> {edicion || 'No especificada'}</p>
-        <p><strong>Autor / Editorial:</strong> {editorial || 'No especificado'}</p>
+        <p><strong>{t('review.title')}</strong> {titulo || t('review.incomplete')}</p>
+        <p><strong>{t('review.reference')}</strong> {codigo || t('review.unspecifiedF')}</p>
+        <p><strong>{t('review.edition')}</strong> {edicion || t('review.unspecifiedF')}</p>
+        <p><strong>{t('review.publisher')}</strong> {editorial || t('review.unspecifiedM')}</p>
         <p>
-          <strong>Clasificación:</strong>{' '}
-          {clasificaciones[clasificacion] || 'Sin completar'}
+          <strong>{t('review.classification')}</strong>{' '}
+          {clasificaciones[clasificacion] || t('review.incomplete')}
         </p>
-        <p><strong>Idioma:</strong> {idiomas[idioma] || idioma}</p>
-        <p><strong>Descripción:</strong> {descripcion || 'Sin descripción'}</p>
+        <p><strong>{t('review.language')}</strong> {idiomas[idioma] || idioma}</p>
+        <p><strong>{t('review.description')}</strong> {descripcion || t('review.noDescription')}</p>
       </section>
 
       <section className="nueva-propuesta-panel">
-        <h3>Contenido del libro</h3>
+        <h3>{t('review.content')}</h3>
 
         {categorias.length === 0 ? (
-          <p>No seleccionaste categorías.</p>
+          <p>{t('review.noCategories')}</p>
         ) : (
           <ul>
             {categorias.map((categoria) => (
               <li key={categoria.id}>
                 {categoria.label}
                 {categoria.id === 'especies'
-                ? ` — ${cantidadEspecies} especie(s)`
+                ? ` — ${cantidadEspecies} ${t('review.species')}`
                 : categoria.id === 'clases'
-                    ? ` — ${cantidadClases} clase(s)`
+                    ? ` — ${cantidadClases} ${t('review.classes')}`
                 : categoria.id === 'subclases'
-                    ? ` — ${cantidadSubclases} subclase(s)`
+                    ? ` — ${cantidadSubclases} ${t('review.subclasses')}`
                 : categoria.id === 'objetos'
-                    ? ` — ${cantidadObjetos} objeto(s)`
+                    ? ` — ${cantidadObjetos} ${t('review.items')}`
                 : categoria.id === 'conjuros'
-                    ? ` — ${cantidadConjuros} conjuro(s)`
-                    : ' — Sin elementos cargados'}
+                    ? ` — ${cantidadConjuros} ${t('review.spells')}`
+                    : ` — ${t('review.noElements')}`}
               </li>
             ))}
           </ul>
@@ -135,15 +137,14 @@ if (
 
       {advertencias.length > 0 && (
         <section className="nueva-propuesta-panel">
-          <h3>Advertencias</h3>
+          <h3>{t('review.warnings')}</h3>
           <ul>
             {advertencias.map((advertencia) => (
               <li key={advertencia}>{advertencia}</li>
             ))}
           </ul>
           <p>
-            Estas advertencias son informativas y no impiden
-            guardar la propuesta.
+            {t('review.warningInfo')}
           </p>
         </section>
       )}

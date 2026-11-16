@@ -1,3 +1,4 @@
+import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
@@ -24,15 +25,18 @@ import RevisionLibro from '../components/biblioteca/RevisionLibro'
 import {
   actualizarLibro,
   guardarPropuesta,
+  listarVersionesPublicadas,
   obtenerLibroParaEditar,
   obtenerPropuestaParaEditar,
   guardarElementosCompartidos,
+  retirarDeAprobacion,
 } from '../services/libros'
 
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
 
 type TipoPropuesta = 'nuevo' | 'traduccion'
+type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
 
 const pasos = ['1. Información general', '2. Contenido', '3. Revisión']
 
@@ -81,6 +85,42 @@ export default function NuevaPropuesta() {
   // Tipo de propuesta
   const [tipoPropuesta, setTipoPropuesta] = useState<TipoPropuesta>('nuevo')
   const [libroOriginalId, setLibroOriginalId] = useState('')
+  const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
+  const [errorVersiones, setErrorVersiones] = useState('')
+
+  useEffect(() => {
+    if (tipoPropuesta !== 'traduccion' || modoEdicion) return
+    let activo = true
+    void listarVersionesPublicadas().then(versiones => {
+      if (activo) { setVersionesPublicadas(versiones); setErrorVersiones('') }
+    }).catch(error => {
+      if (activo) setErrorVersiones(error instanceof Error ? error.message : 'No se pudieron cargar los libros publicados.')
+    })
+    return () => { activo = false }
+  }, [tipoPropuesta, modoEdicion])
+
+  function seleccionarOrigen(versionId: string) {
+    setLibroOriginalId(versionId)
+    const origen = versionesPublicadas.find(version => version.id === versionId)
+    if (!origen) return
+    setTitle(origen.titulo ?? '')
+    setBookCode(origen.codigo ?? '')
+    setEdition(origen.edicion ?? '')
+    setPublisher(origen.editorial ?? '')
+    setBookType(origen.clasificacion ?? '')
+    setDescription(origen.descripcion ?? '')
+    setSelectedCategories(origen.categorias ?? [])
+    setEspecies((origen.especies ?? []) as Especie[])
+    setConjuros((origen.conjuros ?? []) as Conjuro[])
+    setClases((origen.clases ?? []) as Elemento[])
+    setSubclases((origen.subclases ?? []) as Elemento[])
+    setObjetos((origen.objetos ?? []) as Elemento[])
+    setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
+    setDotes([])
+    setTrasfondos([])
+    setCriaturas([])
+    if (idioma === origen.idioma) setIdioma(idiomas.find(item => item.value !== origen.idioma)?.value ?? idioma)
+  }
 
   // Información general
   const [title, setTitle] = useState('')
@@ -109,6 +149,8 @@ export default function NuevaPropuesta() {
   const [clases, setClases] = useState<Elemento[]>([])
   const [subclases, setSubclases] = useState<Elemento[]>([])
   const [objetos, setObjetos] = useState<Elemento[]>([])
+  const [caracteristicas, setCaracteristicas] = useState<CaracteristicaLibro[]>([])
+  const [editingCaracteristicaId, setEditingCaracteristicaId] = useState<string | null>(null)
   const [editingObjectId, setEditingObjectId] = useState<string | null>(null)
   const [editingSubclassId, setEditingSubclassId] = useState<string | null>(null)
   const [editingClassId, setEditingClassId] = useState<string | null>(null)
@@ -126,6 +168,9 @@ export default function NuevaPropuesta() {
   const baseColaborativa = useRef<Record<string, unknown> | null>(null)
   const [versionRemota, setVersionRemota] = useState<number | null>(null)
   const [accesoCompartido, setAccesoCompartido] = useState<'propietario' | 'editor' | 'lector'>('propietario')
+  const [pendienteAprobacion, setPendienteAprobacion] = useState(false)
+  const [retirando, setRetirando] = useState(false)
+  const [errorRetiro, setErrorRetiro] = useState('')
 
   // Eventos del servidor: aviso inmediato al guardarse una versión nueva.
   useEffect(() => {
@@ -200,6 +245,7 @@ export default function NuevaPropuesta() {
         clases?: Elemento[]
         subclases?: Elemento[]
         objetos?: Elemento[]
+        caracteristicas?: CaracteristicaLibro[]
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -218,6 +264,7 @@ export default function NuevaPropuesta() {
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
       setObjetos(contenido.objetos ?? [])
+      setCaracteristicas(contenido.caracteristicas ?? [])
       baseColaborativa.current = {
         row_version: propuesta.row_version,
         titulo: propuesta.titulo ?? '',
@@ -228,6 +275,7 @@ export default function NuevaPropuesta() {
         contenido: propuesta.contenido ?? {},
       }
       setRowVersion(propuesta.row_version)
+      setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
       setCurrentStep(1)
 
@@ -266,6 +314,7 @@ export default function NuevaPropuesta() {
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
         setObjetos((version.objetos ?? []) as Elemento[])
+        setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -358,8 +407,24 @@ export default function NuevaPropuesta() {
     )
   }
 
+  async function handleRetirarAprobacion() {
+    if (!propuestaId || retirando) return
+    setRetirando(true)
+    setErrorRetiro('')
+    try {
+      await retirarDeAprobacion(propuestaId)
+      setPendienteAprobacion(false)
+    } catch (error) {
+      setErrorRetiro(
+        error instanceof Error ? error.message : 'No se pudo retirar el borrador de aprobación.'
+      )
+    } finally {
+      setRetirando(false)
+    }
+  }
+
   async function handleGuardarLibro() {
-    if (guardando || cargandoLibro || accesoCompartido === 'lector' || tipoPropuesta !== 'nuevo') {
+    if (guardando || cargandoLibro || accesoCompartido === 'lector' || pendienteAprobacion) {
       return
     }
 
@@ -369,6 +434,12 @@ export default function NuevaPropuesta() {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
       setCurrentStep(2)
       return
+    }
+
+    if (tipoPropuesta === 'traduccion') {
+      const origen = versionesPublicadas.find(version => version.id === libroOriginalId)
+      if (!modoEdicion && !origen) { setErrorGuardado('Seleccioná un libro publicado como origen.'); return }
+      if (origen && origen.idioma === idioma) { setErrorGuardado('La traducción debe tener un idioma distinto del original.'); return }
     }
 
     if (!title.trim() || !bookType || !idioma) {
@@ -416,6 +487,7 @@ export default function NuevaPropuesta() {
         clases,
         subclases,
         objetos,
+        caracteristicas,
       }
 
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
@@ -427,12 +499,14 @@ export default function NuevaPropuesta() {
           idioma: datos.idioma,
           categorias: datos.categorias,
           metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
-          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos },
+          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas },
         })
       } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
       } else {
-        await guardarPropuesta(datos)
+        const origen = versionesPublicadas.find(version => version.id === libroOriginalId)
+        if (tipoPropuesta === 'traduccion' && !origen) throw new Error('Seleccioná una versión publicada como origen.')
+        await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
 
 
@@ -476,7 +550,26 @@ export default function NuevaPropuesta() {
         </Link>
 
         {modoEdicionBorrador && accesoCompartido !== 'propietario' && <p className="nueva-propuesta-help" role="status">Borrador compartido · {accesoCompartido === 'editor' ? 'Permiso de edición' : 'Solo lectura'}</p>}
-        {accesoCompartido === 'lector' ? <section className="nueva-propuesta-panel"><h3>{title}</h3><p>{description || 'Sin descripción.'}</p><p>Categorías: {selectedCategories.join(', ') || 'Sin categorías'}</p><p>Este borrador está compartido en modo lectura. No podés modificarlo ni enviarlo a aprobación.</p></section> : <>
+        {modoEdicionBorrador && pendienteAprobacion && accesoCompartido !== 'lector' ? (
+          <section className="nueva-propuesta-panel" role="status">
+            <h3>{title}</h3>
+            <p>
+              Este borrador está enviado a aprobación. Para editarlo tenés que
+              retirarlo de la revisión; después vas a tener que volver a enviarlo.
+            </p>
+            {errorRetiro && (
+              <p role="alert" style={{ color: '#e57373' }}>{errorRetiro}</p>
+            )}
+            <button
+              type="button"
+              className="nueva-propuesta-next"
+              disabled={retirando}
+              onClick={() => void handleRetirarAprobacion()}
+            >
+              {retirando ? 'Retirando...' : 'Retirar de aprobación y editar'}
+            </button>
+          </section>
+        ) : accesoCompartido === 'lector' ? <section className="nueva-propuesta-panel"><h3>{title}</h3><p>{description || 'Sin descripción.'}</p><p>Categorías: {selectedCategories.join(', ') || 'Sin categorías'}</p><p>Este borrador está compartido en modo lectura. No podés modificarlo ni enviarlo a aprobación.</p></section> : <>
         <div className="nueva-propuesta-heading">
           <BookPlus size={28} />
           <div>
@@ -549,12 +642,13 @@ export default function NuevaPropuesta() {
                     <select
                       id="libro-original"
                       value={libroOriginalId}
-                      onChange={(event) => setLibroOriginalId(event.target.value)}
-                      disabled
+                      onChange={(event) => seleccionarOrigen(event.target.value)}
+                      disabled={modoEdicion || Boolean(errorVersiones)}
                     >
-                      <option value="">
-                        Pendiente de conectar con la Biblioteca
-                      </option>
+                      <option value="">Seleccioná un libro aprobado</option>
+                      {versionesPublicadas.map(version => (
+                        <option key={version.id} value={version.id}>{version.titulo} ({version.idioma.toUpperCase()})</option>
+                      ))}
                     </select>
                   </div>
 
@@ -576,11 +670,8 @@ export default function NuevaPropuesta() {
                     </select>
                   </div>
 
-                  <p>
-                    La traducción utilizará una copia del contenido original.
-                    Esta opción se habilitará cuando conectemos los libros
-                    guardados.
-                  </p>
+                  {errorVersiones && <p role="alert">{errorVersiones}</p>}
+                  <p>Se copiará el contenido de la versión publicada seleccionada a un borrador editable, conservando el vínculo con el libro original.</p>
                 </>
               )}
             </section>
@@ -668,8 +759,30 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {editingObjectId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
+            {editingCaracteristicaId !== null ? (
+              <section className="nueva-propuesta-panel">
+                <h3>Editar característica</h3>
+                {(() => {
+                  const item = caracteristicas.find(c => c.id === editingCaracteristicaId)
+                  if (!item) return null
+                  const actualizar = (campo: 'nombre' | 'descripcion', valor: string) => setCaracteristicas(actuales => actuales.map(c => c.id === item.id ? {...c,[campo]:valor} : c))
+                  return <div className="nueva-propuesta-field">
+                    <label>Tipo</label><select value={item.tipo} onChange={e => setCaracteristicas(actuales => actuales.map(c => c.id === item.id ? {...c,tipo:e.target.value as CaracteristicaLibro['tipo']} : c))}>
+                      <option value="otra">Otra característica</option><option value="propiedad_arma">Propiedad de arma</option><option value="maestria_arma">Maestría de arma</option><option value="moneda">Moneda</option><option value="regla_arma">Regla de armas</option>
+                    </select>
+                    <label>Nombre</label><input value={item.nombre} onChange={e=>actualizar('nombre',e.target.value)}/>
+                    <label>Código estable</label><input value={item.codigo ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,codigo:e.target.value}:c))}/>
+                    <label>Descripción</label><textarea rows={7} value={item.descripcion} onChange={e=>actualizar('descripcion',e.target.value)}/>
+                    {item.tipo === 'moneda' && <>
+                      <label>Valor en piezas de oro</label><input type="number" min="0" step="any" value={valorCampoNumero(item.datos?.valorOro)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,valorOro:Number(e.target.value)}}:c))}/>
+                      <label>Peso por moneda (gramos)</label><input type="number" min="0" step="any" value={valorCampoNumero(item.datos?.pesoGramos)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,pesoGramos:Number(e.target.value)}}:c))}/>
+                    </>}
+                  </div>
+                })()}
+                <button type="button" className="nueva-propuesta-next" onClick={()=>setEditingCaracteristicaId(null)}>Volver a categorías</button>
+              </section>
+            ) : editingObjectId !== null ? (
+              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
             ) : editingSubclassId !== null ? (
               <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clases} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
             ) : editingClassId !== null ? (
@@ -703,6 +816,14 @@ export default function NuevaPropuesta() {
             ) : (
               <ContenidoLibro
                 categories={activeCategories}
+                caracteristicas={caracteristicas}
+                onAddCaracteristica={() => { const id = crypto.randomUUID(); setCaracteristicas(actuales => [...actuales, { id, tipo: 'otra', nombre: '', descripcion: '' }]); setEditingCaracteristicaId(id) }}
+                onSeedPropiedades={() => setCaracteristicas(actuales => [...actuales, ...crearPropiedadesArma().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
+                onSeedMonedas={() => setCaracteristicas(actuales => [...actuales, ...crearMonedas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
+                onSeedReglas={() => setCaracteristicas(actuales => [...actuales, ...crearReglasArmas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
+                onSeedMaestrias={() => setCaracteristicas(actuales => [...actuales, ...crearMaestrias().filter(item => !actuales.some(c => c.tipo === 'maestria_arma' && c.codigo === item.codigo))])}
+                onEditCaracteristica={setEditingCaracteristicaId}
+                onDeleteCaracteristica={id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id))}
                 allCategories={categories}
                 selectedCategories={selectedCategories}
                 onToggleCategory={toggleCategory}
@@ -741,6 +862,7 @@ export default function NuevaPropuesta() {
                 onEditClass={setEditingClassId}
                 onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
                 categoryItemCounts={{
+                  otras: caracteristicas.length,
                   dotes: dotes.length,
                   trasfondos: trasfondos.length,
                   criaturas: criaturas.length,
@@ -825,7 +947,7 @@ export default function NuevaPropuesta() {
               disabled={
                 !title.trim() ||
                 !bookType ||
-                (tipoPropuesta === 'traduccion' && !libroOriginalId)
+                (tipoPropuesta === 'traduccion' && (!libroOriginalId || versionesPublicadas.some(version => version.id === libroOriginalId && version.idioma === idioma)))
               }
               onClick={() => setCurrentStep(2)}
             >
@@ -834,7 +956,7 @@ export default function NuevaPropuesta() {
             </button>
           )}
 
-          {currentStep === 2 && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && !showCriaturaForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
+          {currentStep === 2 && editingCaracteristicaId === null && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && !showCriaturaForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
             <button
               type="button"
               className="nueva-propuesta-next"
@@ -864,7 +986,7 @@ export default function NuevaPropuesta() {
                 cargandoLibro ||
                 (modoEdicionAnterior && !versionId) ||
                 (modoEdicionBorrador && rowVersion === null) ||
-                tipoPropuesta !== 'nuevo'
+                (tipoPropuesta === 'traduccion' && !libroOriginalId)
               }
               onClick={handleGuardarLibro}
             >
@@ -880,4 +1002,8 @@ export default function NuevaPropuesta() {
       </div>
     </AppLayout>
   )
+}
+/** Valor apto para un <input type="number">: los booleanos no se muestran. */
+function valorCampoNumero(valor: string | number | boolean | undefined) {
+  return typeof valor === 'number' || typeof valor === 'string' ? valor : ''
 }

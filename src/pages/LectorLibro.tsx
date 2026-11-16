@@ -17,6 +17,7 @@ type Version = {
   clases: unknown
   subclases: unknown
   objetos: unknown
+  contenido_extra?: unknown
 }
 type LibroPublicado = {
   id: string
@@ -257,6 +258,7 @@ export default function LectorLibro() {
             especies: contenido.especies ?? [], conjuros: contenido.conjuros ?? [],
             clases: contenido.clases ?? [], subclases: contenido.subclases ?? [],
             objetos: contenido.objetos ?? [],
+            contenido_extra: { dotes: contenido.dotes ?? [], trasfondos: contenido.trasfondos ?? [], criaturas: contenido.criaturas ?? [], caracteristicas: contenido.caracteristicas ?? [] },
           }
           setLibro({ id: data.id, codigo: texto(meta.codigo) || null,
             edicion: texto(meta.edicion) || null, editorial: texto(meta.editorial) || null,
@@ -267,7 +269,7 @@ export default function LectorLibro() {
         return
       }
       const {data,error:fallo}=await supabase.from('libros')
-        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases,subclases,objetos)')
+        .select('id,codigo,edicion,editorial,clasificacion,estado,libro_versiones(id,idioma,titulo,descripcion,categorias,especies,conjuros,clases,subclases,objetos,contenido_extra)')
         .eq('id',libroId ?? '').eq('estado','publicado').maybeSingle()
       if(!activo)return
       if(fallo)setError('No se pudo cargar el libro publicado.')
@@ -279,13 +281,19 @@ export default function LectorLibro() {
     return ()=>{activo=false}
   },[libroId,propuestaId])
   const version=libro?.libro_versiones.find(v=>v.id===versionId) ?? libro?.libro_versiones[0]
+  const extras = valorObjeto(version?.contenido_extra)
+  const categoriasActivas = Array.isArray(version?.categorias) ? version.categorias.filter((categoria): categoria is string => typeof categoria === 'string') : []
   const secciones:Seccion[] = version ? [
     {id:'especies',titulo:'Especies',elementos:lista(version.especies)},
     {id:'clases',titulo:'Clases',elementos:lista(version.clases)},
     {id:'subclases',titulo:'Subclases',elementos:lista(version.subclases)},
     {id:'objetos',titulo:'Objetos y equipo',elementos:lista(version.objetos)},
-    {id:'conjuros',titulo:'Conjuros',elementos:lista(version.conjuros)}
-  ] : []
+    {id:'conjuros',titulo:'Conjuros',elementos:lista(version.conjuros)},
+    {id:'dotes',titulo:'Dotes',elementos:lista(extras.dotes)},
+    {id:'trasfondos',titulo:'Trasfondos',elementos:lista(extras.trasfondos)},
+    {id:'criaturas',titulo:'Criaturas',elementos:lista(extras.criaturas)},
+    {id:'caracteristicas',titulo:'Características y reglas',elementos:lista(extras.caracteristicas)}
+  ].filter(seccion => categoriasActivas.includes(seccion.id)) : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
   return <AppLayout title="Biblioteca" subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"}>
     <main className="lector-libro">
