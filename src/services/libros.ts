@@ -1,3 +1,4 @@
+import type { CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { supabase } from '../lib/supabase'
 import type { Especie } from '../types/especie'
 import type { Trasfondo } from '../types/trasfondo'
@@ -25,6 +26,7 @@ export type NuevoLibro = {
   clases: Elemento[]
   subclases: Elemento[]
   objetos: Elemento[]
+  caracteristicas: CaracteristicaLibro[]
 }
 
 export async function guardarLibro(datos: NuevoLibro) {
@@ -97,6 +99,7 @@ export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraducc
         clases: datos.clases,
         subclases: datos.subclases,
         objetos: datos.objetos,
+        caracteristicas: datos.caracteristicas,
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -288,7 +291,7 @@ export async function actualizarPropuesta(
       p_propuesta_id: propuestaId, p_version: versionActual,
       p_idioma: datos.idioma, p_titulo: datos.titulo, p_descripcion: datos.descripcion,
       p_categorias: datos.categorias,
-      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos },
+      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos, caracteristicas: datos.caracteristicas },
       p_metadatos: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
     })
     if (errorCompartido) throw errorCompartido
