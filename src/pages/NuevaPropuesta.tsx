@@ -1,4 +1,4 @@
-import { crearMaestrias, type CaracteristicaLibro } from '../types/caracteristicaLibro'
+import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
@@ -314,6 +314,7 @@ export default function NuevaPropuesta() {
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
         setObjetos((version.objetos ?? []) as Elemento[])
+        setCaracteristicas((version.caracteristicas ?? []) as CaracteristicaLibro[])
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -758,8 +759,30 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {editingObjectId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
+            {editingCaracteristicaId !== null ? (
+              <section className="nueva-propuesta-panel">
+                <h3>Editar característica</h3>
+                {(() => {
+                  const item = caracteristicas.find(c => c.id === editingCaracteristicaId)
+                  if (!item) return null
+                  const actualizar = (campo: 'nombre' | 'descripcion', valor: string) => setCaracteristicas(actuales => actuales.map(c => c.id === item.id ? {...c,[campo]:valor} : c))
+                  return <div className="nueva-propuesta-field">
+                    <label>Tipo</label><select value={item.tipo} onChange={e => setCaracteristicas(actuales => actuales.map(c => c.id === item.id ? {...c,tipo:e.target.value as CaracteristicaLibro['tipo']} : c))}>
+                      <option value="otra">Otra característica</option><option value="propiedad_arma">Propiedad de arma</option><option value="maestria_arma">Maestría de arma</option><option value="moneda">Moneda</option><option value="regla_arma">Regla de armas</option>
+                    </select>
+                    <label>Nombre</label><input value={item.nombre} onChange={e=>actualizar('nombre',e.target.value)}/>
+                    <label>Código estable</label><input value={item.codigo ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,codigo:e.target.value}:c))}/>
+                    <label>Descripción</label><textarea rows={7} value={item.descripcion} onChange={e=>actualizar('descripcion',e.target.value)}/>
+                    {item.tipo === 'moneda' && <>
+                      <label>Valor en piezas de oro</label><input type="number" min="0" step="any" value={item.datos?.valorOro ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,valorOro:Number(e.target.value)}}:c))}/>
+                      <label>Peso por moneda (gramos)</label><input type="number" min="0" step="any" value={item.datos?.pesoGramos ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,pesoGramos:Number(e.target.value)}}:c))}/>
+                    </>}
+                  </div>
+                })()}
+                <button type="button" className="nueva-propuesta-next" onClick={()=>setEditingCaracteristicaId(null)}>Volver a categorías</button>
+              </section>
+            ) : editingObjectId !== null ? (
+              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
             ) : editingSubclassId !== null ? (
               <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clases} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
             ) : editingClassId !== null ? (
@@ -795,6 +818,9 @@ export default function NuevaPropuesta() {
                 categories={activeCategories}
                 caracteristicas={caracteristicas}
                 onAddCaracteristica={() => { const id = crypto.randomUUID(); setCaracteristicas(actuales => [...actuales, { id, tipo: 'otra', nombre: '', descripcion: '' }]); setEditingCaracteristicaId(id) }}
+                onSeedPropiedades={() => setCaracteristicas(actuales => [...actuales, ...crearPropiedadesArma().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
+                onSeedMonedas={() => setCaracteristicas(actuales => [...actuales, ...crearMonedas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
+                onSeedReglas={() => setCaracteristicas(actuales => [...actuales, ...crearReglasArmas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
                 onSeedMaestrias={() => setCaracteristicas(actuales => [...actuales, ...crearMaestrias().filter(item => !actuales.some(c => c.tipo === 'maestria_arma' && c.codigo === item.codigo))])}
                 onEditCaracteristica={setEditingCaracteristicaId}
                 onDeleteCaracteristica={id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id))}
