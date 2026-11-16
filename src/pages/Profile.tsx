@@ -6,6 +6,7 @@ import '../styles/Profile.css'
 import { useAuth } from '../contexts/useAuth'
 import { supabase } from '../lib/supabase'
 import { cambiarAvatar, quitarAvatar, urlAvatar } from '../services/avatar'
+import { useLanguage } from '../i18n/LanguageContext'
 
 type ProfileData = {
   id: string
@@ -19,6 +20,7 @@ type ProfileData = {
 
 export default function Profile() {
   const { session } = useAuth()
+  const { language, t } = useLanguage()
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
@@ -42,7 +44,7 @@ export default function Profile() {
         .single()
       if (!active) return
       if (loadError || !data) {
-        setError('No se pudo cargar tu perfil.')
+        setError(t('profile.loadError'))
       } else {
         const value = data as ProfileData
         setProfile(value)
@@ -60,9 +62,9 @@ export default function Profile() {
     if (!profile || saving || !session) return
     const name = displayName.trim()
     const handle = username.trim().toLowerCase()
-    if (!name || name.length > 80) { setError('El nombre visible debe tener entre 1 y 80 caracteres.'); return }
-    if (!/^[a-z0-9_]{3,30}$/.test(handle)) { setError('Escribí el usuario sin @. Debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.'); return }
-    if (bio.length > 500) { setError('La biografía no puede superar 500 caracteres.'); return }
+    if (!name || name.length > 80) { setError(t('profile.nameError')); return }
+    if (!/^[a-z0-9_]{3,30}$/.test(handle)) { setError(t('profile.usernameError')); return }
+    if (bio.length > 500) { setError(t('profile.bioError')); return }
     setSaving(true)
     setError('')
     setMessage('')
@@ -73,13 +75,13 @@ export default function Profile() {
       .select('id,display_name,username,bio,created_at,avatar_url,avatar_source')
       .single()
     if (saveError) {
-      setError(saveError.code === '23505' ? 'Ese nombre de usuario ya está ocupado.' : 'No se pudieron guardar los cambios.')
+      setError(saveError.code === '23505' ? t('profile.usernameTaken') : t('profile.saveError'))
     } else if (data) {
       setProfile(data as ProfileData)
       setDisplayName(data.display_name)
       setUsername(data.username)
       setBio(data.bio)
-      setMessage('Perfil actualizado correctamente.')
+      setMessage(t('profile.saved'))
     }
     setSaving(false)
   }
@@ -94,9 +96,9 @@ export default function Profile() {
     try {
       const avatar = await cambiarAvatar(session.user.id, archivo, profile)
       setProfile(actual => actual ? { ...actual, ...avatar } : actual)
-      setMessage('Foto de perfil actualizada.')
+      setMessage(t('profile.photoUpdated'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo cambiar la foto.')
+      setError(err instanceof Error ? err.message : t('profile.photoError'))
     } finally {
       setSubiendoFoto(false)
     }
@@ -110,9 +112,9 @@ export default function Profile() {
     try {
       const avatar = await quitarAvatar(session.user.id, profile)
       setProfile(actual => actual ? { ...actual, ...avatar } : actual)
-      setMessage('Foto de perfil eliminada.')
+      setMessage(t('profile.photoDeleted'))
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo quitar la foto.')
+      setError(err instanceof Error ? err.message : t('profile.photoDeleteError'))
     } finally {
       setSubiendoFoto(false)
     }
@@ -121,23 +123,23 @@ export default function Profile() {
   const fotoPerfil = urlAvatar(profile)
 
   return (
-    <AppLayout title="Mi perfil" subtitle="Administrá tu identidad en Chronicle">
+    <AppLayout title={t('nav.profile')} subtitle={t('profile.subtitle')}>
       <div className="profile-page">
-        {loading && session?.user.id ? <p>Cargando perfil...</p> : !profile ? <p role="alert" className="profile-alert profile-alert--error">{error || 'No se encontró el perfil.'}</p> : (
+        {loading && session?.user.id ? <p>{t('profile.loading')}</p> : !profile ? <p role="alert" className="profile-alert profile-alert--error">{error || t('profile.notFound')}</p> : (
           <>
             <section className="profile-hero">
               <div className="profile-identity">
                 <div className="profile-avatar-editor">
-                  <div className="profile-avatar" aria-label="Avatar">
-                    {fotoPerfil ? <img src={fotoPerfil} alt="Avatar de perfil" /> : '👤'}
+                  <div className="profile-avatar" aria-label={t('profile.avatar')}>
+                    {fotoPerfil ? <img src={fotoPerfil} alt={t('profile.avatar')} /> : '👤'}
                   </div>
                   <div className="profile-avatar-actions">
                     <input ref={selectorFoto} type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden onChange={e => void elegirFoto(e)} />
                     <button type="button" className="profile-avatar-button" disabled={subiendoFoto} onClick={() => selectorFoto.current?.click()}>
-                      <Camera size={15} aria-hidden="true" /> {subiendoFoto ? 'Guardando...' : fotoPerfil ? 'Cambiar' : 'Subir foto'}
+                      <Camera size={15} aria-hidden="true" /> {subiendoFoto ? t('profile.saving') : fotoPerfil ? t('profile.changePhoto') : t('profile.uploadPhoto')}
                     </button>
                     {fotoPerfil && profile.avatar_source === 'upload' && (
-                      <button type="button" className="profile-avatar-button profile-avatar-button--danger" disabled={subiendoFoto} onClick={() => void eliminarFoto()} aria-label="Quitar foto de perfil" title="Quitar foto">
+                      <button type="button" className="profile-avatar-button profile-avatar-button--danger" disabled={subiendoFoto} onClick={() => void eliminarFoto()} aria-label={t('profile.removePhoto')} title={t('profile.removePhoto')}>
                         <Trash2 size={15} aria-hidden="true" />
                       </button>
                     )}
@@ -146,34 +148,34 @@ export default function Profile() {
                 <div>
                   <div className="profile-name">{profile.display_name || profile.username}</div>
                   <div className="profile-handle">@{profile.username}</div>
-                  <div className="profile-meta">Miembro desde {new Date(profile.created_at).toLocaleDateString('es-AR')}</div>
+                  <div className="profile-meta">{t('profile.memberSince')} {new Date(profile.created_at).toLocaleDateString(language === 'es' ? 'es-AR' : 'en-US')}</div>
                 </div>
               </div>
-              <Link className="profile-settings-link" to="/configuracion"><Settings size={18} /> Configuración</Link>
+              <Link className="profile-settings-link" to="/configuracion"><Settings size={18} /> {t('nav.settings')}</Link>
             </section>
             <section className="profile-card">
-              <h2>Información personal</h2>
-              <p className="profile-description">Estos datos son privados por ahora y solo vos podés modificarlos.</p>
+              <h2>{t('profile.personalInfo')}</h2>
+              <p className="profile-description">{t('profile.privateDescription')}</p>
               <form className="profile-form" onSubmit={save}>
                 <div className="profile-field">
-                  <label htmlFor="profile-display-name">Nombre visible</label>
+                  <label htmlFor="profile-display-name">{t('profile.displayName')}</label>
                   <input id="profile-display-name" value={displayName} onChange={e => setDisplayName(e.target.value)} maxLength={80} required />
                 </div>
                 <div className="profile-field">
-                  <label htmlFor="profile-username">Nombre de usuario</label>
+                  <label htmlFor="profile-username">{t('profile.username')}</label>
                   <input id="profile-username" value={username} onChange={e => setUsername(e.target.value.toLowerCase())} maxLength={30} required />
-                  <span className="profile-help">No escribas @: Chronicle lo agrega automáticamente al mostrar tu usuario. Usá entre 3 y 30 caracteres: letras, números o guion bajo.</span>
+                  <span className="profile-help">{t('profile.usernameHelp')}</span>
                 </div>
                 <div className="profile-field">
-                  <label htmlFor="profile-bio">Biografía</label>
+                  <label htmlFor="profile-bio">{t('profile.bio')}</label>
                   <textarea id="profile-bio" value={bio} onChange={e => setBio(e.target.value)} maxLength={500} rows={5} />
-                  <span className="profile-help">{bio.length}/500 caracteres</span>
+                  <span className="profile-help">{bio.length}/500 {t('profile.characters')}</span>
                 </div>
                 {error && <p role="alert" className="profile-alert profile-alert--error">{error}</p>}
                 {message && <p role="status" className="profile-alert profile-alert--success">{message}</p>}
                 <div className="profile-form-footer">
-                  <span className="profile-meta">Tus cambios se guardan en Chronicle.</span>
-                  <button className="profile-save" type="submit" disabled={saving}>{saving ? 'Guardando...' : 'Guardar cambios'}</button>
+                  <span className="profile-meta">{t('profile.changesSaved')}</span>
+                  <button className="profile-save" type="submit" disabled={saving}>{saving ? t('profile.saving') : t('profile.save')}</button>
                 </div>
               </form>
             </section>
