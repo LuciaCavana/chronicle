@@ -20,7 +20,11 @@ function Fila({diferencia,modo}: {diferencia:DiferenciaCampo;modo:'lado'|'linea'
 export default function TablaDiferencias({antes,despues,modo,campo}:Props) {
  const {t} = useLanguage()
  const [mostrarIguales,setMostrarIguales] = useState(false)
- const diferencias = campo ? [{ruta:campo,antes,despues,tipo:'valor' as const}] : diferenciasCampos(antes,despues)
+ const diferencias = campo ? [{ruta:campo,antes,despues,tipo:'valor' as const}] : antes == null && despues && typeof despues === 'object' && !Array.isArray(despues)
+  ? Object.entries(despues).map(([ruta,valor])=>({ruta,antes:undefined,despues:valor,tipo:'agregado' as const}))
+  : despues == null && antes && typeof antes === 'object' && !Array.isArray(antes)
+  ? Object.entries(antes).map(([ruta,valor])=>({ruta,antes:valor,despues:undefined,tipo:'retirado' as const}))
+  : diferenciasCampos(antes,despues)
  const sinCambios = typeof antes === 'object' && antes !== null && !Array.isArray(antes) ? Object.keys(antes).filter(k => despues && typeof despues === 'object' && !Array.isArray(despues) && JSON.stringify((antes as Record<string,unknown>)[k]) === JSON.stringify((despues as Record<string,unknown>)[k])) : []
  return <div className="rev-diff__scroll"><table className="rev-diff__tabla"><thead><tr><th>{t('review.field')}</th><th>{t('review.before')}</th><th>{t('review.after')}</th></tr></thead><tbody>
  {diferencias.map((d,i)=><Fila key={i} diferencia={d} modo={modo}/>)}
