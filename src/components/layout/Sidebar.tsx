@@ -44,7 +44,7 @@ export default function Sidebar({ mobileOpen = false, onNavigate }: { mobileOpen
       </div>
 
       <nav className="sidebar-nav" aria-label={t('sidebar.menu')}>
-        {[...menuItems, ...(esAdmin ? [{ label: 'sidebar.admin', icon: ShieldCheck, path: '/administracion' }] : [])].map((item) => {
+        {[...menuItems, ...(esAdmin ? [{ label: 'sidebar.admin' as TranslationKey, icon: ShieldCheck, path: '/administracion' }] : [])].map((item) => {
           const Icon = item.icon
 
           return (

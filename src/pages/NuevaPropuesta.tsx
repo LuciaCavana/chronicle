@@ -115,7 +115,7 @@ export default function NuevaPropuesta() {
     setClases((origen.clases ?? []) as Elemento[])
     setSubclases((origen.subclases ?? []) as Elemento[])
     setObjetos((origen.objetos ?? []) as Elemento[])
-    setCaracteristicas((origen.caracteristicas ?? []) as CaracteristicaLibro[])
+    setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
     setDotes([])
     setTrasfondos([])
     setCriaturas([])
@@ -314,7 +314,7 @@ export default function NuevaPropuesta() {
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
         setObjetos((version.objetos ?? []) as Elemento[])
-        setCaracteristicas((version.caracteristicas ?? []) as CaracteristicaLibro[])
+        setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
       } catch (error) {
@@ -774,8 +774,8 @@ export default function NuevaPropuesta() {
                     <label>Código estable</label><input value={item.codigo ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,codigo:e.target.value}:c))}/>
                     <label>Descripción</label><textarea rows={7} value={item.descripcion} onChange={e=>actualizar('descripcion',e.target.value)}/>
                     {item.tipo === 'moneda' && <>
-                      <label>Valor en piezas de oro</label><input type="number" min="0" step="any" value={item.datos?.valorOro ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,valorOro:Number(e.target.value)}}:c))}/>
-                      <label>Peso por moneda (gramos)</label><input type="number" min="0" step="any" value={item.datos?.pesoGramos ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,pesoGramos:Number(e.target.value)}}:c))}/>
+                      <label>Valor en piezas de oro</label><input type="number" min="0" step="any" value={valorCampoNumero(item.datos?.valorOro)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,valorOro:Number(e.target.value)}}:c))}/>
+                      <label>Peso por moneda (gramos)</label><input type="number" min="0" step="any" value={valorCampoNumero(item.datos?.pesoGramos)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,pesoGramos:Number(e.target.value)}}:c))}/>
                     </>}
                   </div>
                 })()}
@@ -1002,4 +1002,8 @@ export default function NuevaPropuesta() {
       </div>
     </AppLayout>
   )
+}
+/** Valor apto para un <input type="number">: los booleanos no se muestran. */
+function valorCampoNumero(valor: string | number | boolean | undefined) {
+  return typeof valor === 'number' || typeof valor === 'string' ? valor : ''
 }
