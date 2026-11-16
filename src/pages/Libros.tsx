@@ -82,14 +82,6 @@ const tabs: { id: BooksTab; label: TranslationKey; icon: LucideIcon }[] = [
   { id: 'administracion', label: 'books.admin', icon: Shield },
 ]
 
-const etiquetasEstado: Record<EstadoLibro, string> = {
-  pendiente: 'Pendiente de aprobación',
-  publicado: 'Publicado',
-  oculto: 'Oculto',
-  eliminado: 'Eliminado',
-  rechazado: 'Rechazado',
-}
-
 const mensajesEstado: Record<EstadoLibro, string> = {
   pendiente: 'El libro volvió a estar pendiente.',
   publicado: 'El libro está publicado.',
