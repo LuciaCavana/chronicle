@@ -1,3 +1,4 @@
+import { crearMaestrias, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
@@ -114,6 +115,7 @@ export default function NuevaPropuesta() {
     setClases((origen.clases ?? []) as Elemento[])
     setSubclases((origen.subclases ?? []) as Elemento[])
     setObjetos((origen.objetos ?? []) as Elemento[])
+    setCaracteristicas((origen.caracteristicas ?? []) as CaracteristicaLibro[])
     setDotes([])
     setTrasfondos([])
     setCriaturas([])
@@ -147,6 +149,8 @@ export default function NuevaPropuesta() {
   const [clases, setClases] = useState<Elemento[]>([])
   const [subclases, setSubclases] = useState<Elemento[]>([])
   const [objetos, setObjetos] = useState<Elemento[]>([])
+  const [caracteristicas, setCaracteristicas] = useState<CaracteristicaLibro[]>([])
+  const [editingCaracteristicaId, setEditingCaracteristicaId] = useState<string | null>(null)
   const [editingObjectId, setEditingObjectId] = useState<string | null>(null)
   const [editingSubclassId, setEditingSubclassId] = useState<string | null>(null)
   const [editingClassId, setEditingClassId] = useState<string | null>(null)
@@ -241,6 +245,7 @@ export default function NuevaPropuesta() {
         clases?: Elemento[]
         subclases?: Elemento[]
         objetos?: Elemento[]
+        caracteristicas?: CaracteristicaLibro[]
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -259,6 +264,7 @@ export default function NuevaPropuesta() {
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
       setObjetos(contenido.objetos ?? [])
+      setCaracteristicas(contenido.caracteristicas ?? [])
       baseColaborativa.current = {
         row_version: propuesta.row_version,
         titulo: propuesta.titulo ?? '',
@@ -480,6 +486,7 @@ export default function NuevaPropuesta() {
         clases,
         subclases,
         objetos,
+        caracteristicas,
       }
 
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
@@ -491,7 +498,7 @@ export default function NuevaPropuesta() {
           idioma: datos.idioma,
           categorias: datos.categorias,
           metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
-          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos },
+          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas },
         })
       } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
@@ -786,6 +793,10 @@ export default function NuevaPropuesta() {
             ) : (
               <ContenidoLibro
                 categories={activeCategories}
+                caracteristicas={caracteristicas}
+                onAddCaracteristica={() => { const id = crypto.randomUUID(); setCaracteristicas(actuales => [...actuales, { id, tipo: 'otra', nombre: '', descripcion: '' }]); setEditingCaracteristicaId(id) }}
+                onEditCaracteristica={setEditingCaracteristicaId}
+                onDeleteCaracteristica={id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id))}
                 allCategories={categories}
                 selectedCategories={selectedCategories}
                 onToggleCategory={toggleCategory}
@@ -824,6 +835,7 @@ export default function NuevaPropuesta() {
                 onEditClass={setEditingClassId}
                 onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
                 categoryItemCounts={{
+                  otras: caracteristicas.length,
                   dotes: dotes.length,
                   trasfondos: trasfondos.length,
                   criaturas: criaturas.length,
