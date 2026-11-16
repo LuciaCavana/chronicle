@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import '../styles/Biblioteca.css'
-import { useLanguage } from '../i18n/LanguageContext'
+import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
 
 const categories: { id: string; name: TranslationKey; description: TranslationKey; icon: typeof LibraryBig }[] = [
