@@ -1,7 +1,6 @@
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../../contexts/useAuth'
-import { soyAdminMotor } from '../../services/chronicleLibros'
 import { NavLink } from 'react-router-dom'
 import '../../styles/Sidebar.css'
 import {
@@ -25,14 +24,9 @@ const menuItems = [
 
 export default function Sidebar({ mobileOpen = false, onNavigate }: { mobileOpen?: boolean; onNavigate?: () => void }) {
   const [collapsed, setCollapsed] = useState(true)
-  const { session } = useAuth()
-  const [esAdmin, setEsAdmin] = useState(false)
-  useEffect(() => {
-    let activo = true
-    setEsAdmin(false)
-    if (session) void soyAdminMotor().then(valor => { if (activo) setEsAdmin(valor) }).catch(() => { if (activo) setEsAdmin(false) })
-    return () => { activo = false }
-  }, [session?.user.id])
+  // El rol viene del contexto de sesión; Supabase verifica los permisos reales.
+  const { role } = useAuth()
+  const esAdmin = role === 'creator' || role === 'admin'
 
   return (
     <aside

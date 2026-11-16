@@ -53,7 +53,9 @@ export function EditorDescripcion({value,onChange}:Props) {
   const [hex,setHex]=useState('#CC3333')
   const [copiado,setCopiado]=useState(false)
   const color=hsvAHex(h,s,v)
-  useEffect(()=>{if(editable.current && editable.current.innerHTML!==normalizar(value)) editable.current.innerHTML=limpiarHtml(normalizar(value))},[]) // solo al montar; no interrumpe el cursor
+  // Sólo al montar: si se sincronizara con cada cambio de value, el cursor saltaría mientras se escribe.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(()=>{if(editable.current && editable.current.innerHTML!==normalizar(value)) editable.current.innerHTML=limpiarHtml(normalizar(value))},[])
   const emitir=()=>onChange(limpiarHtml(editable.current?.innerHTML || ''))
   const guardarSeleccion=()=>{const sel=window.getSelection();if(sel?.rangeCount && editable.current?.contains(sel.anchorNode)) seleccion.current=sel.getRangeAt(0).cloneRange()}
   const restaurarSeleccion=()=>{editable.current?.focus();if(seleccion.current){const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(seleccion.current)}}

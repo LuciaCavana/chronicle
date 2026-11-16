@@ -20,7 +20,17 @@ export default function ColaboradoresBorrador({ propuestaId, onClose }: Props) {
     else setLista((data??[]) as Colaborador[])
     setCargando(false)
   }
-  useEffect(()=>{void cargar()},[propuestaId])
+  useEffect(() => {
+    let activo = true
+    void supabase.rpc('chronicle_listar_colaboradores', { p_propuesta_id: propuestaId })
+      .then(({ data, error: err }) => {
+        if (!activo) return
+        if (err) setError(err.message)
+        else setLista((data ?? []) as Colaborador[])
+        setCargando(false)
+      })
+    return () => { activo = false }
+  }, [propuestaId])
   async function invitar(event:React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if(ocupado || !email.trim()) return

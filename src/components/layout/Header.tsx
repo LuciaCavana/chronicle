@@ -25,14 +25,15 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
   const email = session?.user.email ?? ''
   const initial = email.charAt(0).toUpperCase() || '?'
   const userId = session?.user.id
-  const [avatar, setAvatar] = useState<string | null>(null)
+  const [avatarCargado, setAvatarCargado] = useState<{ userId: string; url: string | null } | null>(null)
+  const avatar = userId && avatarCargado?.userId === userId ? avatarCargado.url : null
 
   useEffect(() => {
-    if (!userId) { setAvatar(null); return }
+    if (!userId) return
     let activo = true
     void supabase.from('profiles').select('avatar_url,avatar_source').eq('id', userId).maybeSingle()
-      .then(({ data }) => { if (activo) setAvatar(urlAvatar(data)) })
-    const alCambiar = (evento: Event) => setAvatar(urlAvatar((evento as CustomEvent<AvatarPerfil>).detail))
+      .then(({ data }) => { if (activo) setAvatarCargado({ userId, url: urlAvatar(data) }) })
+    const alCambiar = (evento: Event) => setAvatarCargado({ userId, url: urlAvatar((evento as CustomEvent<AvatarPerfil>).detail) })
     window.addEventListener(EVENTO_AVATAR, alCambiar)
     return () => { activo = false; window.removeEventListener(EVENTO_AVATAR, alCambiar) }
   }, [userId])

@@ -17,8 +17,14 @@ export function AuthProvider({
 }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
-  const [role, setRole] = useState<'creator' | 'admin' | 'user' | null>(null)
-  const [roleLoading, setRoleLoading] = useState(true)
+  const [rolCargado, setRolCargado] = useState<{
+    userId: string
+    role: 'creator' | 'admin' | 'user' | null
+  } | null>(null)
+  const userId = session?.user.id
+  const rolVigente = userId && rolCargado?.userId === userId ? rolCargado : null
+  const role = rolVigente?.role ?? null
+  const roleLoading = loading || (Boolean(userId) && !rolVigente)
 
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(() => {
     if (recuperacionDetectadaEnUrl) {
@@ -71,27 +77,19 @@ export function AuthProvider({
 
   // El rol en React es solo para la interfaz; Supabase verifica permisos en cada RPC.
   useEffect(() => {
-    if (loading) return
-    if (!session?.user.id) {
-      setRole(null)
-      setRoleLoading(false)
-      return
-    }
+    if (loading || !userId) return
     let active = true
-    setRoleLoading(true)
-    setRole(null)
     void supabase.rpc('chronicle_mi_rol').then(({ data, error }) => {
       if (!active) return
       if (error) {
         console.error('No se pudo cargar el rol de la sesión:', error.message)
-        setRole(null)
+        setRolCargado({ userId, role: null })
       } else {
-        setRole(data === 'creator' || data === 'admin' ? data : 'user')
+        setRolCargado({ userId, role: data === 'creator' || data === 'admin' ? data : 'user' })
       }
-      setRoleLoading(false)
     })
     return () => { active = false }
-  }, [session?.user.id, loading])
+  }, [userId, loading])
 
   return (
     <AuthContext.Provider

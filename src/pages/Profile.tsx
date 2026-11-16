@@ -32,7 +32,7 @@ export default function Profile() {
 
   useEffect(() => {
     const userId = session?.user.id
-    if (!userId) { setLoading(false); return }
+    if (!userId) return
     let active = true
     void (async () => {
       const { data, error: loadError } = await supabase
@@ -123,7 +123,7 @@ export default function Profile() {
   return (
     <AppLayout title="Mi perfil" subtitle="Administrá tu identidad en Chronicle">
       <div className="profile-page">
-        {loading ? <p>Cargando perfil...</p> : !profile ? <p role="alert" className="profile-alert profile-alert--error">{error || 'No se encontró el perfil.'}</p> : (
+        {loading && session?.user.id ? <p>Cargando perfil...</p> : !profile ? <p role="alert" className="profile-alert profile-alert--error">{error || 'No se encontró el perfil.'}</p> : (
           <>
             <section className="profile-hero">
               <div className="profile-identity">

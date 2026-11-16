@@ -18,9 +18,7 @@ const etiquetas: Record<Rol, string> = { creator: 'Creador', admin: 'Administrad
 
 export default function Administracion() {
   const { session, loading: cargandoSesion, role, roleLoading } = useAuth()
-  const [autorizado, setAutorizado] = useState<boolean | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
-  const [esPropietario, setEsPropietario] = useState(false)
   const [busqueda, setBusqueda] = useState('')
   const [filtro, setFiltro] = useState<Filtro>('todos')
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
@@ -34,33 +32,29 @@ export default function Administracion() {
     setUsuarios((data ?? []) as Usuario[])
   }
 
+  // Permisos derivados del rol de la sesión; Supabase vuelve a verificarlos en cada RPC.
+  const userId = session?.user.id
+  const verificando = cargandoSesion || roleLoading
+  const esPropietario = role === 'creator'
+  const puedeAdministrar = role === 'creator' || role === 'admin'
+  const [falloCarga, setFalloCarga] = useState(false)
+  const autorizado = verificando ? null : Boolean(userId) && puedeAdministrar && !falloCarga
+
   useEffect(() => {
-    if (cargandoSesion || roleLoading) return
-    if (!session) { setAutorizado(false); setCargandoUsuarios(false); return }
+    if (verificando || !userId || !puedeAdministrar) return
     let activo = true
-    setAutorizado(null)
-    setCargandoUsuarios(true)
-    setError('')
-    async function iniciar() {
-      try {
-        const owner = role === 'creator'
-        const admin = role === 'admin'
-        if (!activo) return
-        setEsPropietario(owner)
-        setAutorizado(owner || admin)
-        if (!owner && !admin) return
-        const { data, error: errorLista } = await supabase.rpc('chronicle_listar_usuarios_roles')
-        if (errorLista) throw errorLista
-        if (activo) setUsuarios((data ?? []) as Usuario[])
-      } catch (err) {
-        if (activo) { setError(err instanceof Error ? err.message : 'No se pudieron consultar los usuarios.'); setAutorizado(false) }
-      } finally {
-        if (activo) setCargandoUsuarios(false)
+    void supabase.rpc('chronicle_listar_usuarios_roles').then(({ data, error: errorLista }) => {
+      if (!activo) return
+      if (errorLista) {
+        setError(errorLista.message || 'No se pudieron consultar los usuarios.')
+        setFalloCarga(true)
+      } else {
+        setUsuarios((data ?? []) as Usuario[])
       }
-    }
-    void iniciar()
+      setCargandoUsuarios(false)
+    })
     return () => { activo = false }
-  }, [session?.user.id, cargandoSesion, roleLoading, role])
+  }, [verificando, userId, puedeAdministrar])
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase()

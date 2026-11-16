@@ -270,7 +270,8 @@ export default function Libros() {
   }
 
   useEffect(() => {
-    void cargarLibros()
+    // La carga corre como callback de una promesa: el efecto no actualiza estado de forma síncrona.
+    void Promise.resolve().then(cargarLibros)
   }, [])
 
   function changeTab(tab: BooksTab) {

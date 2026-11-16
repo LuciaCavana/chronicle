@@ -32,7 +32,8 @@ export default function MotorLibros() {
     if (sesion.error) throw sesion.error
     setLista(libros); setAdmin(esAdmin); setUsuario(sesion.data.user?.id ?? null)
   }
-  useEffect(() => { void refrescar().catch(e => setError(String(e))) }, [])
+  // La carga corre como callback de una promesa: el efecto no actualiza estado de forma síncrona.
+  useEffect(() => { void Promise.resolve().then(refrescar).catch(e => setError(String(e))) }, [])
   async function ejecutar(fn: () => Promise<void>) {
     setOcupado(true); setError(''); setMensaje('')
     try { await fn(); await refrescar(); setMensaje('Operación completada.') }
