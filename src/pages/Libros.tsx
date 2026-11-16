@@ -138,6 +138,8 @@ export default function Libros() {
   const [historialId, setHistorialId] = useState<string | null>(null)
   const [rechazandoLibroId,setRechazandoLibroId] = useState<string | null>(null)
   const [motivoRechazo,setMotivoRechazo] = useState('')
+  const [gestionLibro, setGestionLibro] = useState<{id:string; accion:'ocultar'|'mostrar'|'eliminar'|'restaurar'; titulo:string}|null>(null)
+  const [motivoGestion, setMotivoGestion] = useState('')
 
   const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
     id: string
@@ -151,7 +153,7 @@ export default function Libros() {
     }
 
     if (activeTab === 'administracion') {
-      return esAdministrador && libro.estado === 'pendiente'
+      return esAdministrador && ['pendiente','publicado','oculto','eliminado'].includes(libro.estado)
     }
 
     if (activeTab === 'propuestas') return libro.creado_por === userId && (libro.estado === 'pendiente' || libro.estado === 'rechazado')
@@ -405,6 +407,26 @@ async function borrarPropuesta(
     } finally {
       setActualizandoId(null)
     }
+  }
+
+  async function ejecutarGestionLibro() {
+    if (!gestionLibro || !esAdministrador || actualizandoId || !motivoGestion.trim()) return
+    setActualizandoId(gestionLibro.id)
+    setError('')
+    setMensajeAdmin('')
+    try {
+      const { data, error: errorGestion } = await supabase.rpc('chronicle_gestionar_estado_libro', {
+        p_libro_id: gestionLibro.id, p_accion: gestionLibro.accion, p_motivo: motivoGestion.trim()
+      })
+      if (errorGestion) throw errorGestion
+      const estado = data as EstadoLibro
+      setLibros(actuales => actuales.map(libro => libro.id === gestionLibro.id ? {...libro, estado} : libro))
+      setMensajeAdmin(mensajesEstado[estado])
+      setGestionLibro(null)
+      setMotivoGestion('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo gestionar el libro.')
+    } finally { setActualizandoId(null) }
   }
 
   async function enviarARevision(propuestaId: string) {
@@ -771,49 +793,24 @@ async function borrarPropuesta(
 
                 {activeTab === 'administracion' && esAdministrador && (
                   <div className="libros-admin-actions">
-                    {libro.estado !== 'publicado' && (
-                      <button
-                        type="button"
-                        className="libros-admin-button libros-admin-button--approve"
-                        disabled={actualizandoId !== null}
-                        onClick={() =>
-                          cambiarEstadoLibro(libro.id, 'publicado')
-                        }
-                      >
-                        <CheckCircle2 size={16} />
-                        {libro.estado === 'pendiente' ? 'Aprobar' : 'Publicar'}
+                    {libro.estado === 'pendiente' && (
+                      <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => cambiarEstadoLibro(libro.id,'publicado')}>
+                        <CheckCircle2 size={16}/> Aprobar
                       </button>
                     )}
-
                     {libro.estado === 'pendiente' && (
                       <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoLibroId(libro.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
                     )}
 
-                    {libro.estado === 'publicado' && (
-                      <button
-                        type="button"
-                        className="libros-admin-button"
-                        disabled={actualizandoId !== null}
-                        onClick={() => cambiarEstadoLibro(libro.id, 'oculto')}
-                      >
-                        <EyeOff size={16} />
-                        Ocultar
-                      </button>
+                    {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
+                    {(['publicado','oculto','eliminado'] as EstadoLibro[]).includes(libro.estado) && (
+                      <span className="libros-admin-message">{etiquetasEstado[libro.estado]}</span>
                     )}
+                    {libro.estado === 'publicado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'ocultar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><EyeOff size={16}/> Ocultar</button>}
+                    {libro.estado === 'oculto' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'mostrar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Eye size={16}/> Volver a mostrar</button>}
+                    {(libro.estado === 'publicado'||libro.estado === 'oculto') && <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'eliminar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Trash2 size={16}/> Eliminar (baja lógica)</button>}
+                    {libro.estado === 'eliminado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'restaurar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Undo2 size={16}/> Restaurar como oculto</button>}
 
-                    {libro.estado === 'oculto' && (
-                      <button
-                        type="button"
-                        className="libros-admin-button"
-                        disabled={actualizandoId !== null}
-                        onClick={() =>
-                          cambiarEstadoLibro(libro.id, 'pendiente')
-                        }
-                      >
-                        <Eye size={16} />
-                        Volver a pendiente
-                      </button>
-                    )}
                   </div>
                 )}
               </article>
@@ -822,6 +819,18 @@ async function borrarPropuesta(
         )}
       </div>
 
+      {gestionLibro && <ModalBorrador titulo="Gestionar libro publicado" onClose={() => setGestionLibro(null)}>
+        <div className="libros-rechazo-modal">
+          <h3>{gestionLibro.titulo}</h3>
+          <p>{gestionLibro.accion === 'eliminar' ? 'La baja es lógica: se conservan el libro, sus versiones y el historial. Dejará de estar disponible para usuarios comunes.' : gestionLibro.accion === 'restaurar' ? 'El libro se restaurará como oculto. Podrás volver a mostrarlo después.' : gestionLibro.accion === 'ocultar' ? 'El libro dejará de estar visible en el catálogo.' : 'El libro volverá a estar visible en el catálogo.'}</p>
+          <label htmlFor="motivo-gestion-libro">Motivo obligatorio</label>
+          <textarea id="motivo-gestion-libro" rows={4} maxLength={2000} value={motivoGestion} onChange={e => setMotivoGestion(e.target.value)}/>
+          <div className="libros-admin-actions">
+            <button type="button" className="libros-admin-button" onClick={() => setGestionLibro(null)}>Cancelar</button>
+            <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={!motivoGestion.trim() || actualizandoId !== null} onClick={() => void ejecutarGestionLibro()}>Confirmar {gestionLibro.accion}</button>
+          </div>
+        </div>
+      </ModalBorrador>}
       {rechazandoLibroId && <ModalBorrador titulo="Rechazar libro" onClose={()=>setRechazandoLibroId(null)}>
         <div className="libros-rechazo-modal"><h3>{t('books.rejectBook')}</h3><p>{t('books.rejectBookInfo')}</p>
         <label htmlFor="motivo-rechazo-libro">{t('books.reason')}</label>
