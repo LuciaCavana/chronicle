@@ -123,12 +123,12 @@ if (
                 : categoria.id === 'clases'
                     ? ` — ${cantidadClases} ${t('review.classes')}`
                 : categoria.id === 'subclases'
-                    ? ` — ${cantidadSubclases} sub${t('review.classes')}`
+                    ? ` — ${cantidadSubclases} ${t('review.subclasses')}`
                 : categoria.id === 'objetos'
                     ? ` — ${cantidadObjetos} ${t('review.items')}`
                 : categoria.id === 'conjuros'
                     ? ` — ${cantidadConjuros} ${t('review.spells')}`
-                    : ' — Sin elementos cargados'}
+                    : ` — ${t('review.noElements')}`}
               </li>
             ))}
           </ul>
