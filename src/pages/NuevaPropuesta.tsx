@@ -27,6 +27,7 @@ import {
   obtenerLibroParaEditar,
   obtenerPropuestaParaEditar,
   guardarElementosCompartidos,
+  retirarDeAprobacion,
 } from '../services/libros'
 
 import type { Conjuro } from '../types/conjuro'
@@ -126,6 +127,9 @@ export default function NuevaPropuesta() {
   const baseColaborativa = useRef<Record<string, unknown> | null>(null)
   const [versionRemota, setVersionRemota] = useState<number | null>(null)
   const [accesoCompartido, setAccesoCompartido] = useState<'propietario' | 'editor' | 'lector'>('propietario')
+  const [pendienteAprobacion, setPendienteAprobacion] = useState(false)
+  const [retirando, setRetirando] = useState(false)
+  const [errorRetiro, setErrorRetiro] = useState('')
 
   // Eventos del servidor: aviso inmediato al guardarse una versión nueva.
   useEffect(() => {
@@ -228,6 +232,7 @@ export default function NuevaPropuesta() {
         contenido: propuesta.contenido ?? {},
       }
       setRowVersion(propuesta.row_version)
+      setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
       setCurrentStep(1)
 
@@ -358,8 +363,24 @@ export default function NuevaPropuesta() {
     )
   }
 
+  async function handleRetirarAprobacion() {
+    if (!propuestaId || retirando) return
+    setRetirando(true)
+    setErrorRetiro('')
+    try {
+      await retirarDeAprobacion(propuestaId)
+      setPendienteAprobacion(false)
+    } catch (error) {
+      setErrorRetiro(
+        error instanceof Error ? error.message : 'No se pudo retirar el borrador de aprobación.'
+      )
+    } finally {
+      setRetirando(false)
+    }
+  }
+
   async function handleGuardarLibro() {
-    if (guardando || cargandoLibro || accesoCompartido === 'lector' || tipoPropuesta !== 'nuevo') {
+    if (guardando || cargandoLibro || accesoCompartido === 'lector' || pendienteAprobacion || tipoPropuesta !== 'nuevo') {
       return
     }
 
@@ -476,7 +497,26 @@ export default function NuevaPropuesta() {
         </Link>
 
         {modoEdicionBorrador && accesoCompartido !== 'propietario' && <p className="nueva-propuesta-help" role="status">Borrador compartido · {accesoCompartido === 'editor' ? 'Permiso de edición' : 'Solo lectura'}</p>}
-        {accesoCompartido === 'lector' ? <section className="nueva-propuesta-panel"><h3>{title}</h3><p>{description || 'Sin descripción.'}</p><p>Categorías: {selectedCategories.join(', ') || 'Sin categorías'}</p><p>Este borrador está compartido en modo lectura. No podés modificarlo ni enviarlo a aprobación.</p></section> : <>
+        {modoEdicionBorrador && pendienteAprobacion && accesoCompartido !== 'lector' ? (
+          <section className="nueva-propuesta-panel" role="status">
+            <h3>{title}</h3>
+            <p>
+              Este borrador está enviado a aprobación. Para editarlo tenés que
+              retirarlo de la revisión; después vas a tener que volver a enviarlo.
+            </p>
+            {errorRetiro && (
+              <p role="alert" style={{ color: '#e57373' }}>{errorRetiro}</p>
+            )}
+            <button
+              type="button"
+              className="nueva-propuesta-next"
+              disabled={retirando}
+              onClick={() => void handleRetirarAprobacion()}
+            >
+              {retirando ? 'Retirando...' : 'Retirar de aprobación y editar'}
+            </button>
+          </section>
+        ) : accesoCompartido === 'lector' ? <section className="nueva-propuesta-panel"><h3>{title}</h3><p>{description || 'Sin descripción.'}</p><p>Categorías: {selectedCategories.join(', ') || 'Sin categorías'}</p><p>Este borrador está compartido en modo lectura. No podés modificarlo ni enviarlo a aprobación.</p></section> : <>
         <div className="nueva-propuesta-heading">
           <BookPlus size={28} />
           <div>

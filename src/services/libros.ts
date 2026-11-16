@@ -231,7 +231,8 @@ export async function obtenerPropuestaParaEditar(
       categorias,
       contenido,
       metadatos_libro,
-      row_version
+      row_version,
+      pendiente_aprobacion
     `)
     .eq('id', propuestaId)
     .eq('estado', 'borrador')
@@ -344,4 +345,14 @@ export async function enviarBorradorAprobacion(propuestaId: string) {
     .select('id').maybeSingle()
   if (error) throw error
   if (!data) throw new Error('El borrador ya fue enviado o no está disponible.')
+}
+
+/** Retira un borrador de la cola de aprobación para poder volver a editarlo.
+ * Lo pueden hacer la autora o un colaborador con rol editor.
+ */
+export async function retirarDeAprobacion(propuestaId: string) {
+  const { error } = await supabase.rpc('chronicle_retirar_aprobacion', {
+    p_propuesta_id: propuestaId,
+  })
+  if (error) throw error
 }

@@ -5,6 +5,7 @@ import {
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
+  Undo2,
   XCircle,
   Eye,
   EyeOff,
@@ -27,7 +28,7 @@ import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrado
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
-import { enviarBorradorAprobacion } from '../services/libros'
+import { enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
 import '../styles/Libros.css'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
@@ -402,6 +403,21 @@ async function borrarPropuesta(
     }
   }
 
+  async function retirarDeRevision(propuestaId: string) {
+    if (actualizandoId) return
+    setActualizandoId(propuestaId)
+    setError('')
+    try {
+      await retirarDeAprobacion(propuestaId)
+      setPropuestasNuevas(actuales => actuales.map(p => p.id === propuestaId ? { ...p, pendiente_aprobacion: false } : p))
+      await cargarLibros()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo retirar de aprobación.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
   async function aprobarBorrador(propuestaId: string) {
     if (!esAdministrador || actualizandoId) return
     setActualizandoId(propuestaId)
@@ -633,6 +649,7 @@ async function borrarPropuesta(
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
                       {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title="Enviar a aprobación" aria-label="Enviar a aprobación" disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
+                      {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-icon-action" title="Retirar de aprobación" aria-label="Retirar de aprobación" disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={18} aria-hidden="true" /></button>}
                       <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-label={compartiendoId === propuesta.id ? 'Cerrar compartir' : 'Compartir'} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
                       <button type="button" className="libros-admin-button libros-icon-action" title="Historial" aria-label="Historial" aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
                       <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button libros-icon-action" title="Lectura" aria-label="Lectura"><BookOpen size={18} aria-hidden="true" /></Link>
