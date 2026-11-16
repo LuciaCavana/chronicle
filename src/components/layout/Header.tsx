@@ -7,6 +7,7 @@ import { authService } from '../../services/authService'
 import { supabase } from '../../lib/supabase'
 import { EVENTO_AVATAR, urlAvatar, type AvatarPerfil } from '../../services/avatar'
 import '../../styles/Header.css'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 type HeaderProps = {
   title: string
@@ -16,6 +17,7 @@ type HeaderProps = {
 
 export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
   const { session } = useAuth()
+  const { t } = useLanguage()
   const navigate = useNavigate()
 
   const [menuOpen, setMenuOpen] = useState(false)
@@ -107,12 +109,12 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
 
               <button type="button" onClick={() => { setMenuOpen(false); navigate("/perfil") }}>
                 <UserRound size={17} />
-                Mi perfil
+                {t('nav.profile')}
               </button>
 
               <button type="button" onClick={() => { setMenuOpen(false); navigate("/configuracion") }}>
                 <Settings size={17} />
-                Configuración
+                {t('nav.settings')}
               </button>
 
               <div className="app-header-dropdown-divider" />
@@ -123,7 +125,7 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
                 disabled={loading}
               >
                 <LogOut size={17} />
-                {loading ? 'Cerrando sesión...' : 'Cerrar sesión'}
+                {loading ? t('nav.loggingOut') : t('nav.logout')}
               </button>
             </div>
           )}
