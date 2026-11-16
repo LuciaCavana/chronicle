@@ -429,6 +429,12 @@ export default function NuevaPropuesta() {
       return
     }
 
+    if (tipoPropuesta === 'traduccion') {
+      const origen = versionesPublicadas.find(version => version.id === libroOriginalId)
+      if (!modoEdicion && !origen) { setErrorGuardado('Seleccioná un libro publicado como origen.'); return }
+      if (origen && origen.idioma === idioma) { setErrorGuardado('La traducción debe tener un idioma distinto del original.'); return }
+    }
+
     if (!title.trim() || !bookType || !idioma) {
       setErrorGuardado('Completá los campos obligatorios.')
       return
@@ -902,7 +908,7 @@ export default function NuevaPropuesta() {
               disabled={
                 !title.trim() ||
                 !bookType ||
-                (tipoPropuesta === 'traduccion' && !libroOriginalId)
+                (tipoPropuesta === 'traduccion' && (!libroOriginalId || versionesPublicadas.some(version => version.id === libroOriginalId && version.idioma === idioma)))
               }
               onClick={() => setCurrentStep(2)}
             >
