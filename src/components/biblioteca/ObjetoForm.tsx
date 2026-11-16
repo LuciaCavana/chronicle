@@ -1,6 +1,7 @@
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/NuevaPropuesta.css'
 import '../../styles/ObjetoForm.css'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 type Datos = Record<string, unknown>
 type Props = { elemento: Elemento; objetos: Elemento[]; onChange: (elemento: Elemento) => void }
@@ -20,12 +21,14 @@ const texto = (v: unknown) => typeof v === 'string' ? v : v == null ? '' : Strin
 const lista = (v: unknown): string[] => Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []
 
 export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
+  const { t } = useLanguage()
   const datos: Datos = elemento.datos ?? {}
   const tipo = texto(datos.tipo) || 'equipo'
   const actualizar = (campo: string, valor: unknown) => onChange({ ...elemento, datos: { ...datos, [campo]: valor } })
   const campo = (nombre: string, clave: string, placeholder = '') => <label className="nueva-propuesta-field">{nombre}<input value={texto(datos[clave])} placeholder={placeholder} onChange={e => actualizar(clave, e.target.value)}/></label>
   const numero = (nombre: string, clave: string, minimo = 0) => <label className="nueva-propuesta-field objeto-form__number">{nombre}<input type="number" min={minimo} step="any" value={datos[clave] == null ? '' : texto(datos[clave])} onChange={e => actualizar(clave, e.target.value === '' ? null : Number(e.target.value))}/></label>
   const seleccionar = (nombre: string, clave: string, opciones: string[]) => <label className="nueva-propuesta-field">{nombre}<select value={texto(datos[clave])} onChange={e => actualizar(clave, e.target.value)}>{opciones.map(op => <option key={op} value={op}>{op || 'Sin seleccionar'}</option>)}</select></label>
+  const seleccionarMaestria = () => <label className="nueva-propuesta-field">{t('weapon.mastery')}<select value={texto(datos.maestria)} onChange={e => actualizar('maestria', e.target.value)}>{maestrias.map(value => <option key={value} value={value}>{value ? t(('weapon.' + value.toLowerCase()) as 'weapon.cleave') : t('weapon.none')}</option>)}</select></label>
   const marcar = (nombre: string, clave: string) => <label className="objeto-form__checkbox"><input type="checkbox" checked={datos[clave] === true} onChange={e => actualizar(clave, e.target.checked)}/>{nombre}</label>
   const relacionados = Array.isArray(datos.contenido) ? datos.contenido as {objetoId:string;cantidad:number}[] : []
   const variantes = Array.isArray(datos.variantes) ? datos.variantes as string[] : []
@@ -54,7 +57,7 @@ export default function ObjetoForm({ elemento, objetos, onChange }: Props) {
         {campo('Daño versátil','danioVersatil','1d8')}
         {numero('Alcance normal (pies)','alcanceNormal')}
         {numero('Alcance largo (pies)','alcanceLargo')}
-        {seleccionar('Maestría','maestria',maestrias)}
+        {seleccionarMaestria()}
         {numero('Bonificador al ataque','bonoAtaque',-20)}
         {numero('Bonificador al daño','bonoDanio',-20)}
       </div>
