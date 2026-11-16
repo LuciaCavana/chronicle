@@ -136,7 +136,6 @@ export default function Libros() {
   const [mensajeAdmin, setMensajeAdmin] = useState('')
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
-  const [rechazandoId,setRechazandoId] = useState<string | null>(null)
   const [rechazandoLibroId,setRechazandoLibroId] = useState<string | null>(null)
   const [motivoRechazo,setMotivoRechazo] = useState('')
 
@@ -439,38 +438,6 @@ async function borrarPropuesta(
     }
   }
 
-  async function aprobarBorrador(propuestaId: string) {
-    if (!esAdministrador || actualizandoId) return
-    setActualizandoId(propuestaId)
-    setError('')
-    setMensajeAdmin('')
-    try {
-      const { error: errorAprobacion } = await supabase.rpc('chronicle_aprobar_propuesta', {
-        p_propuesta_id: propuestaId,
-      })
-      if (errorAprobacion) throw errorAprobacion
-      setMensajeAdmin('Los cambios del borrador se aprobaron y se sincronizaron con el libro publicado.')
-      await cargarLibros()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo aprobar el borrador.')
-    } finally {
-      setActualizandoId(null)
-    }
-  }
-
-  async function rechazarBorrador() {
-    if(!esAdministrador||!rechazandoId||actualizandoId||!motivoRechazo.trim())return
-    setActualizandoId(rechazandoId);setError('')
-    try {
-      const {error:err}=await supabase.rpc('chronicle_rechazar_propuesta',{p_propuesta_id:rechazandoId,p_motivo:motivoRechazo.trim()})
-      if(err)throw err
-      setRechazandoId(null);setMotivoRechazo('')
-      setMensajeAdmin('Propuesta rechazada. El motivo quedó disponible para su autor en Mis propuestas.')
-      await cargarLibros()
-    } catch(e){setError(e instanceof Error?e.message:'No se pudo rechazar la propuesta.')}
-    finally{setActualizandoId(null)}
-  }
-
   async function rechazarLibro() {
     if(!esAdministrador||!rechazandoLibroId||actualizandoId||!motivoRechazo.trim())return
     setActualizandoId(rechazandoLibroId);setError('')
@@ -622,10 +589,7 @@ async function borrarPropuesta(
                   </div>
                   <div className="libros-admin-actions">
                     {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" onClick={() => navigate(`/biblioteca/libros/revision/${propuesta.id}`)}><BookOpen size={16}/> Revisar contenido</button>}
-                    {propuesta.pendiente_aprobacion && <>
-                    <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void aprobarBorrador(propuesta.id)}><CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? t('books.saving') : propuesta.revision_resultante_id ? t('books.approveChanges') : t('books.approvePublish')}</button>
-                    <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoId(propuesta.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
-                    </>}
+
                   </div>
                 </article>
               ))}
@@ -864,14 +828,6 @@ async function borrarPropuesta(
         <textarea id="motivo-rechazo-libro" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder={t('books.reasonPlaceholder')} />
         {error&&<p role="alert">{error}</p>}
         <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoLibroId(null)}>{t('books.cancel')}</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarLibro()}>{t('books.confirmReject')}</button></div></div>
-      </ModalBorrador>}
-
-      {rechazandoId && <ModalBorrador titulo="Rechazar propuesta" onClose={()=>setRechazandoId(null)}>
-        <div className="libros-rechazo-modal"><h3>{t('books.rejectProposal')}</h3><p>{t('books.rejectProposalInfo')}</p>
-        <label htmlFor="motivo-rechazo">{t('books.reason')}</label>
-        <textarea id="motivo-rechazo" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder={t('books.reasonProposalPlaceholder')} />
-        {error&&<p role="alert">{error}</p>}
-        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoId(null)}>{t('books.cancel')}</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarBorrador()}>{t('books.confirmReject')}</button></div></div>
       </ModalBorrador>}
 
       {propuestaParaBorrar && (
