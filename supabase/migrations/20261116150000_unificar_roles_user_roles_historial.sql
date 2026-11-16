@@ -139,7 +139,7 @@ CREATE OR REPLACE FUNCTION public.chronicle_es_admin()
  STABLE SECURITY DEFINER
  SET search_path TO ''
 AS $function$
-  select exists(select 1 from public.user_roles where role='admin' and user_id=(select auth.uid()));
+  select exists(select 1 from public.user_roles where role in ('creator','admin') and user_id=(select auth.uid()));
 $function$
 ;
 
