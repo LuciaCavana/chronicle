@@ -21,8 +21,8 @@ export const translations = {
     'settings.privacyDescription':'Tu perfil es privado. Solo vos podés consultar y editar tus datos desde esta sección.',
     'settings.private':'Perfil privado','settings.language':'Idioma','settings.languageDescription':'Elegí el idioma de la interfaz de Chronicle.',
     'language.es':'Español','language.en':'English','weapon.mastery':'Maestría',
-    'weapon.none':'Sin seleccionar','weapon.cleave':'Hender','weapon.graze':'Rozar','weapon.nick':'Corte rápido',
-    'weapon.push':'Empujar','weapon.sap':'Debilitar','weapon.slow':'Ralentizar','weapon.topple':'Derribar','weapon.vex':'Hostigar',
+    'weapon.none':'Sin seleccionar','weapon.cleave':'Hender','weapon.graze':'Rozar','weapon.nick':'Mellar',
+    'weapon.push':'Empujar','weapon.sap':'Debilitar','weapon.slow':'Ralentizar','weapon.topple':'Derribar','weapon.vex':'Molestar',
   },
   en: {
     'sidebar.home':'Home','sidebar.characters':'Characters','sidebar.campaigns':'Campaigns','sidebar.library':'Library','sidebar.inventory':'Inventory','sidebar.admin':'Administration','sidebar.menu':'Main menu',
