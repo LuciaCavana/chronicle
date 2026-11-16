@@ -1,6 +1,16 @@
 export type Language = 'es' | 'en'
 export const translations = {
   es: {
+    'sidebar.home':'Inicio','sidebar.characters':'Personajes','sidebar.campaigns':'Campañas','sidebar.library':'Biblioteca','sidebar.inventory':'Inventario','sidebar.admin':'Administración','sidebar.menu':'Menú principal',
+    'profile.subtitle':'Administrá tu identidad en Chronicle','profile.loading':'Cargando perfil...','profile.notFound':'No se encontró el perfil.','profile.loadError':'No se pudo cargar tu perfil.',
+    'profile.nameError':'El nombre visible debe tener entre 1 y 80 caracteres.','profile.usernameError':'Escribí el usuario sin @. Debe tener entre 3 y 30 caracteres: letras minúsculas, números o guion bajo.',
+    'profile.bioError':'La biografía no puede superar 500 caracteres.','profile.usernameTaken':'Ese nombre de usuario ya está ocupado.','profile.saveError':'No se pudieron guardar los cambios.',
+    'profile.saved':'Perfil actualizado correctamente.','profile.photoUpdated':'Foto de perfil actualizada.','profile.photoDeleted':'Foto de perfil eliminada.',
+    'profile.photoError':'No se pudo cambiar la foto.','profile.photoDeleteError':'No se pudo quitar la foto.',
+    'profile.saving':'Guardando...','profile.changePhoto':'Cambiar','profile.uploadPhoto':'Subir foto','profile.removePhoto':'Quitar foto',
+    'profile.memberSince':'Miembro desde','profile.personalInfo':'Información personal','profile.privateDescription':'Estos datos son privados por ahora y solo vos podés modificarlos.',
+    'profile.displayName':'Nombre visible','profile.username':'Nombre de usuario','profile.usernameHelp':'No escribas @: Chronicle lo agrega automáticamente al mostrar tu usuario. Usá entre 3 y 30 caracteres: letras, números o guion bajo.',
+    'profile.bio':'Biografía','profile.characters':'caracteres','profile.changesSaved':'Tus cambios se guardan en Chronicle.','profile.save':'Guardar cambios','profile.avatar':'Avatar de perfil',
     'nav.profile':'Mi perfil','nav.settings':'Configuración','nav.logout':'Cerrar sesión','nav.loggingOut':'Cerrando sesión...',
     'settings.title':'Configuración','settings.subtitle':'Opciones de cuenta y seguridad',
     'settings.heading':'Configuración de cuenta','settings.description':'Gestioná tus opciones de acceso a Chronicle.',
@@ -15,6 +25,16 @@ export const translations = {
     'weapon.push':'Empujar','weapon.sap':'Debilitar','weapon.slow':'Ralentizar','weapon.topple':'Derribar','weapon.vex':'Hostigar',
   },
   en: {
+    'sidebar.home':'Home','sidebar.characters':'Characters','sidebar.campaigns':'Campaigns','sidebar.library':'Library','sidebar.inventory':'Inventory','sidebar.admin':'Administration','sidebar.menu':'Main menu',
+    'profile.subtitle':'Manage your identity on Chronicle','profile.loading':'Loading profile...','profile.notFound':'Profile not found.','profile.loadError':'Could not load your profile.',
+    'profile.nameError':'Display name must be between 1 and 80 characters.','profile.usernameError':'Enter your username without @. It must contain 3 to 30 lowercase letters, numbers, or underscores.',
+    'profile.bioError':'Bio cannot exceed 500 characters.','profile.usernameTaken':'That username is already taken.','profile.saveError':'Could not save your changes.',
+    'profile.saved':'Profile updated successfully.','profile.photoUpdated':'Profile photo updated.','profile.photoDeleted':'Profile photo removed.',
+    'profile.photoError':'Could not change your photo.','profile.photoDeleteError':'Could not remove your photo.',
+    'profile.saving':'Saving...','profile.changePhoto':'Change','profile.uploadPhoto':'Upload photo','profile.removePhoto':'Remove photo',
+    'profile.memberSince':'Member since','profile.personalInfo':'Personal information','profile.privateDescription':'These details are currently private and only you can edit them.',
+    'profile.displayName':'Display name','profile.username':'Username','profile.usernameHelp':'Do not type @: Chronicle adds it automatically when displaying your username. Use 3 to 30 letters, numbers, or underscores.',
+    'profile.bio':'Bio','profile.characters':'characters','profile.changesSaved':'Your changes are saved on Chronicle.','profile.save':'Save changes','profile.avatar':'Profile avatar',
     'nav.profile':'My profile','nav.settings':'Settings','nav.logout':'Sign out','nav.loggingOut':'Signing out...',
     'settings.title':'Settings','settings.subtitle':'Account and security options',
     'settings.heading':'Account settings','settings.description':'Manage how you access Chronicle.',
