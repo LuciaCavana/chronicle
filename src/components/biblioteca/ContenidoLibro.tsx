@@ -27,6 +27,7 @@ type ContenidoLibroProps = {
   onToggleCategory: (id: string) => void
   caracteristicas?: CaracteristicaLibro[]
   onAddCaracteristica?: () => void
+  onSeedMaestrias?: () => void
   onEditCaracteristica?: (id: string) => void
   onDeleteCaracteristica?: (id: string) => void
   categoryItemCounts?: Record<string, number>
@@ -71,7 +72,7 @@ export default function ContenidoLibro({
   selectedCategories,
   onToggleCategory,
   categoryItemCounts = {},
-  caracteristicas = [], onAddCaracteristica, onEditCaracteristica, onDeleteCaracteristica,
+  caracteristicas = [], onAddCaracteristica, onSeedMaestrias, onEditCaracteristica, onDeleteCaracteristica,
   onAddSpecies,
   speciesCount,
   species,
@@ -203,6 +204,7 @@ export default function ContenidoLibro({
               {items.length === 0 && <p className="contenido-libro-empty">Todavía no agregaste elementos en esta categoría.</p>}
             </div>
             <div className="contenido-libro-modal-footer">
+              {openCategory === 'otras' && <button type="button" className="contenido-libro-add" onClick={() => { onSeedMaestrias?.(); setOpenCategory(null) }}>Agregar las 8 maestrías</button>}
               <button type="button" className="contenido-libro-add" disabled={!agregar[openCategory]} onClick={()=>{setOpenCategory(null);agregar[openCategory]?.()}}><Plus size={17}/> Crear nuevo</button>
             </div>
           </div>
