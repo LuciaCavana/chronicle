@@ -118,6 +118,8 @@ export default function Libros() {
   const [error, setError] = useState('')
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
+  const [propuestaParaEnviar, setPropuestaParaEnviar] = useState<string | null>(null)
+  const [descripcionEnvio, setDescripcionEnvio] = useState('')
   async function proponerCorreccion(libroId: string, versionId: string) {
     if (actualizandoId) return
     setActualizandoId(libroId)
@@ -407,12 +409,14 @@ async function borrarPropuesta(
     }
   }
 
-  async function enviarARevision(propuestaId: string) {
+  async function enviarARevision(propuestaId: string, descripcion: string) {
     if (actualizandoId) return
     setActualizandoId(propuestaId)
     setError('')
     try {
-      await enviarBorradorAprobacion(propuestaId)
+      await enviarBorradorAprobacion(propuestaId, descripcion)
+      setPropuestaParaEnviar(null)
+      setDescripcionEnvio('')
       setPropuestasNuevas(actuales => actuales.map(p => p.id === propuestaId ? { ...p, pendiente_aprobacion: true } : p))
       await cargarLibros()
     } catch (err) {
@@ -665,9 +669,28 @@ async function borrarPropuesta(
                       </div>
                     </div>
                                       
+                  {propuestaParaEnviar === propuesta.id && (
+                    <ModalBorrador titulo="Enviar a aprobación" onClose={() => setPropuestaParaEnviar(null)}>
+                      <p>Describí los cambios realizados. Esta descripción quedará registrada en el historial del envío.</p>
+                      <textarea
+                        aria-label="Descripción de los cambios"
+                        value={descripcionEnvio}
+                        onChange={event => setDescripcionEnvio(event.target.value)}
+                        rows={5}
+                        maxLength={4000}
+                        style={{ width: '100%', boxSizing: 'border-box' }}
+                        placeholder="Ej.: Agregué dos dotes y corregí una habilidad..."
+                      />
+                      <button type="button" className="libros-admin-button libros-admin-button--approve"
+                        disabled={!descripcionEnvio.trim() || actualizandoId !== null}
+                        onClick={() => void enviarARevision(propuesta.id, descripcionEnvio)}>
+                        Confirmar envío
+                      </button>
+                    </ModalBorrador>
+                  )}
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
-                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
+                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => { setPropuestaParaEnviar(propuesta.id); setDescripcionEnvio('') }}><ClipboardCheck size={18} aria-hidden="true" /></button>}
                       {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-icon-action" title={t('books.withdraw')} aria-label={t('books.withdraw')} disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={18} aria-hidden="true" /></button>}
                       <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-label={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
                       <button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
