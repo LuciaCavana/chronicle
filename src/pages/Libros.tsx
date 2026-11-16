@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -28,7 +28,7 @@ import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrado
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
-import { enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
+import { crearPropuestaCorreccion, enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
 import '../styles/Libros.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
@@ -99,6 +99,7 @@ const mensajesEstado: Record<EstadoLibro, string> = {
 }
 
 export default function Libros() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { t } = useLanguage()
 
@@ -117,6 +118,20 @@ export default function Libros() {
   const [error, setError] = useState('')
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
+  async function proponerCorreccion(libroId: string, versionId: string) {
+    if (actualizandoId) return
+    setActualizandoId(libroId)
+    setError('')
+    try {
+      const propuestaId = await crearPropuestaCorreccion(libroId, versionId)
+      navigate(`/biblioteca/libros/editar-borrador/${propuestaId}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear la copia editable.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
   const [mensajeAdmin, setMensajeAdmin] = useState('')
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
@@ -733,6 +748,22 @@ async function borrarPropuesta(
 
                 {libro.estado === 'publicado' && activeTab !== 'administracion' && (
                   <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer libro</Link>
+                )}
+                {libro.estado === 'publicado' && activeTab === 'catalogo' && (
+                  <div className="libros-admin-actions">
+                    {libro.libro_versiones.map((version) => (
+                      <button
+                        key={version.id}
+                        type="button"
+                        className="libros-admin-button"
+                        disabled={actualizandoId !== null}
+                        onClick={() => void proponerCorreccion(libro.id, version.id)}
+                      >
+                        <Pencil size={16} />
+                        {actualizandoId === libro.id ? 'Creando copia...' : `Proponer corrección (${version.idioma.toUpperCase()})`}
+                      </button>
+                    ))}
+                  </div>
                 )}
 
                 {activeTab === 'propuestas' &&
