@@ -226,11 +226,17 @@ export default function LectorLibro() {
   const { libroId, propuestaId } = useParams<{ libroId?: string; propuestaId?: string }>()
   const esBorrador = Boolean(propuestaId)
   const [parametros] = useSearchParams()
-  const desdeRevision = esBorrador && parametros.get('origen') === 'revision'
-  const desdeAdministracion = !esBorrador && parametros.get('origen') === 'administracion'
+  const origen = parametros.get('origen')
+  const desdeRevision = esBorrador && origen === 'revision'
+  const desdeAdministracion = origen === 'administracion'
+  const desdeCompartidos = esBorrador && origen === 'compartidos'
+  const seccion = parametros.get('seccion')
+  const seccionAdmin = seccion === 'publicados' || seccion === 'ocultos' || seccion === 'borrados' ? seccion : 'pendientes'
   const destinoVolver = desdeRevision
     ? `/biblioteca/libros/revision/${propuestaId}`
-    : desdeAdministracion ? '/biblioteca/libros?tab=administracion' : esBorrador ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros'
+    : desdeAdministracion ? `/biblioteca/libros?tab=administracion&seccion=${seccionAdmin}`
+    : desdeCompartidos ? '/biblioteca/libros?tab=compartidos'
+    : esBorrador ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros'
   const [libro,setLibro] = useState<LibroPublicado|null>(null)
   const [cargando,setCargando] = useState(true)
   const [error,setError] = useState('')
@@ -303,7 +309,7 @@ export default function LectorLibro() {
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
   return <AppLayout title="Biblioteca" subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"}>
     <main className="lector-libro">
-      <Link className="lector-libro__volver" to={destinoVolver}><ArrowLeft size={17}/> {desdeRevision ? "Volver a la revisión" : desdeAdministracion ? "Volver a Administración" : esBorrador ? "Volver a los borradores" : "Volver al catálogo"}</Link>
+      <Link className="lector-libro__volver" to={destinoVolver}><ArrowLeft size={17}/> {desdeRevision ? "Volver a la revisión" : desdeAdministracion ? "Volver a Administración" : desdeCompartidos ? "Volver a compartidos" : esBorrador ? "Volver a los borradores" : "Volver al catálogo"}</Link>
       {cargando ? <div className="lector-libro__estado">Abriendo libro...</div>
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>
