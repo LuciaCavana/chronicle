@@ -1,23 +1,49 @@
 
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState, type ComponentType } from 'react'
 import { AuthProvider } from './contexts/AuthContext'
 import { useAuth } from './contexts/useAuth'
+// Las pantallas de acceso son livianas y se usan al entrar: van en el paquete inicial.
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
-import Home from './pages/Home'
 import ForgotPassword from './pages/auth/ForgotPassword'
 import ResetPassword from './pages/auth/ResetPassword'
-import Biblioteca from './pages/Biblioteca'
-import CatalogoConjuros from './pages/CatalogoConjuros'
-import CatalogoClases from './pages/CatalogoClases'
-import Libros from './pages/Libros'
-import LectorLibro from './pages/LectorLibro'
-import NuevaPropuesta from './pages/NuevaPropuesta'
-import MotorLibros from './pages/MotorLibros'
-import Administracion from './pages/Administracion'
-import Profile from './pages/Profile'
-import Settings from './pages/Settings'
+
+const RECARGA_POR_VERSION = 'chronicle.recargaPorVersion'
+
+/**
+ * Carga una página recién cuando se visita. Si el archivo ya no existe
+ * (porque se publicó una versión nueva mientras la pestaña estaba abierta),
+ * recarga la página una sola vez para traer la versión actual.
+ */
+function cargarPagina<T extends ComponentType>(importar: () => Promise<{ default: T }>) {
+  return lazy(async () => {
+    try {
+      const modulo = await importar()
+      sessionStorage.removeItem(RECARGA_POR_VERSION)
+      return modulo
+    } catch (error) {
+      if (!sessionStorage.getItem(RECARGA_POR_VERSION)) {
+        sessionStorage.setItem(RECARGA_POR_VERSION, 'true')
+        window.location.reload()
+        return new Promise<{ default: T }>(() => {})
+      }
+      throw error
+    }
+  })
+}
+
+const Home = cargarPagina(() => import('./pages/Home'))
+const Biblioteca = cargarPagina(() => import('./pages/Biblioteca'))
+const CatalogoConjuros = cargarPagina(() => import('./pages/CatalogoConjuros'))
+const CatalogoClases = cargarPagina(() => import('./pages/CatalogoClases'))
+const Libros = cargarPagina(() => import('./pages/Libros'))
+const LectorLibro = cargarPagina(() => import('./pages/LectorLibro'))
+const NuevaPropuesta = cargarPagina(() => import('./pages/NuevaPropuesta'))
+const MotorLibros = cargarPagina(() => import('./pages/MotorLibros'))
+const Administracion = cargarPagina(() => import('./pages/Administracion'))
+const Profile = cargarPagina(() => import('./pages/Profile'))
+const Settings = cargarPagina(() => import('./pages/Settings'))
 
 
 
@@ -27,16 +53,18 @@ function AvisoNuevaVersion() {
   const [hayNuevaVersion, setHayNuevaVersion] = useState(false)
 
   useEffect(() => {
+    // Sólo se compara el script de entrada: las páginas se cargan por separado
+    // y sus archivos no figuran en index.html. El nombre de la entrada cambia
+    // cuando cambia cualquier parte de la app.
     const archivos = (html: string) =>
-      [...html.matchAll(/(?:\/assets\/)[^"'\s<>]+\.(?:js|css)/g)]
-        .map(match => match[0])
+      [...html.matchAll(/<script[^>]+src="(\/assets\/[^"]+\.js)"/g)]
+        .map(match => match[1])
         .sort()
         .join('|')
 
-    const actuales = Array.from(document.querySelectorAll<HTMLScriptElement | HTMLLinkElement>('script[src], link[rel="stylesheet"]'))
-      .map(element => element.getAttribute('src') || element.getAttribute('href') || '')
-      .filter(url => url.includes('/assets/') && /\.(?:js|css)(?:\?|$)/.test(url))
-      .map(url => url.split('?')[0])
+    const actuales = Array.from(document.querySelectorAll<HTMLScriptElement>('script[type="module"][src]'))
+      .map(element => element.getAttribute('src') || '')
+      .filter(url => url.startsWith('/assets/') && url.endsWith('.js'))
       .sort()
       .join('|')
 
@@ -117,6 +145,7 @@ function AppRoutes() {
   }
 
   return (
+    <Suspense fallback={<p>Cargando...</p>}>
     <Routes>
       <Route
         path="/"
@@ -203,6 +232,7 @@ function AppRoutes() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }
 
