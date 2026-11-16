@@ -3,7 +3,6 @@ import { Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/useAuth'
-import { soyAdminMotor } from '../services/chronicleLibros'
 import '../styles/Administracion.css'
 
 type Rol = 'creator' | 'admin' | 'user'
@@ -18,7 +17,7 @@ type Filtro = 'todos' | Rol
 const etiquetas: Record<Rol, string> = { creator: 'Creador', admin: 'Administrador', user: 'Usuario' }
 
 export default function Administracion() {
-  const { session, loading: cargandoSesion } = useAuth()
+  const { session, loading: cargandoSesion, role, roleLoading } = useAuth()
   const [autorizado, setAutorizado] = useState<boolean | null>(null)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [esPropietario, setEsPropietario] = useState(false)
@@ -36,7 +35,7 @@ export default function Administracion() {
   }
 
   useEffect(() => {
-    if (cargandoSesion) return
+    if (cargandoSesion || roleLoading) return
     if (!session) { setAutorizado(false); setCargandoUsuarios(false); return }
     let activo = true
     setAutorizado(null)
@@ -44,13 +43,9 @@ export default function Administracion() {
     setError('')
     async function iniciar() {
       try {
-        const [{ data: propietario, error: errorPropietario }, admin] = await Promise.all([
-          supabase.rpc('chronicle_es_propietario'),
-          soyAdminMotor(),
-        ])
-        if (errorPropietario) throw errorPropietario
+        const owner = role === 'creator'
+        const admin = role === 'admin'
         if (!activo) return
-        const owner = Boolean(propietario)
         setEsPropietario(owner)
         setAutorizado(owner || admin)
         if (!owner && !admin) return
@@ -65,7 +60,7 @@ export default function Administracion() {
     }
     void iniciar()
     return () => { activo = false }
-  }, [session?.user.id, cargandoSesion])
+  }, [session?.user.id, cargandoSesion, roleLoading, role])
 
   const filtrados = useMemo(() => {
     const termino = busqueda.trim().toLocaleLowerCase()
