@@ -24,6 +24,7 @@ import RevisionLibro from '../components/biblioteca/RevisionLibro'
 import {
   actualizarLibro,
   guardarPropuesta,
+  listarVersionesPublicadas,
   obtenerLibroParaEditar,
   obtenerPropuestaParaEditar,
   guardarElementosCompartidos,
@@ -34,6 +35,7 @@ import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
 
 type TipoPropuesta = 'nuevo' | 'traduccion'
+type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
 
 const pasos = ['1. Información general', '2. Contenido', '3. Revisión']
 
@@ -82,6 +84,41 @@ export default function NuevaPropuesta() {
   // Tipo de propuesta
   const [tipoPropuesta, setTipoPropuesta] = useState<TipoPropuesta>('nuevo')
   const [libroOriginalId, setLibroOriginalId] = useState('')
+  const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
+  const [errorVersiones, setErrorVersiones] = useState('')
+
+  useEffect(() => {
+    if (tipoPropuesta !== 'traduccion' || modoEdicion) return
+    let activo = true
+    void listarVersionesPublicadas().then(versiones => {
+      if (activo) { setVersionesPublicadas(versiones); setErrorVersiones('') }
+    }).catch(error => {
+      if (activo) setErrorVersiones(error instanceof Error ? error.message : 'No se pudieron cargar los libros publicados.')
+    })
+    return () => { activo = false }
+  }, [tipoPropuesta, modoEdicion])
+
+  function seleccionarOrigen(versionId: string) {
+    setLibroOriginalId(versionId)
+    const origen = versionesPublicadas.find(version => version.id === versionId)
+    if (!origen) return
+    setTitle(origen.titulo ?? '')
+    setBookCode(origen.codigo ?? '')
+    setEdition(origen.edicion ?? '')
+    setPublisher(origen.editorial ?? '')
+    setBookType(origen.clasificacion ?? '')
+    setDescription(origen.descripcion ?? '')
+    setSelectedCategories(origen.categorias ?? [])
+    setEspecies((origen.especies ?? []) as Especie[])
+    setConjuros((origen.conjuros ?? []) as Conjuro[])
+    setClases((origen.clases ?? []) as Elemento[])
+    setSubclases((origen.subclases ?? []) as Elemento[])
+    setObjetos((origen.objetos ?? []) as Elemento[])
+    setDotes([])
+    setTrasfondos([])
+    setCriaturas([])
+    if (idioma === origen.idioma) setIdioma(idiomas.find(item => item.value !== origen.idioma)?.value ?? idioma)
+  }
 
   // Información general
   const [title, setTitle] = useState('')
@@ -380,7 +417,7 @@ export default function NuevaPropuesta() {
   }
 
   async function handleGuardarLibro() {
-    if (guardando || cargandoLibro || accesoCompartido === 'lector' || pendienteAprobacion || tipoPropuesta !== 'nuevo') {
+    if (guardando || cargandoLibro || accesoCompartido === 'lector' || pendienteAprobacion) {
       return
     }
 
@@ -453,7 +490,9 @@ export default function NuevaPropuesta() {
       } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
       } else {
-        await guardarPropuesta(datos)
+        const origen = versionesPublicadas.find(version => version.id === libroOriginalId)
+        if (tipoPropuesta === 'traduccion' && !origen) throw new Error('Seleccioná una versión publicada como origen.')
+        await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
 
 
@@ -589,12 +628,13 @@ export default function NuevaPropuesta() {
                     <select
                       id="libro-original"
                       value={libroOriginalId}
-                      onChange={(event) => setLibroOriginalId(event.target.value)}
-                      disabled
+                      onChange={(event) => seleccionarOrigen(event.target.value)}
+                      disabled={modoEdicion || Boolean(errorVersiones)}
                     >
-                      <option value="">
-                        Pendiente de conectar con la Biblioteca
-                      </option>
+                      <option value="">Seleccioná un libro aprobado</option>
+                      {versionesPublicadas.map(version => (
+                        <option key={version.id} value={version.id}>{version.titulo} ({version.idioma.toUpperCase()})</option>
+                      ))}
                     </select>
                   </div>
 
@@ -616,11 +656,8 @@ export default function NuevaPropuesta() {
                     </select>
                   </div>
 
-                  <p>
-                    La traducción utilizará una copia del contenido original.
-                    Esta opción se habilitará cuando conectemos los libros
-                    guardados.
-                  </p>
+                  {errorVersiones && <p role="alert">{errorVersiones}</p>}
+                  <p>Se copiará el contenido de la versión publicada seleccionada a un borrador editable, conservando el vínculo con el libro original.</p>
                 </>
               )}
             </section>
@@ -904,7 +941,7 @@ export default function NuevaPropuesta() {
                 cargandoLibro ||
                 (modoEdicionAnterior && !versionId) ||
                 (modoEdicionBorrador && rowVersion === null) ||
-                tipoPropuesta !== 'nuevo'
+                (tipoPropuesta === 'traduccion' && !libroOriginalId)
               }
               onClick={handleGuardarLibro}
             >
