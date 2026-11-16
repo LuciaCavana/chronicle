@@ -381,3 +381,13 @@ export async function retirarDeAprobacion(propuestaId: string) {
   })
   if (error) throw error
 }
+
+export async function crearPropuestaCorreccion(libroId: string, versionId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('chronicle_crear_propuesta_correccion', {
+    p_libro_id: libroId,
+    p_version_id: versionId,
+  })
+  if (error) throw error
+  if (typeof data !== 'string') throw new Error('No se pudo crear la propuesta de corrección.')
+  return data
+}
