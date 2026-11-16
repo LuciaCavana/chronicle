@@ -282,6 +282,7 @@ export default function LectorLibro() {
   },[libroId,propuestaId])
   const version=libro?.libro_versiones.find(v=>v.id===versionId) ?? libro?.libro_versiones[0]
   const extras = valorObjeto(version?.contenido_extra)
+  const categoriasActivas = Array.isArray(version?.categorias) ? version.categorias.filter((categoria): categoria is string => typeof categoria === 'string') : []
   const secciones:Seccion[] = version ? [
     {id:'especies',titulo:'Especies',elementos:lista(version.especies)},
     {id:'clases',titulo:'Clases',elementos:lista(version.clases)},
@@ -292,7 +293,7 @@ export default function LectorLibro() {
     {id:'trasfondos',titulo:'Trasfondos',elementos:lista(extras.trasfondos)},
     {id:'criaturas',titulo:'Criaturas',elementos:lista(extras.criaturas)},
     {id:'caracteristicas',titulo:'Características y reglas',elementos:lista(extras.caracteristicas)}
-  ] : []
+  ].filter(seccion => categoriasActivas.includes(seccion.id)) : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
   return <AppLayout title="Biblioteca" subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"}>
     <main className="lector-libro">
