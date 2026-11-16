@@ -1,9 +1,10 @@
 export type CaracteristicaLibro = {
   id: string
-  tipo: 'maestria_arma' | 'otra'
+  tipo: 'maestria_arma' | 'propiedad_arma' | 'moneda' | 'regla_arma' | 'otra'
   codigo?: string
   nombre: string
   descripcion: string
+  datos?: Record<string, string | number | boolean>
 }
 
 export const MAESTRIAS_ARMA = [
@@ -21,4 +22,35 @@ export function crearMaestrias(): CaracteristicaLibro[] {
   return MAESTRIAS_ARMA.map(maestria => ({
     id: crypto.randomUUID(), tipo: 'maestria_arma', ...maestria,
   }))
+}
+
+export const PROPIEDADES_ARMA = [
+  ['A dos manos','Estas armas requieren el uso de las dos manos.'],
+  ['Alcance','El alcance normal y largo de un arma a distancia se indican en metros. Atacar más allá del alcance normal impone desventaja y no se puede atacar más allá del alcance largo.'],
+  ['Arrojadiza','Puedes lanzar el arma para atacar a distancia y desenvainarla como parte del ataque. Si es cuerpo a cuerpo, usa el mismo modificador por característica que en sus ataques cuerpo a cuerpo.'],
+  ['Gran alcance','Tu alcance aumenta 1,5 m para los ataques y los ataques de oportunidad con esta arma.'],
+  ['Ligera','Al atacar con un arma ligera, puedes hacer un ataque adicional con otra arma ligera como acción adicional; no sumas el modificador al daño salvo que sea negativo.'],
+  ['Munición','Requiere munición, consume una unidad por ataque y permite recuperar la mitad de la utilizada tras dedicar 1 minuto después del combate.'],
+  ['Pesada','Impone desventaja si no alcanzas Fuerza 13 para armas cuerpo a cuerpo o Destreza 13 para armas a distancia.'],
+  ['Recarga','Solo puedes disparar una unidad de munición por acción, acción adicional o reacción utilizada para atacar.'],
+  ['Sutil','Puedes elegir Fuerza o Destreza para las tiradas de ataque y daño, usando el mismo modificador en ambas.'],
+  ['Versátil','Puede utilizarse con una o dos manos y tiene un valor de daño específico al usarla con ambas.'],
+] as const
+
+export const MONEDAS = [
+  { codigo:'PC', nombre:'Pieza de cobre', valorOro:0.01 },
+  { codigo:'PP', nombre:'Pieza de plata', valorOro:0.1 },
+  { codigo:'PE', nombre:'Pieza de electro', valorOro:0.5 },
+  { codigo:'PO', nombre:'Pieza de oro', valorOro:1 },
+  { codigo:'PPT', nombre:'Pieza de platino', valorOro:10 },
+] as const
+
+export function crearPropiedadesArma(): CaracteristicaLibro[] {
+  return PROPIEDADES_ARMA.map(([nombre,descripcion]) => ({id:crypto.randomUUID(),tipo:'propiedad_arma',codigo:nombre,nombre,descripcion}))
+}
+export function crearMonedas(): CaracteristicaLibro[] {
+  return MONEDAS.map(m => ({id:crypto.randomUUID(),tipo:'moneda',codigo:m.codigo,nombre:m.nombre,descripcion:'Una moneda pesa aproximadamente 10 g.',datos:{valorOro:m.valorOro,pesoGramos:10}}))
+}
+export function crearReglasArmas(): CaracteristicaLibro[] {
+  return [{id:crypto.randomUUID(),tipo:'regla_arma',codigo:'improvisadas',nombre:'Armas improvisadas',descripcion:'Cuando se utiliza un objeto como arma improvisada o un arma de una forma atípica, se aplican las reglas de armas improvisadas del glosario.'}]
 }
