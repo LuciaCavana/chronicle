@@ -26,6 +26,7 @@ import {
 import AppLayout from '../components/layout/AppLayout'
 import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrador'
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
+import HistorialAprobaciones from '../components/biblioteca/HistorialAprobaciones'
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
 import { crearPropuestaCorreccion, enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
@@ -137,6 +138,7 @@ export default function Libros() {
   const [mensajeAdmin, setMensajeAdmin] = useState('')
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
+  const [historialAprobacionId, setHistorialAprobacionId] = useState<string | null>(null)
   const [rechazandoLibroId,setRechazandoLibroId] = useState<string | null>(null)
   const [motivoRechazo,setMotivoRechazo] = useState('')
   const [gestionLibro, setGestionLibro] = useState<{id:string; accion:'ocultar'|'mostrar'|'eliminar'|'restaurar'; titulo:string}|null>(null)
@@ -318,19 +320,8 @@ async function borrarPropuesta(
 
   try {
     if (origen === 'nueva') {
-      const { data, error } = await supabase
-        .from('propuestas')
-        .delete()
-        .eq('id', id)
-        .eq('autor_id', userId)
-        .eq('estado', 'borrador')
-        .select('id')
-        .maybeSingle()
-
+      const { error } = await supabase.rpc('chronicle_borrar_borrador', { p_propuesta_id: id })
       if (error) throw error
-      if (!data) {
-        throw new Error('No se encontró un borrador que puedas borrar.')
-      }
 
       setPropuestasNuevas((actuales) =>
         actuales.filter((propuesta) => propuesta.id !== id)
@@ -679,39 +670,23 @@ async function borrarPropuesta(
                   )}
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
-                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => setPropuestaParaEnviar(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
-                      {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-icon-action" title={t('books.withdraw')} aria-label={t('books.withdraw')} disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={18} aria-hidden="true" /></button>}
-                      <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-label={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
-                      <button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
-                      <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button libros-icon-action" title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link>
-                      <Link
-                        to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
-                        className="libros-admin-button libros-icon-action"
-                        title={t('books.edit')}
-                        aria-label={t('books.edit')}
-                      >
-                        <Pencil size={18} aria-hidden="true" />
-                      </Link>
-                      
-                      <button
-                        type="button"
-                        className="libros-admin-button libros-admin-button--delete libros-icon-action"
-                        title={t('books.delete')}
-                        aria-label={t('books.delete')}
-                        disabled={actualizandoId !== null}
-                        onClick={() =>
-                          setPropuestaParaBorrar({
-                            id: propuesta.id,
-                            origen: 'nueva'
-                          })
-                        }
-                      >
-                        <Trash2 size={18} aria-hidden="true" />
-                      </button>
-
+                      <details className="libros-menu-borrador">
+                        <summary className="libros-admin-button" aria-label="Acciones del borrador">Acciones ▾</summary>
+                        <div className="libros-menu-borrador__opciones">
+                          {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => setPropuestaParaEnviar(propuesta.id)}><ClipboardCheck size={16}/> Enviar a aprobación</button>}
+                          {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={16}/> Sacar de aprobación</button>}
+                          <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(propuesta.id)}><Share2 size={16}/> Compartir</button>
+                          <button type="button" className="libros-admin-button" onClick={() => setHistorialId(propuesta.id)}><History size={16}/> Historial de versiones</button>
+                          <button type="button" className="libros-admin-button" onClick={() => setHistorialAprobacionId(propuesta.id)}><History size={16}/> Historial de aprobaciones</button>
+                          <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
+                          <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button"><Pencil size={16}/> Editar borrador</Link>
+                          <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Borrar borrador'} onClick={() => setPropuestaParaBorrar({id:propuesta.id,origen:'nueva'})}><Trash2 size={16}/> Borrar borrador</button>
+                        </div>
+                      </details>
                     </div>
                   )}
                   {compartiendoId === propuesta.id && <ModalBorrador titulo={t('books.shareDraft')} onClose={() => setCompartiendoId(null)}><ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} /></ModalBorrador>}
+                  {historialAprobacionId === propuesta.id && <ModalBorrador titulo="Historial de aprobaciones" onClose={() => setHistorialAprobacionId(null)}><HistorialAprobaciones propuestaId={propuesta.id}/></ModalBorrador>}
                   {historialId === propuesta.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
 
                   </article>
@@ -865,7 +840,7 @@ async function borrarPropuesta(
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="libros-modal-titulo">
-              ¿Seguro que querés borrar esta propuesta?
+              ¿Seguro que querés borrar este borrador? Se conservará el registro, pero dejará de aparecer entre tus borradores.
             </h2>
 
             <div className="libros-modal-actions">
