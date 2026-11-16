@@ -132,15 +132,9 @@ export default function Libros() {
     setErrorRevision('')
     setCargandoRevision(true)
     try {
-      const { data, error: errorEnvio } = await supabase.from('propuesta_envios')
-        .select('operaciones_snapshot')
-        .eq('propuesta_id', id)
-        .order('enviado_en', { ascending: false })
-        .limit(1)
-        .maybeSingle()
-      if (errorEnvio) throw errorEnvio
-      if (!data) throw new Error('No se encontró el envío para revisar.')
-      setCambiosRevision(Array.isArray(data.operaciones_snapshot) ? data.operaciones_snapshot as typeof cambiosRevision : [])
+      const { data, error: errorCambios } = await supabase.rpc('chronicle_calcular_cambios', { p_propuesta_id: id })
+      if (errorCambios) throw errorCambios
+      setCambiosRevision(Array.isArray(data) ? data as typeof cambiosRevision : [])
     } catch (err) {
       setErrorRevision(err instanceof Error ? err.message : 'No se pudieron cargar los cambios.')
     } finally {
@@ -671,8 +665,8 @@ async function borrarPropuesta(
                   <div style={{maxHeight: '60vh', overflowY: 'auto'}}>
                     {cambiosRevision.map((cambio, indice) => (
                       <div key={indice} style={{padding: '12px 0', borderBottom: '1px solid var(--border-color, #888)'}}>
-                        <strong>{cambio.accion === 'agregar' ? 'Agregado' : cambio.accion === 'retirar' ? 'Retirado' : 'Modificado'} — {cambio.categoria}</strong>
-                        <p>{String((cambio.despues as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.despues as {titulo?: string} | null)?.titulo ?? (cambio.antes as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.antes as {titulo?: string} | null)?.titulo ?? cambio.elemento_id)}</p>
+                        <strong>{cambio.accion === 'agregar' ? 'Agregado' : cambio.accion === 'retirar' ? 'Retirado' : cambio.accion === 'desactivar_categoria' ? 'Categoría desactivada' : cambio.accion === 'activar_categoria' ? 'Categoría activada' : 'Modificado'} — {cambio.categoria}</strong>
+                        {cambio.elemento_id != null && <p>{String((cambio.despues as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.despues as {titulo?: string} | null)?.titulo ?? (cambio.antes as {nombre?: string; titulo?: string} | null)?.nombre ?? (cambio.antes as {titulo?: string} | null)?.titulo ?? cambio.elemento_id)}</p>}
                         {cambio.antes != null && <details><summary>Antes</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.antes, null, 2)}</pre></details>}
                         {cambio.despues != null && <details><summary>Después</summary><pre style={{whiteSpace: 'pre-wrap',overflowWrap: 'anywhere'}}>{JSON.stringify(cambio.despues, null, 2)}</pre></details>}
                       </div>
