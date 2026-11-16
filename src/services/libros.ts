@@ -357,19 +357,13 @@ export async function guardarElementosCompartidos(propuestaId: string, base: Rec
 }
 
 /** Envía la versión guardada del borrador a revisión administrativa. */
-export async function enviarBorradorAprobacion(propuestaId: string) {
-  const { data: auth, error: authError } = await supabase.auth.getUser()
-  if (authError) throw authError
-  if (!auth.user) throw new Error('Tenés que iniciar sesión.')
-  const { data, error } = await supabase.from('propuestas')
-    .update({ pendiente_aprobacion: true })
-    .eq('id', propuestaId)
-    .eq('autor_id', auth.user.id)
-    .eq('estado', 'borrador')
-    .eq('pendiente_aprobacion', false)
-    .select('id').maybeSingle()
+export async function enviarBorradorAprobacion(propuestaId: string, descripcionCambios: string) {
+  if (!descripcionCambios.trim()) throw new Error('Describí los cambios realizados.')
+  const { error } = await supabase.rpc('chronicle_enviar_propuesta_con_cambios', {
+    p_propuesta_id: propuestaId,
+    p_descripcion_cambios: descripcionCambios.trim(),
+  })
   if (error) throw error
-  if (!data) throw new Error('El borrador ya fue enviado o no está disponible.')
 }
 
 /** Retira un borrador de la cola de aprobación para poder volver a editarlo.
