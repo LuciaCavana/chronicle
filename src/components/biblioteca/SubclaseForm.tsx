@@ -6,7 +6,7 @@ import '../../styles/ClaseForm.css'
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
 type Datos = { claseId: string; rasgos: Rasgo[]; recursos: Recurso[] }
-type Props = { elemento: Elemento; clases: Elemento[]; onChange: (elemento: Elemento) => void }
+type Props = { elemento: Elemento; clases: (Elemento & { libroOrigenTitulo?: string })[]; onChange: (elemento: Elemento) => void }
 const idNuevo = () => crypto.randomUUID()
 
 export default function SubclaseForm({ elemento, clases, onChange }: Props) {
@@ -26,7 +26,7 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
       <p className="clase-form__hint">La subclase queda vinculada a esta clase mediante su identificador, incluso si se cambia el nombre.</p>
       <select value={datos.claseId} onChange={e => actualizar({ claseId: e.target.value })}>
         <option value="">Seleccioná una clase</option>
-        {clases.map(c => <option key={c.id} value={c.id}>{c.nombre || 'Clase sin nombre'}</option>)}
+        {clases.map(c => <option key={c.id} value={c.id}>{c.nombre || 'Clase sin nombre'}{c.libroOrigenTitulo ? ` — ${c.libroOrigenTitulo}` : ' — Este libro'}</option>)}
       </select>
       <h4>Características de la subclase</h4>
       <p className="clase-form__hint">Los niveles disponibles se configuran en la clase principal.</p>
