@@ -167,7 +167,7 @@ export default function NuevaPropuesta() {
     })
   }
   const clasesExternas = versionesPublicadas.flatMap(version =>
-    (version.clases ?? []).filter(clase => clase.id && clase.nombre).map(clase => ({
+    ((version.clases ?? []) as Elemento[]).filter((clase: Elemento) => clase.id && clase.nombre).map((clase: Elemento) => ({
       ...clase,
       libroOrigenId: version.libroId,
       versionOrigenId: version.id,
