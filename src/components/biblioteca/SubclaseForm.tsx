@@ -5,16 +5,19 @@ import '../../styles/ClaseForm.css'
 
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
-type Datos = { claseId: string; rasgos: Rasgo[]; recursos: Recurso[] }
-type Props = { elemento: Elemento; clases: Elemento[]; onChange: (elemento: Elemento) => void }
+type ConjuroOtorgado = { id: string; conjuroId: string; nivelClase: number; otorgamiento: 'aprendido' | 'siempre_preparado' | 'capacidad_especial'; usos: string }
+type ConjuroDisponible = { id: string; nombre: string; libro?: string }
+type Datos = { claseId: string; rasgos: Rasgo[]; recursos: Recurso[]; conjurosOtorgados: ConjuroOtorgado[] }
+type Props = { elemento: Elemento; clases: (Elemento & { libroOrigenTitulo?: string })[]; conjurosDisponibles: ConjuroDisponible[]; onChange: (elemento: Elemento) => void }
 const idNuevo = () => crypto.randomUUID()
 
-export default function SubclaseForm({ elemento, clases, onChange }: Props) {
+export default function SubclaseForm({ elemento, clases, conjurosDisponibles, onChange }: Props) {
   const datosOriginales = elemento.datos as Partial<Datos>
   const datos: Datos = {
     claseId: typeof datosOriginales.claseId === 'string' ? datosOriginales.claseId : '',
     rasgos: Array.isArray(datosOriginales.rasgos) ? datosOriginales.rasgos : [],
     recursos: Array.isArray(datosOriginales.recursos) ? datosOriginales.recursos : [],
+    conjurosOtorgados: Array.isArray(datosOriginales.conjurosOtorgados) ? datosOriginales.conjurosOtorgados : [],
   }
   const [editorRasgo, setEditorRasgo] = useState<Rasgo | null>(null)
   const clasePrincipal = clases.find(c => c.id === datos.claseId)
@@ -26,7 +29,7 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
       <p className="clase-form__hint">La subclase queda vinculada a esta clase mediante su identificador, incluso si se cambia el nombre.</p>
       <select value={datos.claseId} onChange={e => actualizar({ claseId: e.target.value })}>
         <option value="">Seleccioná una clase</option>
-        {clases.map(c => <option key={c.id} value={c.id}>{c.nombre || 'Clase sin nombre'}</option>)}
+        {clases.map(c => <option key={c.id} value={c.id}>{c.nombre || 'Clase sin nombre'}{c.libroOrigenTitulo ? ` — ${c.libroOrigenTitulo}` : ' — Este libro'}</option>)}
       </select>
       <h4>Características de la subclase</h4>
       <p className="clase-form__hint">Los niveles disponibles se configuran en la clase principal.</p>
@@ -43,6 +46,32 @@ export default function SubclaseForm({ elemento, clases, onChange }: Props) {
         </div>)}
       </div>
       <button type="button" disabled={niveles.length === 0} onClick={() => setEditorRasgo({ id: idNuevo(), nombre: '', descripcion: '', nivel: niveles[0] })}>+ Agregar característica</button>
+      <h4>Conjuros otorgados por nivel</h4>
+      <p className="clase-form__hint">Se desbloquean según el nivel de esta clase, no el nivel total del personaje. Otorgar un conjuro no concede espacios de conjuro.</p>
+      {datos.conjurosOtorgados.map(otorgado => <div className="clase-form__item" key={otorgado.id}>
+        <label>Nivel de clase
+          <input type="number" min={1} max={20} value={otorgado.nivelClase} onChange={e => actualizar({ conjurosOtorgados: datos.conjurosOtorgados.map(c => c.id === otorgado.id ? { ...c, nivelClase: Math.min(20, Math.max(1, Number(e.target.value) || 1)) } : c) })}/>
+        </label>
+        <label>Conjuro
+          <select value={otorgado.conjuroId} onChange={e => actualizar({ conjurosOtorgados: datos.conjurosOtorgados.map(c => c.id === otorgado.id ? { ...c, conjuroId: e.target.value } : c) })}>
+            <option value="">Seleccioná un conjuro</option>
+            {otorgado.conjuroId && !conjurosDisponibles.some(c => c.id === otorgado.conjuroId) && <option value={otorgado.conjuroId}>Conjuro no disponible ({otorgado.conjuroId})</option>}
+            {conjurosDisponibles.map(c => <option key={c.id} value={c.id}>{c.nombre}{c.libro ? ` — ${c.libro}` : ''}</option>)}
+          </select>
+        </label>
+        <label>Tipo de otorgamiento
+          <select value={otorgado.otorgamiento} onChange={e => actualizar({ conjurosOtorgados: datos.conjurosOtorgados.map(c => c.id === otorgado.id ? { ...c, otorgamiento: e.target.value as ConjuroOtorgado['otorgamiento'] } : c) })}>
+            <option value="aprendido">Aprendido</option>
+            <option value="siempre_preparado">Siempre preparado</option>
+            <option value="capacidad_especial">Capacidad especial</option>
+          </select>
+        </label>
+        <label>Usos o límite (opcional)
+          <input value={otorgado.usos} placeholder="Ej.: 1 por descanso largo" onChange={e => actualizar({ conjurosOtorgados: datos.conjurosOtorgados.map(c => c.id === otorgado.id ? { ...c, usos: e.target.value } : c) })}/>
+        </label>
+        <button type="button" className="clase-form__danger" onClick={() => actualizar({ conjurosOtorgados: datos.conjurosOtorgados.filter(c => c.id !== otorgado.id) })}>Quitar conjuro</button>
+      </div>)}
+      <button type="button" onClick={() => actualizar({ conjurosOtorgados: [...datos.conjurosOtorgados, { id: idNuevo(), conjuroId: '', nivelClase: 3, otorgamiento: 'siempre_preparado', usos: '' }] })}>+ Agregar conjuro</button>
       <h4>Recursos internos</h4>
       <p className="clase-form__hint">Se guardan para la ficha del personaje y no aparecen en la lectura del libro.</p>
       {datos.recursos.map(recurso => <div className="clase-form__item" key={recurso.id}>

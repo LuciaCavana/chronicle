@@ -89,7 +89,8 @@ export default function NuevaPropuesta() {
   const [errorVersiones, setErrorVersiones] = useState('')
 
   useEffect(() => {
-    if (tipoPropuesta !== 'traduccion' || modoEdicion) return
+    // Las clases externas también se necesitan al crear o editar borradores normales.
+    if (tipoPropuesta === 'traduccion' && modoEdicion) return
     let activo = true
     void listarVersionesPublicadas().then(versiones => {
       if (activo) { setVersionesPublicadas(versiones); setErrorVersiones('') }
@@ -149,6 +150,33 @@ export default function NuevaPropuesta() {
   const [clases, setClases] = useState<Elemento[]>([])
   const [subclases, setSubclases] = useState<Elemento[]>([])
   const [objetos, setObjetos] = useState<Elemento[]>([])
+  // Las clases externas se consultan solo de versiones publicadas.
+  // Los objetos creados dentro de una clase también forman parte del catálogo del libro.
+  const actualizarClaseConObjetos = (actualizada: Elemento) => {
+    setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))
+    const catalogo = (actualizada.datos as { objetosCatalogo?: { id: string; nombre: string; descripcion?: string; tipo?: string }[] }).objetosCatalogo
+    if (!Array.isArray(catalogo)) return
+    setObjetos(actuales => {
+      const existentes = new Set(actuales.map(o => o.id))
+      const nuevos = catalogo.filter(o => o.id && o.nombre?.trim() && !existentes.has(o.id))
+        .map(o => ({
+          id: o.id, tipo: 'objeto', nombre: o.nombre, descripcion: o.descripcion ?? '',
+          datos: { tipo: o.tipo === 'arma' ? 'arma' : 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false },
+        } as Elemento))
+      return nuevos.length ? [...actuales, ...nuevos] : actuales
+    })
+  }
+  const clasesExternas = versionesPublicadas.flatMap(version =>
+    ((version.clases ?? []) as Elemento[]).filter((clase: Elemento) => clase.id && clase.nombre).map((clase: Elemento) => ({
+      ...clase,
+      libroOrigenId: version.libroId,
+      versionOrigenId: version.id,
+      libroOrigenTitulo: version.titulo,
+    }))
+  )
+  const clasesDisponiblesSubclase = [...clases, ...clasesExternas.filter(clase => !clases.some(local => local.id === clase.id))]
+  const claseValidaSubclase = (claseId: string) => clasesDisponiblesSubclase.some(clase => clase.id === claseId)
+
   const [caracteristicas, setCaracteristicas] = useState<CaracteristicaLibro[]>([])
   const [editingCaracteristicaId, setEditingCaracteristicaId] = useState<string | null>(null)
   const [editingObjectId, setEditingObjectId] = useState<string | null>(null)
@@ -429,7 +457,7 @@ export default function NuevaPropuesta() {
     }
 
     if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); setCurrentStep(2); return }
-    if (subclases.some(s => !s.nombre.trim() || !clases.some(c => c.id === (s.datos as {claseId?: string}).claseId))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); setCurrentStep(2); return }
+    if (subclases.some(s => !s.nombre.trim() || !claseValidaSubclase((s.datos as {claseId?: string}).claseId ?? ''))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); setCurrentStep(2); return }
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
       setCurrentStep(2)
@@ -784,13 +812,13 @@ export default function NuevaPropuesta() {
             ) : editingObjectId !== null ? (
               <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
             ) : editingSubclassId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clases} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
+              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clasesDisponiblesSubclase} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, libro: v.titulo })))]} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
             ) : editingClassId !== null ? (
               <section className="nueva-propuesta-panel">
                 <h3>Editar clase</h3>
                 <div className="nueva-propuesta-field"><label>Nombre de la clase *</label><input value={clases.find(c => c.id === editingClassId)?.nombre ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, nombre: e.target.value } : c))} /></div>
                 <div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={clases.find(c => c.id === editingClassId)?.descripcion ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, descripcion: e.target.value } : c))} /></div>
-                <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
+                <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizarClaseConObjetos} />
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
             ) : showCriaturaForm ? (
@@ -850,7 +878,7 @@ export default function NuevaPropuesta() {
                 onAddObject={() => { const id = crypto.randomUUID(); setObjetos(actuales => [...actuales, { id, tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }]); setEditingObjectId(id) }}
                 onEditObject={setEditingObjectId}
                 onDeleteObject={id => setObjetos(actuales => actuales.filter(o => o.id !== id))}
-                subclases={subclases.map(s => ({ id: s.id, nombre: s.nombre, claseNombre: clases.find(c => c.id === (s.datos as {claseId?: string}).claseId)?.nombre ?? 'Clase no disponible' }))}
+                subclases={subclases.map(s => ({ id: s.id, nombre: s.nombre, claseNombre: clasesDisponiblesSubclase.find(c => c.id === (s.datos as {claseId?: string}).claseId)?.nombre ?? 'Clase no disponible' }))}
                 onAddSubclass={() => { const id = crypto.randomUUID(); setSubclases(actuales => [...actuales, { id, tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }]); setEditingSubclassId(id) }}
                 onEditSubclass={setEditingSubclassId}
                 onDeleteSubclass={id => setSubclases(actuales => actuales.filter(s => s.id !== id))}
@@ -962,7 +990,7 @@ export default function NuevaPropuesta() {
               className="nueva-propuesta-next"
               onClick={() => {
                 if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); return }
-                if (subclases.some(s => !s.nombre.trim() || !clases.some(c => c.id === (s.datos as {claseId?: string}).claseId))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); return }
+                if (subclases.some(s => !s.nombre.trim() || !claseValidaSubclase((s.datos as {claseId?: string}).claseId ?? ''))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); return }
                 if (clases.some(clase => !clase.nombre.trim())) {
                   setErrorGuardado('Todas las clases deben tener un nombre. Editá o eliminá las clases incompletas.')
                   return

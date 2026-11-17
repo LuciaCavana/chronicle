@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ArrowLeft,
   BookOpen,
@@ -26,9 +26,10 @@ import {
 import AppLayout from '../components/layout/AppLayout'
 import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrador'
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
+import HistorialAprobaciones from '../components/biblioteca/HistorialAprobaciones'
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
-import { enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
+import { crearPropuestaCorreccion, enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
 import '../styles/Libros.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
@@ -91,6 +92,7 @@ const mensajesEstado: Record<EstadoLibro, string> = {
 }
 
 export default function Libros() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { t } = useLanguage()
 
@@ -98,6 +100,7 @@ export default function Libros() {
     searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'compartidos' ? 'compartidos' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
   )
   const [search, setSearch] = useState('')
+  const [filtroAdministracion, setFiltroAdministracion] = useState<'pendientes'|'publicados'|'ocultos'|'borrados'>(() => { const valor = searchParams.get('seccion'); return valor === 'publicados' || valor === 'ocultos' || valor === 'borrados' ? valor : 'pendientes' })
 
   const [libros, setLibros] = useState<Libro[]>([])
   const [propuestasNuevas, setPropuestasNuevas] = useState<PropuestaNueva[]>([])
@@ -109,6 +112,21 @@ export default function Libros() {
   const [error, setError] = useState('')
 
   const [actualizandoId, setActualizandoId] = useState<string | null>(null)
+  const [propuestaParaEnviar, setPropuestaParaEnviar] = useState<string | null>(null)
+  async function proponerCorreccion(libroId: string, versionId: string) {
+    if (actualizandoId) return
+    setActualizandoId(libroId)
+    setError('')
+    try {
+      const propuestaId = await crearPropuestaCorreccion(libroId, versionId)
+      navigate(`/biblioteca/libros/editar-borrador/${propuestaId}`)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo crear la copia editable.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
   const [mensajeAdmin, setMensajeAdmin] = useState('')
   const [avisoCerrado, setAvisoCerrado] = useState(false)
   useEffect(() => {
@@ -117,12 +135,13 @@ export default function Libros() {
     const temporizador = window.setTimeout(() => setAvisoCerrado(true), 5500)
     return () => window.clearTimeout(temporizador)
   }, [mensajeAdmin, error])
-
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
-  const [rechazandoId,setRechazandoId] = useState<string | null>(null)
+  const [historialAprobacionId, setHistorialAprobacionId] = useState<string | null>(null)
   const [rechazandoLibroId,setRechazandoLibroId] = useState<string | null>(null)
   const [motivoRechazo,setMotivoRechazo] = useState('')
+  const [gestionLibro, setGestionLibro] = useState<{id:string; accion:'ocultar'|'mostrar'|'eliminar'|'restaurar'; titulo:string}|null>(null)
+  const [motivoGestion, setMotivoGestion] = useState('')
 
   const [propuestaParaBorrar, setPropuestaParaBorrar] = useState<{
     id: string
@@ -136,7 +155,7 @@ export default function Libros() {
     }
 
     if (activeTab === 'administracion') {
-      return esAdministrador && libro.estado === 'pendiente'
+      return esAdministrador && libro.estado === ({pendientes:'pendiente',publicados:'publicado',ocultos:'oculto',borrados:'eliminado'} as const)[filtroAdministracion]
     }
 
     if (activeTab === 'propuestas') return libro.creado_por === userId && (libro.estado === 'pendiente' || libro.estado === 'rechazado')
@@ -277,6 +296,13 @@ export default function Libros() {
     void Promise.resolve().then(cargarLibros)
   }, [])
 
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    setActiveTab(tab === 'administracion' || tab === 'propuestas' || tab === 'compartidos' ? tab : 'catalogo')
+    const seccion = searchParams.get('seccion')
+    setFiltroAdministracion(seccion === 'publicados' || seccion === 'ocultos' || seccion === 'borrados' ? seccion : 'pendientes')
+  }, [searchParams])
+
   function changeTab(tab: BooksTab) {
     setActiveTab(tab)
     setSearch('')
@@ -284,7 +310,7 @@ export default function Libros() {
     if (tab === 'catalogo') {
       setSearchParams({})
     } else {
-      setSearchParams({ tab })
+      setSearchParams(tab === 'administracion' ? { tab, seccion: filtroAdministracion } : { tab })
     }
   }
 
@@ -300,19 +326,8 @@ async function borrarPropuesta(
 
   try {
     if (origen === 'nueva') {
-      const { data, error } = await supabase
-        .from('propuestas')
-        .delete()
-        .eq('id', id)
-        .eq('autor_id', userId)
-        .eq('estado', 'borrador')
-        .select('id')
-        .maybeSingle()
-
+      const { error } = await supabase.rpc('chronicle_borrar_borrador', { p_propuesta_id: id })
       if (error) throw error
-      if (!data) {
-        throw new Error('No se encontró un borrador que puedas borrar.')
-      }
 
       setPropuestasNuevas((actuales) =>
         actuales.filter((propuesta) => propuesta.id !== id)
@@ -392,16 +407,54 @@ async function borrarPropuesta(
     }
   }
 
+  async function ejecutarGestionLibro() {
+    if (!gestionLibro || !esAdministrador || actualizandoId || !motivoGestion.trim()) return
+    setActualizandoId(gestionLibro.id)
+    setError('')
+    setMensajeAdmin('')
+    try {
+      const { data, error: errorGestion } = await supabase.rpc('chronicle_gestionar_estado_libro', {
+        p_libro_id: gestionLibro.id, p_accion: gestionLibro.accion, p_motivo: motivoGestion.trim()
+      })
+      if (errorGestion) throw errorGestion
+      const estado = data as EstadoLibro
+      setLibros(actuales => actuales.map(libro => libro.id === gestionLibro.id ? {...libro, estado} : libro))
+      setMensajeAdmin(mensajesEstado[estado])
+      setGestionLibro(null)
+      setMotivoGestion('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo gestionar el libro.')
+    } finally { setActualizandoId(null) }
+  }
+
   async function enviarARevision(propuestaId: string) {
     if (actualizandoId) return
     setActualizandoId(propuestaId)
     setError('')
     try {
       await enviarBorradorAprobacion(propuestaId)
+      setPropuestaParaEnviar(null)
       setPropuestasNuevas(actuales => actuales.map(p => p.id === propuestaId ? { ...p, pendiente_aprobacion: true } : p))
       await cargarLibros()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo enviar a aprobación.')
+    } finally {
+      setActualizandoId(null)
+    }
+  }
+
+  async function actualizarBaseBorrador(propuestaId: string) {
+    if (actualizandoId) return
+    setActualizandoId(propuestaId)
+    setError('')
+    setMensajeAdmin('')
+    try {
+      const { data, error: fallo } = await supabase.rpc('chronicle_actualizar_base_borrador', { p_propuesta_id: propuestaId })
+      if (fallo) throw fallo
+      setMensajeAdmin(`Borrador sincronizado con la revisión publicada ${data}. Tus cambios propios se conservaron.`)
+      await cargarLibros()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar la base del borrador.')
     } finally {
       setActualizandoId(null)
     }
@@ -420,38 +473,6 @@ async function borrarPropuesta(
     } finally {
       setActualizandoId(null)
     }
-  }
-
-  async function aprobarBorrador(propuestaId: string) {
-    if (!esAdministrador || actualizandoId) return
-    setActualizandoId(propuestaId)
-    setError('')
-    setMensajeAdmin('')
-    try {
-      const { error: errorAprobacion } = await supabase.rpc('chronicle_aprobar_propuesta', {
-        p_propuesta_id: propuestaId,
-      })
-      if (errorAprobacion) throw errorAprobacion
-      setMensajeAdmin('Los cambios del borrador se aprobaron y se sincronizaron con el libro publicado.')
-      await cargarLibros()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo aprobar el borrador.')
-    } finally {
-      setActualizandoId(null)
-    }
-  }
-
-  async function rechazarBorrador() {
-    if(!esAdministrador||!rechazandoId||actualizandoId||!motivoRechazo.trim())return
-    setActualizandoId(rechazandoId);setError('')
-    try {
-      const {error:err}=await supabase.rpc('chronicle_rechazar_propuesta',{p_propuesta_id:rechazandoId,p_motivo:motivoRechazo.trim()})
-      if(err)throw err
-      setRechazandoId(null);setMotivoRechazo('')
-      setMensajeAdmin('Propuesta rechazada. El motivo quedó disponible para su autor en Mis propuestas.')
-      await cargarLibros()
-    } catch(e){setError(e instanceof Error?e.message:'No se pudo rechazar la propuesta.')}
-    finally{setActualizandoId(null)}
   }
 
   async function rechazarLibro() {
@@ -510,6 +531,18 @@ async function borrarPropuesta(
           </div>
         )}
 
+        {activeTab === 'administracion' && esAdministrador && (
+          <div className="libros-tabs" aria-label="Secciones de administración">
+            {([
+              ['pendientes','Pendientes de aprobación'],
+              ['publicados','Libros publicados'],
+              ['ocultos','Libros ocultos'],
+              ['borrados','Libros borrados']
+            ] as const).map(([clave, nombre]) => (
+              <button key={clave} type="button" className={`libros-tab ${filtroAdministracion === clave ? 'libros-tab--active' : ''}`} onClick={() => {setFiltroAdministracion(clave);setSearch('');setSearchParams({tab:'administracion',seccion:clave})}}>{nombre}</button>
+            ))}
+          </div>
+        )}
         <div className="libros-search">
           <Search size={20} aria-hidden="true" />
           <input
@@ -554,7 +587,7 @@ async function borrarPropuesta(
             </button>
           </div>
         ) : librosFiltrados.length === 0 &&
-        !(activeTab === 'administracion' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
+        !(activeTab === 'administracion' && filtroAdministracion === 'pendientes' && borradoresAdministracion.some(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'compartidos' && borradoresCompartidos.some(p=>!textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda))) &&
         !(activeTab === 'propuestas' &&
           propuestasNuevas.some((propuesta) => {
@@ -585,7 +618,7 @@ async function borrarPropuesta(
           </div>
         ) : (
           <div className="libros-lista">
-            {activeTab === 'administracion' && borradoresAdministracion
+            {activeTab === 'administracion' && filtroAdministracion === 'pendientes' && borradoresAdministracion
               .filter(p => !textoBusqueda || p.titulo.toLowerCase().includes(textoBusqueda) || p.metadatos_libro?.codigo?.toLowerCase().includes(textoBusqueda))
               .map(propuesta => (
                 <article className="libros-item" key={`admin-borrador-${propuesta.id}`}>
@@ -600,10 +633,8 @@ async function borrarPropuesta(
                     </div>
                   </div>
                   <div className="libros-admin-actions">
-                    {propuesta.pendiente_aprobacion && <>
-                    <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => void aprobarBorrador(propuesta.id)}><CheckCircle2 size={16}/> {actualizandoId === propuesta.id ? t('books.saving') : propuesta.revision_resultante_id ? t('books.approveChanges') : t('books.approvePublish')}</button>
-                    <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoId(propuesta.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
-                    </>}
+                    {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" onClick={() => navigate(`/biblioteca/libros/revision/${propuesta.id}`)}><BookOpen size={16}/> Revisar contenido</button>}
+
                   </div>
                 </article>
               ))}
@@ -646,41 +677,36 @@ async function borrarPropuesta(
                       </div>
                     </div>
                                       
+                  {propuestaParaEnviar === propuesta.id && (
+                    <ModalBorrador titulo="Enviar a aprobación" onClose={() => setPropuestaParaEnviar(null)}>
+                      <p>Chronicle detectará automáticamente los elementos agregados, modificados y retirados. No hace falta redactar los cambios.</p>
+                      <button type="button" className="libros-admin-button libros-admin-button--approve"
+                        disabled={actualizandoId !== null}
+                        onClick={() => void enviarARevision(propuesta.id)}>
+                        Confirmar envío
+                      </button>
+                    </ModalBorrador>
+                  )}
                   {propuesta.estado === 'borrador' && (
                     <div className="libros-admin-actions">
-                      {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-admin-button--approve libros-icon-action" title={t('books.submit')} aria-label={t('books.submit')} disabled={actualizandoId !== null} onClick={() => void enviarARevision(propuesta.id)}><ClipboardCheck size={18} aria-hidden="true" /></button>}
-                      {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button libros-icon-action" title={t('books.withdraw')} aria-label={t('books.withdraw')} disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={18} aria-hidden="true" /></button>}
-                      <button type="button" className="libros-admin-button libros-icon-action" title={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-label={compartiendoId === propuesta.id ? t('books.closeShare') : t('books.share')} aria-expanded={compartiendoId === propuesta.id} onClick={() => setCompartiendoId(actual => actual === propuesta.id ? null : propuesta.id)}><Share2 size={18} aria-hidden="true" /></button>
-                      <button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === propuesta.id} onClick={() => setHistorialId(actual => actual === propuesta.id ? null : propuesta.id)}><History size={18} aria-hidden="true" /></button>
-                      <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}`} className="libros-admin-button libros-icon-action" title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link>
-                      <Link
-                        to={`/biblioteca/libros/editar-borrador/${propuesta.id}`}
-                        className="libros-admin-button libros-icon-action"
-                        title={t('books.edit')}
-                        aria-label={t('books.edit')}
-                      >
-                        <Pencil size={18} aria-hidden="true" />
-                      </Link>
-                      
-                      <button
-                        type="button"
-                        className="libros-admin-button libros-admin-button--delete libros-icon-action"
-                        title={t('books.delete')}
-                        aria-label={t('books.delete')}
-                        disabled={actualizandoId !== null}
-                        onClick={() =>
-                          setPropuestaParaBorrar({
-                            id: propuesta.id,
-                            origen: 'nueva'
-                          })
-                        }
-                      >
-                        <Trash2 size={18} aria-hidden="true" />
-                      </button>
-
+                      <details className="libros-menu-borrador">
+                        <summary className="libros-admin-button" aria-label="Acciones del borrador">Acciones ▾</summary>
+                        <div className="libros-menu-borrador__opciones">
+                          {!propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => setPropuestaParaEnviar(propuesta.id)}><ClipboardCheck size={16}/> Enviar a aprobación</button>}
+                          {propuesta.pendiente_aprobacion && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => void retirarDeRevision(propuesta.id)}><Undo2 size={16}/> Sacar de aprobación</button>}
+                          <button type="button" className="libros-admin-button" onClick={() => setCompartiendoId(propuesta.id)}><Share2 size={16}/> Compartir</button>
+                          <button type="button" className="libros-admin-button" onClick={() => setHistorialId(propuesta.id)}><History size={16}/> Historial de versiones</button>
+                          <button type="button" className="libros-admin-button" onClick={() => setHistorialAprobacionId(propuesta.id)}><History size={16}/> Historial de aprobaciones</button>
+                          {propuesta.tipo === 'modificacion' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Integrar los cambios de la versión publicada'} onClick={() => void actualizarBaseBorrador(propuesta.id)}><RefreshCw size={16}/> Actualizar desde versión publicada</button>}
+                          <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}?origen=propuestas`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
+                        </div>
+                      </details>
+                      <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
+                      <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Borrar borrador'} onClick={() => setPropuestaParaBorrar({id:propuesta.id,origen:'nueva'})}><Trash2 size={16}/> Borrar borrador</button>
                     </div>
                   )}
                   {compartiendoId === propuesta.id && <ModalBorrador titulo={t('books.shareDraft')} onClose={() => setCompartiendoId(null)}><ColaboradoresBorrador propuestaId={propuesta.id} onClose={() => setCompartiendoId(null)} /></ModalBorrador>}
+                  {historialAprobacionId === propuesta.id && <ModalBorrador titulo="Historial de aprobaciones" onClose={() => setHistorialAprobacionId(null)}><HistorialAprobaciones propuestaId={propuesta.id}/></ModalBorrador>}
                   {historialId === propuesta.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={propuesta.id} puedeRestaurar={!propuesta.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
 
                   </article>
@@ -691,7 +717,7 @@ async function borrarPropuesta(
               .map(p=><article className="libros-item" key={p.id}>
                 <div className="libros-item-icon"><FileText size={24}/></div>
                 <div className="libros-item-info"><h3>{p.titulo || t('books.untitled')}</h3><p>{p.metadatos_libro?.editorial || t('books.noPublisher')}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? t('books.editorRole') : t('books.readerRole')}</span><span>{p.pendiente_aprobacion ? t('books.pending') : t('books.sharedDraft')}</span></div></div>
-                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
+                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}?origen=compartidos`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
                 {historialId === p.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
               </article>)}
 
@@ -730,6 +756,22 @@ async function borrarPropuesta(
                 {libro.estado === 'publicado' && activeTab !== 'administracion' && (
                   <Link to={`/biblioteca/libros/leer/${libro.id}`} className="libros-admin-button"><BookOpen size={16}/> Leer libro</Link>
                 )}
+                {libro.estado === 'publicado' && activeTab === 'catalogo' && (
+                  <div className="libros-admin-actions">
+                    {libro.libro_versiones.map((version) => (
+                      <button
+                        key={version.id}
+                        type="button"
+                        className="libros-admin-button"
+                        disabled={actualizandoId !== null}
+                        onClick={() => void proponerCorreccion(libro.id, version.id)}
+                      >
+                        <Pencil size={16} />
+                        {actualizandoId === libro.id ? 'Creando copia...' : `Proponer corrección (${version.idioma.toUpperCase()})`}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 {activeTab === 'propuestas' &&
                   (libro.estado === 'pendiente' || libro.estado === 'rechazado') &&
@@ -759,49 +801,21 @@ async function borrarPropuesta(
 
                 {activeTab === 'administracion' && esAdministrador && (
                   <div className="libros-admin-actions">
-                    {libro.estado !== 'publicado' && (
-                      <button
-                        type="button"
-                        className="libros-admin-button libros-admin-button--approve"
-                        disabled={actualizandoId !== null}
-                        onClick={() =>
-                          cambiarEstadoLibro(libro.id, 'publicado')
-                        }
-                      >
-                        <CheckCircle2 size={16} />
-                        {libro.estado === 'pendiente' ? 'Aprobar' : 'Publicar'}
+                    {libro.estado === 'pendiente' && (
+                      <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={actualizandoId !== null} onClick={() => cambiarEstadoLibro(libro.id,'publicado')}>
+                        <CheckCircle2 size={16}/> Aprobar
                       </button>
                     )}
-
                     {libro.estado === 'pendiente' && (
                       <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setRechazandoLibroId(libro.id);setMotivoRechazo('')}}><XCircle size={16}/> Rechazar</button>
                     )}
 
-                    {libro.estado === 'publicado' && (
-                      <button
-                        type="button"
-                        className="libros-admin-button"
-                        disabled={actualizandoId !== null}
-                        onClick={() => cambiarEstadoLibro(libro.id, 'oculto')}
-                      >
-                        <EyeOff size={16} />
-                        Ocultar
-                      </button>
-                    )}
+                    {libro.estado === 'publicado' && <Link to={`/biblioteca/libros/leer/${libro.id}?origen=administracion&seccion=${filtroAdministracion}`} className="libros-admin-button"><BookOpen size={16}/> Leer</Link>}
+                    {libro.estado === 'publicado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'ocultar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><EyeOff size={16}/> Ocultar</button>}
+                    {libro.estado === 'oculto' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'mostrar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Eye size={16}/> Volver a mostrar</button>}
+                    {(libro.estado === 'publicado'||libro.estado === 'oculto') && <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'eliminar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Trash2 size={16}/> Borrar</button>}
+                    {libro.estado === 'eliminado' && <button type="button" className="libros-admin-button" disabled={actualizandoId !== null} onClick={() => {setGestionLibro({id:libro.id,accion:'restaurar',titulo:libro.libro_versiones[0]?.titulo??libro.codigo??'Libro'});setMotivoGestion('')}}><Undo2 size={16}/> Restaurar como oculto</button>}
 
-                    {libro.estado === 'oculto' && (
-                      <button
-                        type="button"
-                        className="libros-admin-button"
-                        disabled={actualizandoId !== null}
-                        onClick={() =>
-                          cambiarEstadoLibro(libro.id, 'pendiente')
-                        }
-                      >
-                        <Eye size={16} />
-                        Volver a pendiente
-                      </button>
-                    )}
                   </div>
                 )}
               </article>
@@ -810,20 +824,24 @@ async function borrarPropuesta(
         )}
       </div>
 
+      {gestionLibro && <ModalBorrador titulo="Gestionar libro publicado" onClose={() => setGestionLibro(null)}>
+        <div className="libros-rechazo-modal">
+          <h3>{gestionLibro.titulo}</h3>
+          <p>{gestionLibro.accion === 'eliminar' ? '¿Querés borrar este libro? Se conservarán sus versiones y su historial, pero dejará de estar disponible para los usuarios comunes.' : gestionLibro.accion === 'restaurar' ? 'El libro se restaurará como oculto. Podrás volver a mostrarlo después.' : gestionLibro.accion === 'ocultar' ? 'El libro dejará de estar visible en el catálogo.' : 'El libro volverá a estar visible en el catálogo.'}</p>
+          <label htmlFor="motivo-gestion-libro">Motivo obligatorio</label>
+          <textarea id="motivo-gestion-libro" rows={4} maxLength={2000} value={motivoGestion} onChange={e => setMotivoGestion(e.target.value)}/>
+          <div className="libros-admin-actions">
+            <button type="button" className="libros-admin-button" onClick={() => setGestionLibro(null)}>Cancelar</button>
+            <button type="button" className="libros-admin-button libros-admin-button--approve" disabled={!motivoGestion.trim() || actualizandoId !== null} onClick={() => void ejecutarGestionLibro()}>{gestionLibro.accion === 'eliminar' ? 'Confirmar borrado' : `Confirmar ${gestionLibro.accion}`}</button>
+          </div>
+        </div>
+      </ModalBorrador>}
       {rechazandoLibroId && <ModalBorrador titulo="Rechazar libro" onClose={()=>setRechazandoLibroId(null)}>
         <div className="libros-rechazo-modal"><h3>{t('books.rejectBook')}</h3><p>{t('books.rejectBookInfo')}</p>
         <label htmlFor="motivo-rechazo-libro">{t('books.reason')}</label>
         <textarea id="motivo-rechazo-libro" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder={t('books.reasonPlaceholder')} />
         {error&&<p role="alert">{error}</p>}
         <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoLibroId(null)}>{t('books.cancel')}</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarLibro()}>{t('books.confirmReject')}</button></div></div>
-      </ModalBorrador>}
-
-      {rechazandoId && <ModalBorrador titulo="Rechazar propuesta" onClose={()=>setRechazandoId(null)}>
-        <div className="libros-rechazo-modal"><h3>{t('books.rejectProposal')}</h3><p>{t('books.rejectProposalInfo')}</p>
-        <label htmlFor="motivo-rechazo">{t('books.reason')}</label>
-        <textarea id="motivo-rechazo" rows={5} maxLength={2000} value={motivoRechazo} onChange={e=>setMotivoRechazo(e.target.value)} placeholder={t('books.reasonProposalPlaceholder')} />
-        {error&&<p role="alert">{error}</p>}
-        <div className="libros-admin-actions"><button type="button" className="libros-admin-button" onClick={()=>setRechazandoId(null)}>{t('books.cancel')}</button><button type="button" className="libros-admin-button libros-admin-button--delete" disabled={!motivoRechazo.trim()||actualizandoId!==null} onClick={()=>void rechazarBorrador()}>{t('books.confirmReject')}</button></div></div>
       </ModalBorrador>}
 
       {propuestaParaBorrar && (
@@ -839,7 +857,7 @@ async function borrarPropuesta(
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="libros-modal-titulo">
-              ¿Seguro que querés borrar esta propuesta?
+              ¿Seguro que querés borrar este borrador? Se conservará el registro, pero dejará de aparecer entre tus borradores.
             </h2>
 
             <div className="libros-modal-actions">

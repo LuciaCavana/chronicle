@@ -358,18 +358,10 @@ export async function guardarElementosCompartidos(propuestaId: string, base: Rec
 
 /** Envía la versión guardada del borrador a revisión administrativa. */
 export async function enviarBorradorAprobacion(propuestaId: string) {
-  const { data: auth, error: authError } = await supabase.auth.getUser()
-  if (authError) throw authError
-  if (!auth.user) throw new Error('Tenés que iniciar sesión.')
-  const { data, error } = await supabase.from('propuestas')
-    .update({ pendiente_aprobacion: true })
-    .eq('id', propuestaId)
-    .eq('autor_id', auth.user.id)
-    .eq('estado', 'borrador')
-    .eq('pendiente_aprobacion', false)
-    .select('id').maybeSingle()
+  const { error } = await supabase.rpc('chronicle_enviar_propuesta_automatica', {
+    p_propuesta_id: propuestaId,
+  })
   if (error) throw error
-  if (!data) throw new Error('El borrador ya fue enviado o no está disponible.')
 }
 
 /** Retira un borrador de la cola de aprobación para poder volver a editarlo.
@@ -380,4 +372,14 @@ export async function retirarDeAprobacion(propuestaId: string) {
     p_propuesta_id: propuestaId,
   })
   if (error) throw error
+}
+
+export async function crearPropuestaCorreccion(libroId: string, versionId: string): Promise<string> {
+  const { data, error } = await supabase.rpc('chronicle_crear_propuesta_correccion', {
+    p_libro_id: libroId,
+    p_version_id: versionId,
+  })
+  if (error) throw error
+  if (typeof data !== 'string') throw new Error('No se pudo crear la propuesta de corrección.')
+  return data
 }

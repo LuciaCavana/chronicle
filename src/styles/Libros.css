@@ -422,6 +422,19 @@
 
 .libros-rechazo-modal{display:flex;flex-direction:column;gap:12px}.libros-rechazo-modal h3{margin:0}.libros-rechazo-modal textarea{width:100%;box-sizing:border-box;resize:vertical;min-height:120px;padding:12px;border-radius:8px;border:1px solid #8d7652;background:#24212a;color:#f6ecdc;font:inherit}.libros-rechazo-modal .libros-admin-actions{justify-content:flex-end}.libros-rechazo-motivo{display:block;flex-basis:100%;color:#f2b4a9;white-space:normal;overflow-wrap:anywhere}
 
+/* Menú de acciones para borradores */
+.libros-menu-borrador { position: relative; }
+.libros-menu-borrador > summary { cursor: pointer; list-style: none; }
+.libros-menu-borrador > summary::-webkit-details-marker { display: none; }
+.libros-menu-borrador__opciones {
+  position: absolute; right: 0; top: calc(100% + 4px); z-index: 20;
+  display: flex; flex-direction: column; gap: 4px; min-width: 235px;
+  padding: 8px; border: 1px solid var(--border-color, #555);
+  border-radius: 8px; background: var(--surface-color, #24242c);
+  box-shadow: 0 8px 24px #0005;
+}
+.libros-menu-borrador__opciones > * { width: 100%; text-align: left; justify-content: flex-start; }
+
 
 /* Notificaciones flotantes inferiores para resultados de acciones */
 .libros-toast {

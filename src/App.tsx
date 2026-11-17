@@ -38,6 +38,7 @@ const Biblioteca = cargarPagina(() => import('./pages/Biblioteca'))
 const CatalogoConjuros = cargarPagina(() => import('./pages/CatalogoConjuros'))
 const CatalogoClases = cargarPagina(() => import('./pages/CatalogoClases'))
 const Libros = cargarPagina(() => import('./pages/Libros'))
+const RevisionPropuesta = cargarPagina(() => import('./pages/RevisionPropuesta'))
 const LectorLibro = cargarPagina(() => import('./pages/LectorLibro'))
 const NuevaPropuesta = cargarPagina(() => import('./pages/NuevaPropuesta'))
 const MotorLibros = cargarPagina(() => import('./pages/MotorLibros'))
@@ -167,6 +168,7 @@ function AppRoutes() {
       <Route path="/biblioteca/clases" element={<ProtectedRoute><CatalogoClases /></ProtectedRoute>} />
       <Route path="/biblioteca/conjuros" element={<ProtectedRoute><CatalogoConjuros /></ProtectedRoute>} />
       <Route path="/biblioteca/libros/leer/:libroId" element={<ProtectedRoute><LectorLibro /></ProtectedRoute>} />
+      <Route path="/biblioteca/libros/revision/:propuestaId" element={<ProtectedRoute><RevisionPropuesta /></ProtectedRoute>} />
       <Route path="/biblioteca/libros/leer-borrador/:propuestaId" element={<ProtectedRoute><LectorLibro /></ProtectedRoute>} />
       <Route
         path="/biblioteca/libros/editor"
