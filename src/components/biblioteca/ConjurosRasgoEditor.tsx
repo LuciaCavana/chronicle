@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 export type ConjuroDisponible = { id: string; nombre: string; nivel: number; libro?: string }
 export type ConjuroDeRasgo = {
   id: string
@@ -11,6 +13,34 @@ export type ConjuroDeRasgo = {
 
 type Props = { conjuros: ConjuroDeRasgo[]; disponibles: ConjuroDisponible[]; onChange: (conjuros: ConjuroDeRasgo[]) => void }
 const nuevo = (): ConjuroDeRasgo => ({ id: crypto.randomUUID(), conjuroId: '', otorgamiento: 'solo_caracteristica', modoUso: 'gratis', usosGratuitos: 1, recuperacion: 'largo', permiteEspacios: false })
+function SelectorConjuro({ seleccionado, disponibles, onChange }: { seleccionado: string; disponibles: ConjuroDisponible[]; onChange: (id: string) => void }) {
+  const [busqueda, setBusqueda] = useState('')
+  const [abierto, setAbierto] = useState(!seleccionado)
+  const normalizar = (valor: string) => valor.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('es').trim()
+  const resultados = disponibles.filter(c => normalizar(c.nombre).includes(normalizar(busqueda)))
+  const actual = disponibles.find(c => c.id === seleccionado)
+  return <div>
+    {seleccionado && !abierto && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      <strong>{actual ? `Nivel ${actual.nivel} — ${actual.nombre}` : `Conjuro no disponible (${seleccionado})`}</strong>
+      <button type="button" onClick={() => setAbierto(true)}>Cambiar conjuro</button>
+    </div>}
+    {abierto && <>
+      <label>Buscar conjuro por nombre
+        <input type="search" value={busqueda} placeholder="Ej.: Bola de fuego" onChange={e => setBusqueda(e.target.value)} autoComplete="off"/>
+      </label>
+      <label>Resultados ({resultados.length})
+        <select size={Math.min(7, Math.max(2, resultados.length + 1))} value={seleccionado} onChange={e => { onChange(e.target.value); setAbierto(false); setBusqueda('') }}>
+          <option value="" disabled>Seleccioná un conjuro</option>
+          {seleccionado && !resultados.some(c => c.id === seleccionado) && <option value={seleccionado}>{actual ? `Nivel ${actual.nivel} — ${actual.nombre} (seleccionado)` : 'Conjuro seleccionado no disponible'}</option>}
+          {resultados.map(c => <option key={c.id} value={c.id}>Nivel {c.nivel} — {c.nombre}{c.libro ? ` — ${c.libro}` : ''}</option>)}
+        </select>
+      </label>
+      {resultados.length === 0 && <p className="clase-form__hint">No se encontraron conjuros con ese nombre.</p>}
+      {seleccionado && <button type="button" onClick={() => { setAbierto(false); setBusqueda('') }}>Cancelar cambio</button>}
+    </>}
+  </div>
+}
+
 export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange }: Props) {
   const ordenados = [...disponibles].sort((a,b) => a.nivel-b.nivel || a.nombre.localeCompare(b.nombre,'es'))
   const cambiar = (id: string, cambios: Partial<ConjuroDeRasgo>) => onChange(conjuros.map(c => c.id === id ? { ...c, ...cambios } : c))
@@ -18,13 +48,7 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange }:
     <h4>Conjuros otorgados por esta característica</h4>
     <p className="clase-form__hint">El nivel de obtención es el nivel de la característica. Otorgar un conjuro no concede espacios de conjuro.</p>
     {conjuros.map(c => <div key={c.id} className="clase-form__item">
-      <label>Conjuro
-        <select value={c.conjuroId} onChange={e => cambiar(c.id, { conjuroId: e.target.value })}>
-          <option value="">Seleccioná un conjuro</option>
-          {c.conjuroId && !ordenados.some(x => x.id === c.conjuroId) && <option value={c.conjuroId}>Conjuro no disponible ({c.conjuroId})</option>}
-          {ordenados.map(x => <option key={x.id} value={x.id}>Nivel {x.nivel} — {x.nombre}{x.libro ? ` — ${x.libro}` : ''}</option>)}
-        </select>
-      </label>
+      <SelectorConjuro seleccionado={c.conjuroId} disponibles={ordenados} onChange={conjuroId => cambiar(c.id, { conjuroId })}/>
       <label>Cómo se obtiene
         <select value={c.otorgamiento} onChange={e => cambiar(c.id, { otorgamiento: e.target.value as ConjuroDeRasgo['otorgamiento'] })}>
           <option value="aprendido">Aprendido</option>
