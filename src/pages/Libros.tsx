@@ -136,6 +136,13 @@ export default function Libros() {
   }
 
   const [mensajeAdmin, setMensajeAdmin] = useState('')
+  const [avisoCerrado, setAvisoCerrado] = useState(false)
+  useEffect(() => {
+    setAvisoCerrado(false)
+    if (!mensajeAdmin && !error) return
+    const temporizador = window.setTimeout(() => setAvisoCerrado(true), 5500)
+    return () => window.clearTimeout(temporizador)
+  }, [mensajeAdmin, error])
   const [compartiendoId, setCompartiendoId] = useState<string | null>(null)
   const [historialId, setHistorialId] = useState<string | null>(null)
   const [historialAprobacionId, setHistorialAprobacionId] = useState<string | null>(null)
@@ -566,16 +573,12 @@ async function borrarPropuesta(
           </div>
         )}
 
-        {mensajeAdmin && (
-          <p className="libros-admin-message" role="status">
-            {mensajeAdmin}
-          </p>
-        )}
-
-        {error && (
-          <p className="libros-admin-error" role="alert">
-            {error}
-          </p>
+        {!avisoCerrado && (error || mensajeAdmin) && (
+          <div className={`libros-toast ${error ? 'libros-toast--error' : 'libros-toast--success'}`} role={error ? 'alert' : 'status'} aria-live={error ? 'assertive' : 'polite'}>
+            {error ? <XCircle size={20} aria-hidden="true" /> : <CheckCircle2 size={20} aria-hidden="true" />}
+            <span>{error || mensajeAdmin}</span>
+            <button type="button" className="libros-toast__close" onClick={() => setAvisoCerrado(true)} aria-label="Cerrar aviso">×</button>
+          </div>
         )}
 
         {cargando ? (
