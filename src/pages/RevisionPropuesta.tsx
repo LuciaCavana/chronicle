@@ -54,7 +54,7 @@ export default function RevisionPropuesta() {
   } catch(e){setErrorAccion(e instanceof Error?e.message:t('review.error'))}
   finally{setOcupado(false)}
  }
- return <AppLayout><main className="rev">
+ return <AppLayout title={t('review.pageTitle')}><main className="rev">
   <nav className="rev__migas"><Link to="/biblioteca/libros?tab=administracion"><ArrowLeft size={16}/>{t('review.back')}</Link></nav>
   {revision.cargando?<div className="rev__cargando" role="status">{t('review.loading')}<div/><div/><div/></div>:
   revision.error?<div role="alert" className="rev__error">{revision.error}</div>:
