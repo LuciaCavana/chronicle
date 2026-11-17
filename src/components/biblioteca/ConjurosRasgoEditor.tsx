@@ -15,29 +15,40 @@ type Props = { conjuros: ConjuroDeRasgo[]; disponibles: ConjuroDisponible[]; onC
 const nuevo = (): ConjuroDeRasgo => ({ id: crypto.randomUUID(), conjuroId: '', otorgamiento: 'solo_caracteristica', modoUso: 'gratis', usosGratuitos: 1, recuperacion: 'largo', permiteEspacios: false })
 function SelectorConjuro({ seleccionado, disponibles, onChange }: { seleccionado: string; disponibles: ConjuroDisponible[]; onChange: (id: string) => void }) {
   const [busqueda, setBusqueda] = useState('')
+  const [nivel, setNivel] = useState<number | null>(null)
   const [abierto, setAbierto] = useState(!seleccionado)
-  const normalizar = (valor: string) => valor.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLocaleLowerCase('es').trim()
-  const resultados = disponibles.filter(c => normalizar(c.nombre).includes(normalizar(busqueda)))
+  const normalizar = (valor: string) => valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').trim()
   const actual = disponibles.find(c => c.id === seleccionado)
-  return <div>
-    {seleccionado && !abierto && <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <strong>{actual ? `Nivel ${actual.nivel} — ${actual.nombre}` : `Conjuro no disponible (${seleccionado})`}</strong>
-      <button type="button" onClick={() => setAbierto(true)}>Cambiar conjuro</button>
+  const niveles = [...new Set(disponibles.map(c => c.nivel))].sort((a, b) => a - b)
+  const resultados = disponibles.filter(c => (nivel === null || c.nivel === nivel) && normalizar(c.nombre).includes(normalizar(busqueda)))
+  const elegir = (id: string) => { onChange(id); setAbierto(false); setBusqueda(''); setNivel(null) }
+  return <div className="selector-conjuro">
+    {!abierto && <div className="selector-conjuro__elegido">
+      <div>
+        <strong>{actual?.nombre ?? (seleccionado ? 'Conjuro no disponible' : 'Ningún conjuro seleccionado')}</strong>
+        {actual && <p className="clase-form__hint">Nivel {actual.nivel}{actual.libro ? ` · ${actual.libro}` : ''}</p>}
+      </div>
+      <button type="button" onClick={() => setAbierto(true)}>{seleccionado ? 'Cambiar' : 'Elegir conjuro'}</button>
     </div>}
-    {abierto && <>
-      <label>Buscar conjuro por nombre
-        <input type="search" value={busqueda} placeholder="Ej.: Bola de fuego" onChange={e => setBusqueda(e.target.value)} autoComplete="off"/>
-      </label>
-      <label>Resultados ({resultados.length})
-        <select size={Math.min(7, Math.max(2, resultados.length + 1))} value={seleccionado} onChange={e => { onChange(e.target.value); setAbierto(false); setBusqueda('') }}>
-          <option value="" disabled>Seleccioná un conjuro</option>
-          {seleccionado && !resultados.some(c => c.id === seleccionado) && <option value={seleccionado}>{actual ? `Nivel ${actual.nivel} — ${actual.nombre} (seleccionado)` : 'Conjuro seleccionado no disponible'}</option>}
-          {resultados.map(c => <option key={c.id} value={c.id}>Nivel {c.nivel} — {c.nombre}{c.libro ? ` — ${c.libro}` : ''}</option>)}
-        </select>
-      </label>
-      {resultados.length === 0 && <p className="clase-form__hint">No se encontraron conjuros con ese nombre.</p>}
-      {seleccionado && <button type="button" onClick={() => { setAbierto(false); setBusqueda('') }}>Cancelar cambio</button>}
-    </>}
+    {abierto && <div className="selector-conjuro__buscador">
+      <div className="selector-conjuro__encabezado">
+        <strong>Elegí un conjuro</strong>
+        {seleccionado && <button type="button" onClick={() => { setAbierto(false); setBusqueda(''); setNivel(null) }}>Cancelar</button>}
+      </div>
+      <input type="search" aria-label="Buscar conjuro por nombre" autoFocus placeholder="Buscar por nombre, por ejemplo: Escudo" value={busqueda} onChange={e => setBusqueda(e.target.value)}/>
+      <div className="selector-conjuro__filtros" role="group" aria-label="Filtrar por nivel de conjuro">
+        <button type="button" className={nivel === null ? 'activo' : ''} aria-pressed={nivel === null} onClick={() => setNivel(null)}>Todos</button>
+        {niveles.map(n => <button type="button" key={n} className={nivel === n ? 'activo' : ''} aria-pressed={nivel === n} onClick={() => setNivel(n)}>{n === 0 ? 'Trucos' : `Nivel ${n}`}</button>)}
+      </div>
+      <p className="clase-form__hint">{resultados.length} {resultados.length === 1 ? 'conjuro encontrado' : 'conjuros encontrados'} · Ordenados por nivel y nombre</p>
+      <div className="selector-conjuro__resultados" role="list" aria-label="Resultados de conjuros">
+        {resultados.map(c => <button type="button" role="listitem" key={c.id} className={c.id === seleccionado ? 'selector-conjuro__resultado seleccionado' : 'selector-conjuro__resultado'} onClick={() => elegir(c.id)}>
+          <span><strong>{c.nombre}</strong>{c.libro && <small>{c.libro}</small>}</span>
+          <span className="selector-conjuro__nivel">{c.nivel === 0 ? 'Truco' : `Nivel ${c.nivel}`}{c.id === seleccionado ? ' · Actual' : ''}</span>
+        </button>)}
+        {resultados.length === 0 && <p className="clase-form__hint">No hay conjuros que coincidan. Probá con otro nombre o nivel.</p>}
+      </div>
+    </div>}
   </div>
 }
 
