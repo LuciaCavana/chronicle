@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import '../../styles/SelectorConjuro.css'
 
 export type ConjuroDisponible = { id: string; nombre: string; nivel: number; libro?: string }
 export type ConjuroDeRasgo = {
