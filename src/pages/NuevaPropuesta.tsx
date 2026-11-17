@@ -87,6 +87,21 @@ export default function NuevaPropuesta() {
   const [libroOriginalId, setLibroOriginalId] = useState('')
   const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
   // Las clases externas se consultan solo de versiones publicadas.
+  // Los objetos creados dentro de una clase también forman parte del catálogo del libro.
+  const actualizarClaseConObjetos = (actualizada: Elemento) => {
+    setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))
+    const catalogo = (actualizada.datos as { objetosCatalogo?: { id: string; nombre: string; descripcion?: string; tipo?: string }[] }).objetosCatalogo
+    if (!Array.isArray(catalogo)) return
+    setObjetos(actuales => {
+      const existentes = new Set(actuales.map(o => o.id))
+      const nuevos = catalogo.filter(o => o.id && o.nombre?.trim() && !existentes.has(o.id))
+        .map(o => ({
+          id: o.id, tipo: 'objeto', nombre: o.nombre, descripcion: o.descripcion ?? '',
+          datos: { tipo: o.tipo === 'arma' ? 'arma' : 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false },
+        } as Elemento))
+      return nuevos.length ? [...actuales, ...nuevos] : actuales
+    })
+  }
   const clasesExternas = versionesPublicadas.flatMap(version =>
     (version.clases ?? []).filter(clase => clase.id && clase.nombre).map(clase => ({
       ...clase,
@@ -802,7 +817,7 @@ export default function NuevaPropuesta() {
                 <h3>Editar clase</h3>
                 <div className="nueva-propuesta-field"><label>Nombre de la clase *</label><input value={clases.find(c => c.id === editingClassId)?.nombre ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, nombre: e.target.value } : c))} /></div>
                 <div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={clases.find(c => c.id === editingClassId)?.descripcion ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, descripcion: e.target.value } : c))} /></div>
-                <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizada => setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))} />
+                <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizarClaseConObjetos} />
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
               </section>
             ) : showCriaturaForm ? (
