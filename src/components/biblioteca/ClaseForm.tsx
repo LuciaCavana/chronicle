@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { ChevronDown, GripVertical } from 'lucide-react'
 import { EditorDescripcion } from '../shared/EditorDescripcion'
+import ConjurosRasgoEditor, { type ConjuroDeRasgo, type ConjuroDisponible } from './ConjurosRasgoEditor'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/ClaseForm.css'
 import { ARMADURAS_BASE, ARMAS_BASE, HABILIDADES_BASE, type GrupoEquipo, type CompetenciasClase, type ObjetoCatalogo, normalizarCatalogo, normalizarCompetencias, normalizarEquipo, normalizarCategoriaArma } from '../../lib/catalogosReglas'
 
-type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number }
+type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number; conjurosOtorgados?: ConjuroDeRasgo[] }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }
 type Nivel = { nivel: number; bonificadorCompetencia: number; notas: string }
 type ColumnaProgresion = { id: string; nombre: string; tipo?: 'texto' | 'caracteristicas' | 'formula'; formula?: string }
@@ -35,6 +36,7 @@ type DatosClase = {
 type Props = {
   elemento: Elemento
   onChange: (elemento: Elemento) => void
+  conjurosDisponibles?: ConjuroDisponible[]
   disabled?: boolean
 }
 
@@ -177,7 +179,7 @@ function CampoNumero({ value, min, max, onChange }: CampoNumeroProps) {
   )
 }
 
-export default function ClaseForm({ elemento, onChange, disabled = false }: Props) {
+export default function ClaseForm({ elemento, onChange, conjurosDisponibles = [], disabled = false }: Props) {
   const datos = normalizarDatos(elemento.datos)
   const [columnaArrastrada, setColumnaArrastrada] = useState<string | null>(null)
   const [filaArrastrada, setFilaArrastrada] = useState<number | null>(null)
@@ -631,6 +633,7 @@ export default function ClaseForm({ elemento, onChange, disabled = false }: Prop
           </label>
           <label>Descripción</label>
           <EditorDescripcion key={editorRasgo.id} value={editorRasgo.descripcion} onChange={descripcion => setEditorRasgo(actual => actual ? { ...actual, descripcion } : actual)} />
+          <ConjurosRasgoEditor conjuros={editorRasgo.conjurosOtorgados ?? []} disponibles={conjurosDisponibles} onChange={conjurosOtorgados => setEditorRasgo(actual => actual ? { ...actual, conjurosOtorgados } : actual)}/>
           <div className="clase-form__acciones-rasgo">
             <button type="button" onClick={() => setEditorRasgo(null)}>Cancelar</button>
             <button type="submit" disabled={!editorRasgo.nombre.trim()}>Guardar característica</button>
