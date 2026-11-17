@@ -1,0 +1,17 @@
+.selector-conjuro{margin-bottom:12px}
+.selector-conjuro__elegido,.selector-conjuro__encabezado{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.selector-conjuro__elegido{border:1px solid var(--border-color,#7775);border-radius:10px;padding:12px}
+.selector-conjuro__elegido p{margin:4px 0 0}
+.selector-conjuro__buscador{border:1px solid var(--border-color,#7775);border-radius:12px;padding:12px;display:grid;gap:10px}
+.selector-conjuro__buscador input[type=search]{width:100%;box-sizing:border-box}
+.selector-conjuro__filtros{display:flex;flex-wrap:wrap;gap:6px}
+.selector-conjuro__filtros button{border-radius:999px;padding:5px 10px;font-size:.85rem}
+.selector-conjuro__filtros button.activo{outline:2px solid currentColor;outline-offset:-2px;font-weight:700}
+.selector-conjuro__resultados{max-height:250px;overflow-y:auto;display:grid;gap:5px}
+.selector-conjuro__resultado{width:100%;display:flex;justify-content:space-between;align-items:center;text-align:left;gap:12px;padding:10px 12px;border:1px solid var(--border-color,#7775);border-radius:8px;cursor:pointer}
+.selector-conjuro__resultado:hover,.selector-conjuro__resultado:focus-visible{outline:2px solid currentColor;outline-offset:-2px}
+.selector-conjuro__resultado.seleccionado{font-weight:700}
+.selector-conjuro__resultado span:first-child{display:grid;gap:3px}
+.selector-conjuro__resultado small{opacity:.7}
+.selector-conjuro__nivel{white-space:nowrap;font-size:.85rem;opacity:.8}
+@media(max-width:520px){.selector-conjuro__resultado{align-items:flex-start;flex-direction:column;gap:4px}}
