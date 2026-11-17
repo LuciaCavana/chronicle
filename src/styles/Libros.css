@@ -434,3 +434,40 @@
   box-shadow: 0 8px 24px #0005;
 }
 .libros-menu-borrador__opciones > * { width: 100%; text-align: left; justify-content: flex-start; }
+
+
+/* Notificaciones flotantes inferiores para resultados de acciones */
+.libros-toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: max-content;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 13px 16px;
+  border: 1px solid;
+  border-radius: 12px;
+  box-shadow: 0 12px 38px rgba(0,0,0,.35);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+.libros-toast svg { flex-shrink: 0; }
+.libros-toast span { min-width: 0; overflow-wrap: anywhere; }
+.libros-toast--success { background: #183b2a; border-color: #4b9a6a; color: #d6f8df; }
+.libros-toast--error { background: #48242a; border-color: #c46b77; color: #ffe0e2; }
+.libros-toast__close {
+  margin-left: 8px;
+  padding: 0 3px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 22px;
+  cursor: pointer;
+}
+.libros-toast__close:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
