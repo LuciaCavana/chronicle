@@ -151,3 +151,19 @@ export function useAvisoAntesDeSalir(activo: boolean) {
     return () => window.removeEventListener('beforeunload', avisar)
   }, [activo])
 }
+
+/**
+ * Para formularios con botón de guardar propio (especie, conjuro, dote, trasfondo,
+ * criatura): avisa al editor lo que se lleva escrito, así entra en la copia local.
+ * Informa null mientras el formulario no tenga cambios respecto de cómo se abrió,
+ * salvo que se haya abierto desde una copia recuperada (eso cuenta como cambio).
+ */
+export function useReportarBorrador<T>(borrador: T, onCambio: ((borrador: T | null) => void) | undefined, recuperado: boolean) {
+  const firma = JSON.stringify(borrador)
+  const [firmaInicial] = useState(firma)
+  const avisar = useRef(onCambio)
+  useEffect(() => { avisar.current = onCambio })
+  useEffect(() => {
+    avisar.current?.(recuperado || firma !== firmaInicial ? JSON.parse(firma) as T : null)
+  }, [firma, firmaInicial, recuperado])
+}

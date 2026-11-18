@@ -1,9 +1,15 @@
 import { useState } from 'react'
+import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Conjuro } from '../../types/conjuro'
 import type { Criatura, RasgoCriatura, SeccionCriatura } from '../../types/criatura'
 import '../../styles/formularios/CriaturaForm.css'
 
-type Props = { initialData?: Criatura; criaturas: Criatura[]; conjuros: Conjuro[]; onSave: (criatura: Criatura) => void; onCancel: () => void }
+type Props = {
+  initialData?: Criatura; criaturas: Criatura[]; conjuros: Conjuro[]; onSave: (criatura: Criatura) => void; onCancel: () => void
+  /** Lo escrito antes de recargar, recuperado de la copia local. */
+  borrador?: Criatura | null
+  onCambioBorrador?: (borrador: Criatura | null) => void
+}
 const atributos = [['fuerza','Fuerza'],['destreza','Destreza'],['constitucion','Constitución'],['inteligencia','Inteligencia'],['sabiduria','Sabiduría'],['carisma','Carisma']] as const
 const secciones = [['rasgos','Rasgos'],['acciones','Acciones'],['acciones_adicionales','Acciones adicionales'],['reacciones','Reacciones'],['acciones_legendarias','Acciones legendarias'],['acciones_guarida','Acciones de guarida'],['efectos_regionales','Efectos regionales']] as const
 const vacio = (): Criatura => ({
@@ -15,9 +21,11 @@ const vacio = (): Criatura => ({
   secciones:{rasgos:[],acciones:[],acciones_adicionales:[],reacciones:[],acciones_legendarias:[],acciones_guarida:[],efectos_regionales:[]}
 })
 const nuevaEntrada = (): RasgoCriatura => ({id:crypto.randomUUID(),nombre:'',descripcion:''})
-export default function CriaturaForm({initialData,criaturas,conjuros,onSave,onCancel}:Props) {
-  const [c,setC] = useState<Criatura>(()=> initialData ? {...vacio(),...initialData, conjurosInvocacionIds: Array.from(new Set([...(initialData.conjurosInvocacionIds ?? []), ...(initialData.conjuroInvocacionId ? [initialData.conjuroInvocacionId] : [])])), secciones:{...vacio().secciones,...initialData.secciones}} : vacio())
+export default function CriaturaForm({initialData,criaturas,conjuros,onSave,onCancel,borrador,onCambioBorrador}:Props) {
+  const fuente = borrador ?? initialData
+  const [c,setC] = useState<Criatura>(()=> fuente ? {...vacio(),...fuente, conjurosInvocacionIds: Array.from(new Set([...(fuente.conjurosInvocacionIds ?? []), ...(fuente.conjuroInvocacionId ? [fuente.conjuroInvocacionId] : [])])), secciones:{...vacio().secciones,...fuente.secciones}} : vacio())
   const [error,setError] = useState('')
+  useReportarBorrador<Criatura>(c, onCambioBorrador, Boolean(borrador))
   const update = (patch:Partial<Criatura>) => setC(v=>({...v,...patch}))
   const texto = (label:string, key:keyof Criatura, placeholder='') => <div className="nueva-propuesta-field"><label>{label}</label><input value={String(c[key] ?? '')} placeholder={placeholder} onChange={e=>update({[key]:e.target.value})}/></div>
   const campoValor = (label:string,key:'ca'|'iniciativa'|'pg',placeholder:string) => <div className="nueva-propuesta-field"><label>{label}</label><input value={c[key].valor} placeholder={placeholder} onChange={e=>update({[key]:{...c[key],valor:e.target.value}})}/></div>

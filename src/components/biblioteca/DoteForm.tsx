@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Conjuro } from '../../types/conjuro'
 import SelectorConjuros from './SelectorConjuros'
 import SeleccionConjurosDoteForm from './SeleccionConjurosDoteForm'
@@ -14,25 +15,38 @@ type Props = {
   onCrearConjuro: (conjuro: Conjuro) => void
   onSave: (dote: Dote) => void
   onCancel: () => void
+  /** Lo escrito antes de recargar, recuperado de la copia local. */
+  borrador?: Dote | null
+  onCambioBorrador?: (borrador: Dote | null) => void
 }
 
 function lineas(texto: string): string[] {
   return texto.split('\n').map(linea => linea.trim()).filter(Boolean)
 }
 
-export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibles = [], onCrearConjuro, onSave, onCancel }: Props) {
-  const [nombre, setNombre] = useState(initialData?.nombre ?? '')
-  const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
-  const [categoria, setCategoria] = useState(initialData?.categoria ?? 'origen')
-  const [requisitos, setRequisitos] = useState((initialData?.requisitos ?? []).join('\n'))
-  const [beneficios, setBeneficios] = useState((initialData?.beneficios ?? []).join('\n'))
-  const [libro, setLibro] = useState(initialData?.fuente?.libro ?? '')
-  const [pagina, setPagina] = useState(initialData?.fuente?.pagina?.toString() ?? '')
-  const [efectos, setEfectos] = useState<EfectoDote[]>(initialData?.efectos ?? [])
-  const [conjurosIds, setConjurosIds] = useState<string[]>(initialData?.conjurosIds ?? [])
-  const [seleccionConjuros, setSeleccionConjuros] = useState<SeleccionConjurosDote | null>(initialData?.seleccionConjuros ?? null)
+export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibles = [], onCrearConjuro, onSave, onCancel, borrador, onCambioBorrador }: Props) {
+  const fuente = borrador ?? initialData
+  const [idNuevo] = useState(() => fuente?.id ?? crypto.randomUUID())
+  const [nombre, setNombre] = useState(fuente?.nombre ?? '')
+  const [descripcion, setDescripcion] = useState(fuente?.descripcion ?? '')
+  const [categoria, setCategoria] = useState(fuente?.categoria ?? 'origen')
+  const [requisitos, setRequisitos] = useState((fuente?.requisitos ?? []).join('\n'))
+  const [beneficios, setBeneficios] = useState((fuente?.beneficios ?? []).join('\n'))
+  const [libro, setLibro] = useState(fuente?.fuente?.libro ?? '')
+  const [pagina, setPagina] = useState(fuente?.fuente?.pagina?.toString() ?? '')
+  const [efectos, setEfectos] = useState<EfectoDote[]>(fuente?.efectos ?? [])
+  const [conjurosIds, setConjurosIds] = useState<string[]>(fuente?.conjurosIds ?? [])
+  const [seleccionConjuros, setSeleccionConjuros] = useState<SeleccionConjurosDote | null>(fuente?.seleccionConjuros ?? null)
   const [selectorConjurosAbierto, setSelectorConjurosAbierto] = useState(false)
   const [error, setError] = useState('')
+  useReportarBorrador<Dote>({
+    id: initialData?.id ?? idNuevo, nombre, descripcion, categoria,
+    requisitos: requisitos.split('\n'), beneficios: beneficios.split('\n'),
+    fuente: { libro, ...(pagina.trim() ? { pagina: Number(pagina) } : {}) },
+    efectos, conjurosIds,
+    ...(seleccionConjuros ? { seleccionConjuros } : {}),
+    ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}),
+  }, onCambioBorrador, Boolean(borrador))
   function cambiarEfecto(id: string, cambio: Partial<EfectoDote>) {
     setEfectos(actuales => actuales.map(efecto => efecto.id === id ? { ...efecto, ...cambio } : efecto))
   }
@@ -47,7 +61,7 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     if (efectos.some(e => !e.atributo.trim() || !Number.isFinite(e.valor))) { setError('Completá el atributo y el valor de cada efecto.'); return }
     if (seleccionConjuros && (seleccionConjuros.listasPermitidas.length === 0 || seleccionConjuros.selecciones.length === 0 || seleccionConjuros.selecciones.some(x => !Number.isInteger(x.nivel) || x.nivel < 0 || x.nivel > 9 || !Number.isInteger(x.cantidad) || x.cantidad < 1))) { setError('Definí al menos una lista y elecciones válidas de nivel y cantidad.'); return }
     onSave({
-      id: initialData?.id ?? crypto.randomUUID(),
+      id: initialData?.id ?? idNuevo,
       nombre: nombreLimpio,
       descripcion: descripcion.trim(),
       categoria: categoria.trim(),
