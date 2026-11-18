@@ -1,6 +1,6 @@
 import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
@@ -561,12 +561,12 @@ export default function NuevaPropuesta() {
 
       if (opciones.enviar && idGuardado) {
         await enviarBorradorAprobacion(idGuardado)
-        navigate(accesoCompartido === 'editor' ? '/biblioteca/libros?tab=compartidos' : '/biblioteca/libros?tab=propuestas')
+        navigate(destinoSalida)
         return
       }
       if (!modoEdicion && idGuardado) {
-        // Un libro nuevo pasa a ser un borrador: se sigue editando ahí.
-        navigate(`/biblioteca/libros/editar-borrador/${idGuardado}`, { replace: true })
+        // Un libro nuevo pasa a ser un borrador: se sigue editando ahí, conservando el origen.
+        navigate(`/biblioteca/libros/editar-borrador/${idGuardado}${origenEditor ? `?origen=${origenEditor}` : ''}`, { replace: true })
         return
       }
       setMensajeGuardado('Cambios guardados.')
@@ -715,7 +715,17 @@ export default function NuevaPropuesta() {
   })
   const hayCambios = instantaneaInicial.current !== null && instantaneaInicial.current !== instantanea()
   const [confirmandoSalida, setConfirmandoSalida] = useState(false)
-  const destinoSalida = accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'
+  // A dónde vuelve el editor: la pestaña desde la que se abrió (?origen=), o según el permiso si no vino.
+  const [parametros] = useSearchParams()
+  const origenesEditor: Record<string, { texto: string; ruta: string }> = {
+    propuestas: { texto: 'Mis propuestas', ruta: '/biblioteca/libros?tab=propuestas' },
+    compartidos: { texto: 'Compartidos conmigo', ruta: '/biblioteca/libros?tab=compartidos' },
+    catalogo: { texto: 'Catálogo', ruta: '/biblioteca/libros?tab=catalogo' },
+    administracion: { texto: 'Revisión de libros', ruta: '/biblioteca/libros?tab=administracion' },
+  }
+  const origenEditor = parametros.get('origen') ?? ''
+  const volver = origenesEditor[origenEditor] ?? origenesEditor[accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos']
+  const destinoSalida = volver.ruta
   function pedirSalida() {
     const sinCambios = instantaneaInicial.current === null || instantaneaInicial.current === instantanea()
     if (sinCambios || accesoCompartido === 'lector') navigate(destinoSalida)
@@ -726,7 +736,7 @@ export default function NuevaPropuesta() {
     <AppLayout
       title={modoEdicion ? 'Editar propuesta' : 'Nueva propuesta'}
       subtitle="Proponé un libro para la Biblioteca de Chronicle"
-      volverA={accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'}
+      migaAnterior={volver}
     >
       <div className="nueva-propuesta editor-libro">
         {cargandoLibro && (
@@ -785,7 +795,7 @@ export default function NuevaPropuesta() {
           <div className="editor-libro__acciones">
             {propuestaId && <button type="button" className="editor-libro__boton editor-libro__boton--sec editor-libro__solo-escritorio" disabled={hayCambios}
               title={hayCambios ? 'Guardá los cambios para verlos en la vista previa' : 'Ver cómo se lee el borrador guardado'}
-              onClick={() => navigate(`/biblioteca/libros/leer-borrador/${propuestaId}?origen=${accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos'}`)}>
+              onClick={() => navigate(`/biblioteca/libros/leer-borrador/${propuestaId}?origen=editor&desde=${origenEditor || (accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos')}`)}>
               <Eye size={17} aria-hidden="true" />Vista previa
             </button>}
             <button type="button" className="editor-libro__boton" disabled={guardando || cargandoLibro || (modoEdicionBorrador && rowVersion === null)} onClick={() => void handleGuardarLibro()}>

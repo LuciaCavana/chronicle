@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useParams, useSearchParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
+import { calcularFormula } from '../lib/formulasProgresion'
 import '../styles/biblioteca/LectorLibro.css'
 
 type Registro = Record<string, unknown>
@@ -129,7 +130,7 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
             {columnas.map((columna,j)=>{
               const id=texto(columna.id)
               const rasgosVisibles=rasgos.filter(r=>Number(r.nivel)===nivel && !valoresTexto(filaOcultas[id]).includes(texto(r.id)))
-              const valor=texto(filaCeldas[id]) || (id==='competencia' ? `+${Number(fila.bonificadorCompetencia || 0)}` : id==='notas' ? texto(fila.notas) : '')
+              const valor=columna.tipo==='formula' ? calcularFormula(texto(columna.formula),nivel) : texto(filaCeldas[id]) || (id==='competencia' ? `+${Number(fila.bonificadorCompetencia || 0)}` : id==='notas' ? texto(fila.notas) : '')
               return <td key={id||j}>{columna.tipo==='caracteristicas'
                 ? <div className="lector-libro__etiquetas">{rasgosVisibles.map((rasgo,k)=><button type="button" className="lector-libro__rasgo-enlace" key={texto(rasgo.id)||k} onClick={() => setRasgoAbierto(rasgo)} title={`Leer ${tituloElemento(rasgo,k)}`}>{tituloElemento(rasgo,k)}</button>)}</div>
                 : valor || '—'}</td>
@@ -230,9 +231,14 @@ export default function LectorLibro() {
   const desdeRevision = esBorrador && origen === 'revision'
   const desdeAdministracion = origen === 'administracion'
   const desdeCompartidos = esBorrador && origen === 'compartidos'
+  // Vista previa abierta desde el editor: se vuelve al editor, que a su vez recuerda su pestaña de origen.
+  const desdeEditor = esBorrador && origen === 'editor'
+  const origenDelEditor = parametros.get('desde')
   const seccion = parametros.get('seccion')
   const seccionAdmin = seccion === 'publicados' || seccion === 'ocultos' || seccion === 'borrados' ? seccion : 'pendientes'
-  const destinoVolver = desdeRevision
+  const destinoVolver = desdeEditor
+    ? `/biblioteca/libros/editar-borrador/${propuestaId}${origenDelEditor ? `?origen=${encodeURIComponent(origenDelEditor)}` : ''}`
+    : desdeRevision
     ? `/biblioteca/libros/revision/${propuestaId}`
     : desdeAdministracion ? `/biblioteca/libros?tab=administracion&seccion=${seccionAdmin}`
     : desdeCompartidos ? '/biblioteca/libros?tab=compartidos'
@@ -307,9 +313,13 @@ export default function LectorLibro() {
     {id:'caracteristicas',titulo:'Características y reglas',elementos:lista(extras.caracteristicas)}
   ].filter(seccion => categoriasActivas.includes(seccion.id)) : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
-  const textoVolver = desdeRevision ? 'Revisión' : desdeAdministracion ? 'Revisión de libros' : desdeCompartidos ? 'Compartidos conmigo' : esBorrador ? 'Mis propuestas' : 'Libros y propuestas'
+  const textoVolver = desdeEditor ? 'Editor' : desdeRevision ? 'Revisión' : desdeAdministracion ? 'Revisión de libros' : desdeCompartidos ? 'Compartidos conmigo' : esBorrador ? 'Mis propuestas' : 'Libros y propuestas'
   return <AppLayout title={version?.titulo || 'Biblioteca'} subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"} migaAnterior={{ texto: textoVolver, ruta: destinoVolver }}>
     <main className="lector-libro">
+      {desdeEditor && <div className="lector-libro__aviso-previa" role="status">
+        <span>Vista previa de lo último que guardaste.</span>
+        <Link to={destinoVolver} className="lector-libro__volver-editor">Volver al editor</Link>
+      </div>}
       {cargando ? <div className="lector-libro__estado">Abriendo libro...</div>
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>
