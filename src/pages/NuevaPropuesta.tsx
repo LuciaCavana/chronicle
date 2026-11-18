@@ -85,6 +85,9 @@ const clasificaciones = [
   { value: 'homebrew', label: 'Homebrew' },
 ]
 
+type TipoFormulario = 'especies' | 'conjuros' | 'dotes' | 'trasfondos' | 'criaturas'
+type BorradorFormulario = { tipo: TipoFormulario; editandoId: string | null; datos: unknown }
+
 export default function NuevaPropuesta() {
   const navigate = useNavigate()
 
@@ -195,6 +198,11 @@ export default function NuevaPropuesta() {
   const [editingClassId, setEditingClassId] = useState<string | null>(null)
   const [showEspecieForm, setShowEspecieForm] = useState(false)
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
+  // Lo que se lleva escrito en el formulario abierto de especie, conjuro, dote,
+  // trasfondo o criatura (esos se guardan con su propio botón). Entra en la copia local.
+  const [borradorFormulario, setBorradorFormulario] = useState<BorradorFormulario | null>(null)
+  // Formulario a reabrir con lo recuperado de la copia local; se consume al montarse.
+  const [formularioRecuperado, setFormularioRecuperado] = useState<BorradorFormulario | null>(null)
 
   // Navegación entre pasos
   // Vista del editor: 'datos', 'contenido', 'revisar' o 'cat:<categoría>'.
@@ -728,21 +736,43 @@ export default function NuevaPropuesta() {
     ? `${usuarioId}:${propuestaId ? `borrador:${propuestaId}` : libroId ? `libro:${libroId}` : 'nueva'}`
     : null
   const puedeEditar = accesoCompartido !== 'lector' && !pendienteAprobacion
+  // Formulario abierto ahora mismo (solo cuenta lo escrito en ese).
+  const formularioAbierto: { tipo: TipoFormulario; editandoId: string | null } | null =
+    showEspecieForm ? { tipo: 'especies', editandoId: editingSpeciesId } :
+    showConjuroForm ? { tipo: 'conjuros', editandoId: editingConjuroId } :
+    showDoteForm ? { tipo: 'dotes', editandoId: editingDoteId } :
+    showTrasfondoForm ? { tipo: 'trasfondos', editandoId: editingTrasfondoId } :
+    showCriaturaForm ? { tipo: 'criaturas', editandoId: editingCriaturaId } : null
+  const formularioEnCurso = borradorFormulario && formularioAbierto &&
+    borradorFormulario.tipo === formularioAbierto.tipo && borradorFormulario.editandoId === formularioAbierto.editandoId
+    ? borradorFormulario : null
   const datosRespaldo = {
     title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
     especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas,
-    tipoPropuesta, libroOriginalId,
+    tipoPropuesta, libroOriginalId, formulario: formularioEnCurso,
   }
   const respaldoLocal = useRespaldoBorrador({
     clave: claveRespaldo,
     listo: !cargandoLibro && !errorCarga,
     habilitado: puedeEditar,
-    conCambios: hayCambios,
+    conCambios: hayCambios || formularioEnCurso !== null,
     datos: datosRespaldo,
-    firma: instantanea(),
-    firmaServidor: instantaneaInicial.current ?? instantanea(),
+    firma: instantanea() + JSON.stringify(formularioEnCurso),
+    firmaServidor: (instantaneaInicial.current ?? instantanea()) + JSON.stringify(null),
     version: rowVersion,
   })
+  // Props para que un formulario informe lo escrito y, si corresponde, arranque con lo recuperado.
+  function propsBorrador<T>(tipo: TipoFormulario, editandoId: string | null) {
+    const recuperado = formularioRecuperado && formularioRecuperado.tipo === tipo && formularioRecuperado.editandoId === editandoId
+      ? formularioRecuperado.datos as T : null
+    return {
+      borrador: recuperado,
+      onCambioBorrador: (datos: T | null) => {
+        setFormularioRecuperado(null)
+        setBorradorFormulario(datos === null ? null : { tipo, editandoId, datos })
+      },
+    }
+  }
   function recuperarRespaldo() {
     const d = respaldoLocal.recuperar()
     if (!d) return
@@ -754,10 +784,23 @@ export default function NuevaPropuesta() {
     setCaracteristicas(d.caracteristicas)
     if (!modoEdicion) { setTipoPropuesta(d.tipoPropuesta); setLibroOriginalId(d.libroOriginalId) }
     setMensajeGuardado('')
+    // Reabre el formulario que estaba a medio escribir, con lo que tenía.
+    const f = d.formulario
+    if (f) {
+      setFormularioRecuperado(f)
+      setBorradorFormulario(f)
+      setVista(`cat:${f.tipo}`)
+      setIndiceMovil(false)
+      if (f.tipo === 'especies') { setEditingSpeciesId(f.editandoId); setShowEspecieForm(true) }
+      if (f.tipo === 'conjuros') { setEditingConjuroId(f.editandoId); setShowConjuroForm(true) }
+      if (f.tipo === 'dotes') { setEditingDoteId(f.editandoId); setShowDoteForm(true) }
+      if (f.tipo === 'trasfondos') { setEditingTrasfondoId(f.editandoId); setShowTrasfondoForm(true) }
+      if (f.tipo === 'criaturas') { setEditingCriaturaId(f.editandoId); setShowCriaturaForm(true) }
+    }
   }
   // Aviso del navegador al recargar o cerrar con cambios sin guardar
-  // (incluye los formularios de especie, conjuro, dote, trasfondo y criatura abiertos).
-  useAvisoAntesDeSalir(puedeEditar && (hayCambios || elementoConFormulario))
+  // (incluye lo escrito en un formulario de especie, conjuro, dote, trasfondo o criatura).
+  useAvisoAntesDeSalir(puedeEditar && (hayCambios || formularioEnCurso !== null))
   const [confirmandoSalida, setConfirmandoSalida] = useState(false)
   // A dónde vuelve el editor: la pestaña desde la que se abrió (?origen=), o según el permiso si no vino.
   const [parametros] = useSearchParams()
@@ -1117,15 +1160,16 @@ export default function NuevaPropuesta() {
                 <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div>
               </section>
             ) : showCriaturaForm ? (
-              <CriaturaForm key={editingCriaturaId ?? 'nueva'} initialData={criaturas.find(c => c.id === editingCriaturaId)} criaturas={criaturas} conjuros={conjuros} onSave={guardarCriatura} onCancel={() => { setShowCriaturaForm(false); setEditingCriaturaId(null) }}/>
+              <CriaturaForm key={editingCriaturaId ?? 'nueva'} {...propsBorrador<Criatura>('criaturas', editingCriaturaId)} initialData={criaturas.find(c => c.id === editingCriaturaId)} criaturas={criaturas} conjuros={conjuros} onSave={guardarCriatura} onCancel={() => { setShowCriaturaForm(false); setEditingCriaturaId(null) }}/>
             ) : showTrasfondoForm ? (
-              <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} />
+              <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} {...propsBorrador<Trasfondo>('trasfondos', editingTrasfondoId)} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} />
             ) : showDoteForm ? (
-              <DoteForm key={editingDoteId ?? 'nueva'} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clases.map(c => c.nombre).filter(Boolean)} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
+              <DoteForm key={editingDoteId ?? 'nueva'} {...propsBorrador<Dote>('dotes', editingDoteId)} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clases.map(c => c.nombre).filter(Boolean)} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
             ) : showConjuroForm ? (
-              <ConjuroForm key={editingConjuroId ?? 'nuevo'} initialData={conjuros.find(c => c.id === editingConjuroId)} conjuros={conjuros} onSave={guardarConjuro} onCancel={() => { setShowConjuroForm(false); setEditingConjuroId(null) }} />
+              <ConjuroForm key={editingConjuroId ?? 'nuevo'} {...propsBorrador<Conjuro>('conjuros', editingConjuroId)} initialData={conjuros.find(c => c.id === editingConjuroId)} conjuros={conjuros} onSave={guardarConjuro} onCancel={() => { setShowConjuroForm(false); setEditingConjuroId(null) }} />
             ) : showEspecieForm ? (
               <EspecieForm
+                {...propsBorrador<Especie>('especies', editingSpeciesId)}
                 bookTitle={title}
                 bookCode={bookCode}
                 initialData={especies.find(

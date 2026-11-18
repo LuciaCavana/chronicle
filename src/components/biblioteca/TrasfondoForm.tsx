@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Dote, OpcionEquipoInicial, Trasfondo } from '../../types/trasfondo'
 import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/formularios/TrasfondoForm.css'
@@ -10,25 +11,39 @@ type Props = {
   objetos: Elemento[]
   onSave: (trasfondo: Trasfondo) => void
   onCancel: () => void
+  /** Lo escrito antes de recargar, recuperado de la copia local. */
+  borrador?: Trasfondo | null
+  onCambioBorrador?: (borrador: Trasfondo | null) => void
 }
 const caracteristicas = ['Fuerza', 'Destreza', 'Constitución', 'Inteligencia', 'Sabiduría', 'Carisma']
 const habilidades = ['Acrobacias', 'Arcanos', 'Atletismo', 'Engaño', 'Historia', 'Interpretación', 'Intimidación', 'Investigación', 'Juego de Manos', 'Medicina', 'Naturaleza', 'Percepción', 'Perspicacia', 'Persuasión', 'Religión', 'Sigilo', 'Supervivencia', 'Trato con Animales']
 const nuevoEquipo = (nombre: string): OpcionEquipoInicial => ({ id: crypto.randomUUID(), nombre, objetos: [], monedas: [] })
 const cambiarEnLista = (actual: string[], valor: string, activo: boolean) => activo ? [...actual, valor] : actual.filter(x => x !== valor)
 
-export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos, onSave, onCancel }: Props) {
-  const [nombre, setNombre] = useState(initialData?.nombre ?? '')
-  const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
-  const [caracs, setCaracs] = useState(initialData?.caracteristicas ?? [])
-  const [aumentosHabilitados, setAumentosHabilitados] = useState(initialData?.aumentoCaracteristicas?.habilitado ?? true)
-  const [distribuciones, setDistribuciones] = useState<Array<'2_1' | '1_1_1'>>(initialData?.aumentoCaracteristicas?.distribuciones ?? ['2_1', '1_1_1'])
-  const [doteId, setDoteId] = useState(initialData?.doteOrigenId ?? '')
-  const [listaFija, setListaFija] = useState(initialData?.listaConjurosFijada ?? '')
-  const [skills, setSkills] = useState(initialData?.competenciasHabilidades ?? [])
-  const [idiomas, setIdiomas] = useState<Array<{ tipo: 'fijo' | 'eleccion'; idioma?: string }>>(initialData?.idiomas ?? [])
-  const [tools, setTools] = useState((initialData?.competenciasHerramientas ?? []).join(', '))
-  const [opciones, setOpciones] = useState<OpcionEquipoInicial[]>(initialData?.opcionesEquipo ?? [nuevoEquipo('A'), nuevoEquipo('B')])
+export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos, onSave, onCancel, borrador, onCambioBorrador }: Props) {
+  const fuente = borrador ?? initialData
+  const [idNuevo] = useState(() => fuente?.id ?? crypto.randomUUID())
+  const [nombre, setNombre] = useState(fuente?.nombre ?? '')
+  const [descripcion, setDescripcion] = useState(fuente?.descripcion ?? '')
+  const [caracs, setCaracs] = useState(fuente?.caracteristicas ?? [])
+  const [aumentosHabilitados, setAumentosHabilitados] = useState(fuente?.aumentoCaracteristicas?.habilitado ?? true)
+  const [distribuciones, setDistribuciones] = useState<Array<'2_1' | '1_1_1'>>(fuente?.aumentoCaracteristicas?.distribuciones ?? ['2_1', '1_1_1'])
+  const [doteId, setDoteId] = useState(fuente?.doteOrigenId ?? '')
+  const [listaFija, setListaFija] = useState(fuente?.listaConjurosFijada ?? '')
+  const [skills, setSkills] = useState(fuente?.competenciasHabilidades ?? [])
+  const [idiomas, setIdiomas] = useState<Array<{ tipo: 'fijo' | 'eleccion'; idioma?: string }>>(fuente?.idiomas ?? [])
+  const [tools, setTools] = useState((fuente?.competenciasHerramientas ?? []).join(', '))
+  const [opciones, setOpciones] = useState<OpcionEquipoInicial[]>(fuente?.opcionesEquipo ?? [nuevoEquipo('A'), nuevoEquipo('B')])
   const [error, setError] = useState('')
+  useReportarBorrador<Trasfondo>({
+    id: initialData?.id ?? idNuevo, nombre, descripcion, caracteristicas: caracs,
+    aumentoCaracteristicas: { habilitado: aumentosHabilitados, distribuciones },
+    doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}),
+    competenciasHabilidades: skills, idiomas,
+    competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean),
+    opcionesEquipo: opciones,
+    ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}),
+  }, onCambioBorrador, Boolean(borrador))
   const dote = dotes.find(d => d.id === doteId)
   const listasMagia = dote?.seleccionConjuros?.listasPermitidas ?? []
 
@@ -46,7 +61,7 @@ export default function TrasfondoForm({ initialData, trasfondos, dotes, objetos,
     if (skills.length === 1 && idiomas.length !== 1) { setError('Si el trasfondo otorga una habilidad, agregá un idioma.'); return }
     if (idiomas.some(i => i.tipo === 'fijo' && !i.idioma?.trim())) { setError('Especificá el idioma fijo o elegí la opción a elección.'); return }
     if (opciones.some(o => !o.nombre.trim() || o.objetos.some(x => !x.objetoId || !Number.isInteger(x.cantidad) || x.cantidad < 1) || o.monedas.some(x => !x.moneda.trim() || !Number.isInteger(x.cantidad) || x.cantidad < 0))) { setError('Revisá las opciones de equipo y sus cantidades.'); return }
-    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: nombre.trim(), descripcion: descripcion.trim(), caracteristicas: caracs, aumentoCaracteristicas: { habilitado: aumentosHabilitados, distribuciones: aumentosHabilitados ? distribuciones : [] }, doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}), competenciasHabilidades: skills, idiomas: idiomas.map(i => ({ ...i, ...(i.tipo === 'fijo' ? { idioma: i.idioma?.trim() } : { idioma: undefined }) })), competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean), opcionesEquipo: opciones, ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}) })
+    onSave({ id: initialData?.id ?? idNuevo, nombre: nombre.trim(), descripcion: descripcion.trim(), caracteristicas: caracs, aumentoCaracteristicas: { habilitado: aumentosHabilitados, distribuciones: aumentosHabilitados ? distribuciones : [] }, doteOrigenId: doteId, ...(listaFija ? { listaConjurosFijada: listaFija } : {}), competenciasHabilidades: skills, idiomas: idiomas.map(i => ({ ...i, ...(i.tipo === 'fijo' ? { idioma: i.idioma?.trim() } : { idioma: undefined }) })), competenciasHerramientas: tools.split(',').map(x => x.trim()).filter(Boolean), opcionesEquipo: opciones, ...(initialData?.datosAdicionales ? { datosAdicionales: initialData.datosAdicionales } : {}) })
   }
 
   return <section className="nueva-propuesta-panel trasfondo-form">

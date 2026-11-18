@@ -1,34 +1,43 @@
 import { useState } from 'react'
+import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Conjuro } from '../../types/conjuro'
 import '../../styles/formularios/EspecieForm.css'
 import { useLanguage } from '../../i18n/useLanguage'
 
-type Props = { initialData?: Conjuro | null; conjuros: Conjuro[]; onSave: (conjuro: Conjuro) => void; onCancel: () => void }
+type Props = {
+  initialData?: Conjuro | null; conjuros: Conjuro[]; onSave: (conjuro: Conjuro) => void; onCancel: () => void
+  /** Lo escrito antes de recargar, recuperado de la copia local. */
+  borrador?: Conjuro | null
+  onCambioBorrador?: (borrador: Conjuro | null) => void
+}
 
-export default function ConjuroForm({ initialData, conjuros, onSave, onCancel }: Props) {
+export default function ConjuroForm({ initialData, conjuros, onSave, onCancel, borrador, onCambioBorrador }: Props) {
   const { t } = useLanguage()
-  const [nombre, setNombre] = useState(initialData?.nombre ?? '')
-  const [tipo, setTipo] = useState<Conjuro['tipo']>(initialData?.tipo ?? 'truco')
-  const [nivel, setNivel] = useState(initialData?.nivel || 1)
-  const [escuela, setEscuela] = useState(initialData?.escuela ?? '')
-  const [tiempoLanzamiento, setTiempoLanzamiento] = useState(initialData?.tiempoLanzamiento ?? '')
-  const [alcance, setAlcance] = useState(initialData?.alcance ?? '')
-  const [componentes, setComponentes] = useState((initialData?.componentes ?? '').split(',').map(c => c.trim()).filter(Boolean))
-  const [componenteMaterial, setComponenteMaterial] = useState(initialData?.componenteMaterial ?? '')
-  const [duracion, setDuracion] = useState(initialData?.duracion ?? '')
-  const [concentracion, setConcentracion] = useState(initialData?.concentracion ?? false)
-  const [ritual, setRitual] = useState(initialData?.ritual ?? false)
-  const [clases, setClases] = useState((initialData?.clases ?? []).join(', '))
-  const [descripcion, setDescripcion] = useState(initialData?.descripcion ?? '')
-  const [libroOrigen, setLibroOrigen] = useState(initialData?.libroOrigen ?? '')
-  const [paginaOrigen, setPaginaOrigen] = useState(initialData?.paginaOrigen?.toString() ?? '')
+  const fuente = borrador ?? initialData
+  const [idNuevo] = useState(() => fuente?.id ?? crypto.randomUUID())
+  const [nombre, setNombre] = useState(fuente?.nombre ?? '')
+  const [tipo, setTipo] = useState<Conjuro['tipo']>(fuente?.tipo ?? 'truco')
+  const [nivel, setNivel] = useState(fuente?.nivel || 1)
+  const [escuela, setEscuela] = useState(fuente?.escuela ?? '')
+  const [tiempoLanzamiento, setTiempoLanzamiento] = useState(fuente?.tiempoLanzamiento ?? '')
+  const [alcance, setAlcance] = useState(fuente?.alcance ?? '')
+  const [componentes, setComponentes] = useState((fuente?.componentes ?? '').split(',').map(c => c.trim()).filter(Boolean))
+  const [componenteMaterial, setComponenteMaterial] = useState(fuente?.componenteMaterial ?? '')
+  const [duracion, setDuracion] = useState(fuente?.duracion ?? '')
+  const [concentracion, setConcentracion] = useState(fuente?.concentracion ?? false)
+  const [ritual, setRitual] = useState(fuente?.ritual ?? false)
+  const [clases, setClases] = useState((fuente?.clases ?? []).join(', '))
+  const [descripcion, setDescripcion] = useState(fuente?.descripcion ?? '')
+  const [libroOrigen, setLibroOrigen] = useState(fuente?.libroOrigen ?? '')
+  const [paginaOrigen, setPaginaOrigen] = useState(fuente?.paginaOrigen?.toString() ?? '')
   const [error, setError] = useState('')
+  useReportarBorrador<Conjuro>({ id: initialData?.id ?? idNuevo, nombre, tipo, nivel, escuela, tiempoLanzamiento, alcance, componentes: componentes.join(', '), componenteMaterial, duracion, concentracion, ritual, clases: clases.split(',').map(c => c.trim()).filter(Boolean), descripcion, libroOrigen, paginaOrigen: paginaOrigen ? Number(paginaOrigen) : undefined }, onCambioBorrador, Boolean(borrador))
   function guardar() {
     const limpio = nombre.trim()
     if (!limpio) { setError(t('spell.nameError')); return }
     if (conjuros.some(c => c.id !== initialData?.id && c.nombre.trim().toLocaleLowerCase('es') === limpio.toLocaleLowerCase('es'))) { setError(t('spell.duplicate')); return }
     if (paginaOrigen && (!Number.isInteger(Number(paginaOrigen)) || Number(paginaOrigen) < 1)) { setError(t('spell.pageError')); return }
-    onSave({ id: initialData?.id ?? crypto.randomUUID(), nombre: limpio, tipo, nivel: tipo === 'truco' ? 0 : nivel, escuela: escuela.trim(), tiempoLanzamiento: tiempoLanzamiento.trim(), alcance: alcance.trim(), componentes: componentes.join(', '), componenteMaterial: componentes.includes('M') ? componenteMaterial.trim() : '', duracion: duracion.trim(), concentracion, ritual, clases: clases.split(',').map(c => c.trim()).filter(Boolean), descripcion: descripcion.trim(), libroOrigen: libroOrigen.trim(), paginaOrigen: paginaOrigen ? Number(paginaOrigen) : undefined })
+    onSave({ id: initialData?.id ?? idNuevo, nombre: limpio, tipo, nivel: tipo === 'truco' ? 0 : nivel, escuela: escuela.trim(), tiempoLanzamiento: tiempoLanzamiento.trim(), alcance: alcance.trim(), componentes: componentes.join(', '), componenteMaterial: componentes.includes('M') ? componenteMaterial.trim() : '', duracion: duracion.trim(), concentracion, ritual, clases: clases.split(',').map(c => c.trim()).filter(Boolean), descripcion: descripcion.trim(), libroOrigen: libroOrigen.trim(), paginaOrigen: paginaOrigen ? Number(paginaOrigen) : undefined })
   }
   return <section className="nueva-propuesta-panel especie-form">
     <h3>{initialData ? t('spell.edit') : t('spell.add')}</h3>

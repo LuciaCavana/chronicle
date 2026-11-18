@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import { Plus, Trash2 } from 'lucide-react'
 
 import LinajesEspecie from './LinajesEspecie'
@@ -24,6 +25,9 @@ type Props = {
   onCancel: () => void
   conjuros: Conjuro[]
   onCrearConjuro: (conjuro: Conjuro) => void
+  /** Lo escrito antes de recargar, recuperado de la copia local. */
+  borrador?: Especie | null
+  onCambioBorrador?: (borrador: Especie | null) => void
 }
 
 const tamanosDisponibles = ['Pequeño', 'Mediano', 'Grande']
@@ -63,41 +67,49 @@ export default function EspecieForm({
   onCancel,
   conjuros,
   onCrearConjuro,
+  borrador,
+  onCambioBorrador,
 }: Props) {
-  const [nombre, setNombre] = useState(initialData?.nombre ?? '')
+  const fuente = borrador ?? initialData
+  const [idNuevo] = useState(() => fuente?.id ?? crypto.randomUUID())
+  const [nombre, setNombre] = useState(fuente?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(
-    initialData?.descripcion ?? ''
+    fuente?.descripcion ?? ''
   )
   const [tamanos, setTamanos] = useState<TamanoEspecie[]>(
-    initialData?.tamanos ?? []
+    fuente?.tamanos ?? []
   )
   const [nombreOtroTamano, setNombreOtroTamano] = useState(
-    initialData?.tamanos.find((tamano) => tamano.id === 'otro')?.nombre ?? ''
+    fuente?.tamanos.find((tamano) => tamano.id === 'otro')?.nombre ?? ''
   )
   const [tiposCriatura, setTiposCriatura] = useState<string[]>(
-    initialData?.tiposCriatura ?? ['Humanoide']
+    fuente?.tiposCriatura ?? ['Humanoide']
   )
-  const [velocidad, setVelocidad] = useState(initialData?.velocidad ?? '30')
+  const [velocidad, setVelocidad] = useState(fuente?.velocidad ?? '30')
   const [visionOscuridad, setVisionOscuridad] = useState(
-    initialData?.visionOscuridad ?? false
+    fuente?.visionOscuridad ?? false
   )
   const [alcanceVision, setAlcanceVision] = useState(
-    initialData?.alcanceVision ?? '60'
+    fuente?.alcanceVision ?? '60'
   )
-  const [pagina, setPagina] = useState(initialData?.pagina ?? '')
+  const [pagina, setPagina] = useState(fuente?.pagina ?? '')
   const [rasgos, setRasgos] = useState<RasgoEspecie[]>(
-    initialData?.rasgos ?? []
+    fuente?.rasgos ?? []
   )
   const [linajes, setLinajes] = useState<LinajeEspecie[]>(
-    initialData?.linajes ?? []
+    fuente?.linajes ?? []
   )
   const [transformaciones, setTransformaciones] =
     useState<TransformacionEspecie[]>(
-      initialData?.transformaciones ?? []
+      fuente?.transformaciones ?? []
     )
   const [camposAdicionales, setCamposAdicionales] = useState<
     CampoAdicionalEspecie[]
-  >(initialData?.camposAdicionales ?? [])
+  >(fuente?.camposAdicionales ?? [])
+  useReportarBorrador<Especie>({
+    id: initialData?.id ?? idNuevo, nombre, descripcion, tamanos, tiposCriatura, velocidad,
+    visionOscuridad, alcanceVision, pagina, rasgos, linajes, camposAdicionales, transformaciones,
+  }, onCambioBorrador, Boolean(borrador))
 
   function toggleTamano(id: string) {
     setTamanos((current) => {
@@ -155,7 +167,7 @@ export default function EspecieForm({
     }
 
     onSave({
-      id: initialData?.id ?? crypto.randomUUID(),
+      id: initialData?.id ?? idNuevo,
       nombre: nombre.trim(),
       descripcion,
       tamanos,
