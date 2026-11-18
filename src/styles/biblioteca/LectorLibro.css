@@ -115,3 +115,10 @@
 .lector-libro__conjuro-datos p{margin:3px 0;line-height:1.55}
 .lector-libro__conjuro-clases{margin-top:18px;font-size:14px}
 @media(max-width:600px){.lector-libro__conjuro{padding:18px 15px}}
+
+/* Aviso de vista previa abierta desde el editor */
+.lector-libro__aviso-previa{position:sticky;top:calc(-1 * var(--relleno-contenido,28px));z-index:5;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:calc(-1 * var(--relleno-contenido,28px)) calc(-1 * var(--relleno-contenido,28px)) 20px;padding:10px var(--relleno-contenido,28px);background:var(--color-fondo-navegacion);border-bottom:1px solid var(--color-acento-borde);font-family:var(--fuente-sans);font-size:14px;color:var(--color-texto-etiqueta)}
+.lector-libro__volver-editor{display:inline-flex;align-items:center;min-height:38px;padding:0 14px;border-radius:var(--radio-md);background:var(--color-acento);color:var(--color-texto-sobre-acento);font-weight:700;text-decoration:none}
+.lector-libro__volver-editor:hover{background:var(--color-acento-claro);color:var(--color-texto-sobre-acento)}
+.lector-libro__volver-editor:focus-visible{outline:var(--foco);outline-offset:2px}
+@media(max-width:768px){.lector-libro__volver-editor{flex:1 1 100%;justify-content:center;min-height:44px}}

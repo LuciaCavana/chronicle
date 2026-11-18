@@ -795,7 +795,7 @@ export default function NuevaPropuesta() {
           <div className="editor-libro__acciones">
             {propuestaId && <button type="button" className="editor-libro__boton editor-libro__boton--sec editor-libro__solo-escritorio" disabled={hayCambios}
               title={hayCambios ? 'Guardá los cambios para verlos en la vista previa' : 'Ver cómo se lee el borrador guardado'}
-              onClick={() => navigate(`/biblioteca/libros/leer-borrador/${propuestaId}?origen=${accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos'}`)}>
+              onClick={() => navigate(`/biblioteca/libros/leer-borrador/${propuestaId}?origen=editor&desde=${origenEditor || (accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos')}`)}>
               <Eye size={17} aria-hidden="true" />Vista previa
             </button>}
             <button type="button" className="editor-libro__boton" disabled={guardando || cargandoLibro || (modoEdicionBorrador && rowVersion === null)} onClick={() => void handleGuardarLibro()}>
