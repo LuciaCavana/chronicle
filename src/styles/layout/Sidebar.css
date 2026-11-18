@@ -50,12 +50,9 @@
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: 9px;
-  background: var(--color-fondo-avatar);
-  border: 1px solid var(--color-acento-borde);
-  overflow: hidden;
 }
-.sidebar-monograma img { display: block; width: 28px; height: 28px; object-fit: contain; }
+/* Logo solo, sin caja: la decoración competía con las líneas finas del logo. */
+.sidebar-monograma img { display: block; width: 36px; height: 36px; object-fit: contain; }
 .sidebar-nombre { font-family: var(--fuente-serif); font-size: 16px; letter-spacing: .16em; color: var(--color-texto); white-space: nowrap; }
 .sidebar-cerrar-movil { display: none; }
 

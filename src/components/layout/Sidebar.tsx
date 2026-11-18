@@ -48,7 +48,7 @@ export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile 
       <div className="sidebar-panel">
       <div className="sidebar-cabecera">
         <Link to="/home" onClick={onNavigate} className="sidebar-marca" aria-label={t('sidebar.home.aria')}>
-          <span className="sidebar-monograma" aria-hidden="true"><img src={logoMenu} alt="" width={28} height={28} /></span>
+          <span className="sidebar-monograma" aria-hidden="true"><img src={logoMenu} alt="" width={36} height={36} /></span>
           <span className="sidebar-nombre">CHRONICLE</span>
         </Link>
         <button type="button" className="sidebar-cerrar-movil" aria-label={t('nav.closeMenu')} onClick={onCloseMobile}><X size={20} aria-hidden="true"/></button>
