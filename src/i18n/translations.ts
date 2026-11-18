@@ -1,7 +1,7 @@
 export type Language = 'es' | 'en'
 export const translations = {
   es: {
-    'review.back': "Volver a Administración",
+    'review.back': "Volver a Revisión de libros",
     'review.pending': "Pendiente de aprobación",
     'review.publishedChange': "Modificación de libro publicado",
     'review.newBook': "Libro nuevo",
@@ -424,7 +424,7 @@ export const translations = {
     'weapon.push':'Empujar','weapon.sap':'Debilitar','weapon.slow':'Ralentizar','weapon.topple':'Derribar','weapon.vex':'Molestar',
   },
   en: {
-    'review.back': "Back to Administration",
+    'review.back': "Back to book review",
     'review.pending': "Pending approval",
     'review.publishedChange': "Published book modification",
     'review.newBook': "New book",
