@@ -44,7 +44,7 @@
 .editor-libro__titulo strong { font-family: var(--fuente-serif); font-size: 18px; font-weight: 400; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .editor-libro__estado { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--color-texto-suave); white-space: nowrap; }
 .editor-libro__etiqueta { padding: 1px 8px; border: 1px solid var(--color-borde); border-radius: var(--radio-pildora); }
-.editor-libro__sin-guardar { display: inline-flex; align-items: center; gap: 6px; color: #e5b35c; }
+.editor-libro__sin-guardar { display: inline-flex; align-items: center; gap: 6px; color: var(--color-acento); }
 .editor-libro__sin-guardar::before { content: ''; width: 7px; height: 7px; border-radius: var(--radio-pildora); background: currentColor; }
 .editor-libro__guardado { color: var(--color-exito); }
 .editor-libro__acciones { margin-left: auto; display: flex; align-items: center; gap: 8px; }
@@ -373,4 +373,54 @@
 @media (max-width: 768px) {
   .editor-libro__respaldo-acciones { width: 100%; }
   .editor-libro__respaldo-acciones .editor-libro__boton { flex: 1; min-height: 46px; }
+}
+
+/* ---------- Resumen de "Revisar y enviar" ---------- */
+.revision-libro { display: grid; gap: 16px; margin-top: 16px; }
+.revision-libro__panel h3 { margin: 0 0 14px; }
+.revision-libro__datos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.revision-libro__dato { min-width: 0; padding: 12px 14px; background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.revision-libro__dato--ancho { grid-column: 1 / -1; }
+.revision-libro__dato dt { margin-bottom: 6px; font-size: 12px; color: var(--color-texto-suave); }
+.revision-libro__dato dd { margin: 0; font-size: 14px; line-height: 1.5; color: var(--color-texto); overflow-wrap: anywhere; }
+.revision-libro__descripcion { white-space: pre-line; }
+.revision-libro__falta { font-style: italic; color: var(--color-texto-apagado) !important; }
+.revision-libro__categorias { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.revision-libro__categoria {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px 14px;
+  background: var(--color-fondo-campo);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-md);
+  font-size: 14px;
+  color: var(--color-texto);
+}
+.revision-libro__cantidad { flex-shrink: 0; padding: 3px 10px; border-radius: var(--radio-pildora); background: var(--color-fondo-activo); font-size: 12.5px; color: var(--color-acento-claro); }
+.revision-libro__cantidad--vacia { background: transparent; border: 1px dashed var(--color-acento-borde); color: var(--color-texto-suave); }
+@media (max-width: 900px) { .revision-libro__datos { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .revision-libro__datos { grid-template-columns: 1fr; } }
+
+/* ---------- Avisos y errores del editor ---------- */
+.editor-libro__aviso {
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  background: var(--color-fondo-activo);
+  border: 1px solid var(--color-acento-borde);
+  border-radius: var(--radio-lg);
+  color: var(--color-texto);
+}
+.editor-libro__aviso strong { color: var(--color-acento-claro); }
+.editor-libro__aviso p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--color-texto-suave); }
+.editor-libro__error {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-md);
+  font-size: 14px;
+  color: var(--color-peligro);
 }

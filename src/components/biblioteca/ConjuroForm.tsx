@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Conjuro } from '../../types/conjuro'
 import '../../styles/formularios/EspecieForm.css'
+import '../../styles/formularios/ConjuroForm.css'
 import { useLanguage } from '../../i18n/useLanguage'
 
 type Props = {
@@ -47,11 +48,13 @@ export default function ConjuroForm({ initialData, conjuros, onSave, onCancel, b
     <div className="nueva-propuesta-field"><label>{t('spell.school')}</label><input value={escuela} onChange={e => setEscuela(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label>{t('spell.cast')}</label><input value={tiempoLanzamiento} onChange={e => setTiempoLanzamiento(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label>{t('spell.range')}</label><input value={alcance} onChange={e => setAlcance(e.target.value)} /></div>
-    <fieldset><legend>{t('spell.components')}</legend>{(['V','S','M'] as const).map(c=><label key={c} style={{marginRight:16}}><input type="checkbox" checked={componentes.includes(c)} onChange={() => setComponentes(actuales => actuales.includes(c) ? actuales.filter(x=>x!==c) : [...actuales,c])}/>{c === 'V' ? ` ${t('spell.verbal')}` : c === 'S' ? ` ${t('spell.somatic')}` : ` ${t('spell.material')}`}</label>)}</fieldset>
+    <fieldset className="conjuro-form__grupo"><legend>{t('spell.components')}</legend><div className="conjuro-form__opciones">{(['V','S','M'] as const).map(c=><label key={c}><input type="checkbox" checked={componentes.includes(c)} onChange={() => setComponentes(actuales => actuales.includes(c) ? actuales.filter(x=>x!==c) : [...actuales,c])}/>{c === 'V' ? ` ${t('spell.verbal')}` : c === 'S' ? ` ${t('spell.somatic')}` : ` ${t('spell.material')}`}</label>)}</div></fieldset>
     {componentes.includes('M') && <div className="nueva-propuesta-field"><label>{t('spell.materialRequired')}</label><input value={componenteMaterial} onChange={e => setComponenteMaterial(e.target.value)}/></div>}
     <div className="nueva-propuesta-field"><label>{t('spell.duration')}</label><input value={duracion} onChange={e => setDuracion(e.target.value)} /></div>
-    <label><input type="checkbox" checked={concentracion} onChange={e => setConcentracion(e.target.checked)}/> Requiere concentración</label>
-    <label><input type="checkbox" checked={ritual} onChange={e => setRitual(e.target.checked)}/> Ritual</label>
+    <fieldset className="conjuro-form__grupo"><legend>Lanzamiento</legend><div className="conjuro-form__opciones">
+      <label><input type="checkbox" checked={concentracion} onChange={e => setConcentracion(e.target.checked)}/> Requiere concentración</label>
+      <label><input type="checkbox" checked={ritual} onChange={e => setRitual(e.target.checked)}/> Ritual</label>
+    </div></fieldset>
     <div className="nueva-propuesta-field"><label>{t('spell.classes')}</label><input value={clases} onChange={e => setClases(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label>{t('spell.source')}</label><input value={libroOrigen} onChange={e => setLibroOrigen(e.target.value)} placeholder="Ej.: GH:PG\u002724" /></div>
     <div className="nueva-propuesta-field"><label>{t('spell.page')}</label><input type="number" min="1" step="1" value={paginaOrigen} onChange={e => setPaginaOrigen(e.target.value)} placeholder="Ej.: 186" /></div>
