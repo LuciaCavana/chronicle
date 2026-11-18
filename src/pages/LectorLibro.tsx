@@ -3,6 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
+import { calcularFormula } from '../lib/formulasProgresion'
 import '../styles/biblioteca/LectorLibro.css'
 
 type Registro = Record<string, unknown>
@@ -129,7 +130,7 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
             {columnas.map((columna,j)=>{
               const id=texto(columna.id)
               const rasgosVisibles=rasgos.filter(r=>Number(r.nivel)===nivel && !valoresTexto(filaOcultas[id]).includes(texto(r.id)))
-              const valor=texto(filaCeldas[id]) || (id==='competencia' ? `+${Number(fila.bonificadorCompetencia || 0)}` : id==='notas' ? texto(fila.notas) : '')
+              const valor=columna.tipo==='formula' ? calcularFormula(texto(columna.formula),nivel) : texto(filaCeldas[id]) || (id==='competencia' ? `+${Number(fila.bonificadorCompetencia || 0)}` : id==='notas' ? texto(fila.notas) : '')
               return <td key={id||j}>{columna.tipo==='caracteristicas'
                 ? <div className="lector-libro__etiquetas">{rasgosVisibles.map((rasgo,k)=><button type="button" className="lector-libro__rasgo-enlace" key={texto(rasgo.id)||k} onClick={() => setRasgoAbierto(rasgo)} title={`Leer ${tituloElemento(rasgo,k)}`}>{tituloElemento(rasgo,k)}</button>)}</div>
                 : valor || '—'}</td>

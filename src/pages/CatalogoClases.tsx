@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowUp, BookOpen, Search } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
+import { calcularFormula } from '../lib/formulasProgresion'
 import '../styles/paginas/CatalogoConjuros.css'
 import '../styles/paginas/CatalogoClases.css'
 
@@ -51,7 +52,7 @@ function FichaClase({ clase, subclase }: { clase: Registro; subclase?: Registro 
     ['Habilidades disponibles',palabras(competencias.habilidadesOpciones)||palabras(datos.habilidades)],
     ['Habilidades a elegir',txt(competencias.habilidadesCantidad)]
   ]
-  const filas=lista(datos.progresion), columnas=lista(datos.columnasProgresion), celdas=obj(datos.celdasProgresion)
+  const filas=lista(datos.progresion), columnas=lista(datos.columnasProgresion).filter(c=>c.tipo!=='caracteristicas'), celdas=obj(datos.celdasProgresion)
   const rasgosBase=lista(datos.rasgos)
   const rasgosSubclase=subclase?lista(obj(subclase.datos).rasgos):[]
   return <>
@@ -66,7 +67,7 @@ function FichaClase({ clase, subclase }: { clase: Registro; subclase?: Registro 
       </div>)}
     </section>}
     {filas.length>0 && <section className="catalogo-clases__bloque"><h3>Tabla de progresión</h3><div className="catalogo-clases__tabla-scroll"><table><thead><tr><th>Nivel</th><th>Características</th>{columnas.map((col,i)=><th key={i}>{nombre(col)}</th>)}</tr></thead><tbody>
-      {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{(() => { const base=rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)); const extra=rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel)); return base.length||extra.length ? <>{base.map((r,j)=><button type="button" key={`base-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace" onClick={()=>irARasgo(r,'base')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}{extra.map((r,j)=><button type="button" key={`sub-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace catalogo-clases__tabla-rasgo--subclase" onClick={()=>irARasgo(r,'sub')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}</> : '—' })()}</td>{columnas.map((col,j)=><td key={j}>{txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}
+      {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{(() => { const base=rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)); const extra=rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel)); return base.length||extra.length ? <>{base.map((r,j)=><button type="button" key={`base-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace" onClick={()=>irARasgo(r,'base')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}{extra.map((r,j)=><button type="button" key={`sub-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace catalogo-clases__tabla-rasgo--subclase" onClick={()=>irARasgo(r,'sub')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}</> : '—' })()}</td>{columnas.map((col,j)=><td key={j}>{col.tipo==='formula' ? calcularFormula(txt(col.formula),Number(fila.nivel)) : txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}
     </tbody></table></div></section>}
     <Rasgos clase={clase} subclase={subclase}/>
   </>
