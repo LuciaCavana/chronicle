@@ -17,6 +17,25 @@ h1, h2, h3 {
   font-family: var(--fuente-serif);
 }
 
+/* Barras de desplazamiento: el mismo estilo en toda la app (finas, doradas, sin fondo).
+   Para ocultar una a propósito, usar scrollbar-width: none en ese componente. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-acento-borde) transparent;
+}
+/* Navegadores sin scrollbar-color (Safari): mismas barras con los selectores de WebKit */
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--color-acento-borde);
+    border: 2px solid transparent;
+    border-radius: var(--radio-pildora);
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover { background-color: var(--color-acento); }
+}
+
 button,
 input,
 select,

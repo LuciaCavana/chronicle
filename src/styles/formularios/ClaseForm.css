@@ -224,7 +224,6 @@
   max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: thin;
 }
 .clase-form__tabla .clase-form__rasgo-etiqueta {
   display: inline-block;
