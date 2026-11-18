@@ -78,7 +78,7 @@ export default function SubclaseForm({ elemento, clases, conjurosDisponibles, on
         </label>
         <label>Descripción</label>
         <EditorDescripcion key={editorRasgo.id} value={editorRasgo.descripcion} onChange={descripcion => setEditorRasgo(actual => actual ? { ...actual, descripcion } : actual)} />
-        <ConjurosRasgoEditor conjuros={editorRasgo.conjurosOtorgados ?? []} disponibles={conjurosDisponibles} onChange={conjurosOtorgados => setEditorRasgo(actual => actual ? { ...actual, conjurosOtorgados } : actual)}/>
+        <ConjurosRasgoEditor nivel={editorRasgo.nivel} conjuros={editorRasgo.conjurosOtorgados ?? []} disponibles={conjurosDisponibles} onChange={conjurosOtorgados => setEditorRasgo(actual => actual ? { ...actual, conjurosOtorgados } : actual)}/>
         <div className="clase-form__acciones-rasgo">
           <button type="button" onClick={() => setEditorRasgo(null)}>Cancelar</button>
           <button type="submit" disabled={!editorRasgo.nombre.trim() || !niveles.includes(editorRasgo.nivel)}>Guardar característica</button>
