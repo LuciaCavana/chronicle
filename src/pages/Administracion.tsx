@@ -4,6 +4,7 @@ import { Crown, Lock, Search, ShieldCheck, ShieldOff, UserRound, UsersRound, X, 
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/useAuth'
+import { urlAvatar } from '../services/avatar'
 import '../styles/paginas/Administracion.css'
 
 type Rol = 'creator' | 'admin' | 'user'
@@ -13,6 +14,8 @@ type Usuario = {
   display_name: string | null
   username: string | null
   rol: Rol
+  avatar_url?: string | null
+  avatar_source?: string | null
 }
 type Filtro = 'todos' | Rol
 type Cambio = { usuario: Usuario; nuevoRol: Rol }
@@ -172,10 +175,11 @@ export default function Administracion() {
                 {filtrados.map(usuario => {
                   const nombre = nombreDe(usuario)
                   const esYo = usuario.user_id === userId
+                  const foto = urlAvatar({ avatar_url: usuario.avatar_url ?? null, avatar_source: usuario.avatar_source ?? null })
                   return (
                     <li key={usuario.user_id} className="admin-fila">
                       <div className="admin-usuario">
-                        <span className={`admin-avatar admin-avatar--${usuario.rol}`} aria-hidden="true">{nombre.charAt(0).toUpperCase()}</span>
+                        <span className={`admin-avatar admin-avatar--${usuario.rol}`} aria-hidden="true">{foto ? <img src={foto} alt="" loading="lazy" /> : nombre.charAt(0).toUpperCase()}</span>
                         <span className="admin-usuario-datos">
                           <span className="admin-usuario-nombre">{nombre}{esYo && <span className="admin-vos">vos</span>}</span>
                           <span className="admin-usuario-sub">{usuario.username ? `@${usuario.username} · ` : ''}{usuario.email || 'Sin correo'}</span>
