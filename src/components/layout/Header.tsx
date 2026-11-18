@@ -3,8 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronLeft, ChevronRight, Globe, LogOut, Menu, SlidersHorizontal, UserRound } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
-import { supabase } from '../../lib/supabase'
-import { EVENTO_AVATAR, urlAvatar, type AvatarPerfil } from '../../services/avatar'
+import { usePerfilSesion } from '../../hooks/usePerfilSesion'
 import { useLanguage } from '../../i18n/useLanguage'
 import { migasDeRuta } from '../../lib/navegacion'
 import '../../styles/layout/Header.css'
@@ -12,12 +11,12 @@ import '../../styles/layout/Header.css'
 type HeaderProps = {
   title: string
   subtitle?: string
+  volverA?: string
+  migaAnterior?: { texto: string; ruta: string }
   onOpenMenu?: () => void
 }
 
-type PerfilCabecera = { userId: string; avatar: string | null; nombre: string }
-
-export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
+export default function Header({ title, subtitle, volverA, migaAnterior, onOpenMenu }: HeaderProps) {
   const { session, role } = useAuth()
   const { t, language, setLanguage } = useLanguage()
   const navigate = useNavigate()
@@ -30,31 +29,14 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
 
   const email = session?.user.email ?? ''
   const userId = session?.user.id
-  const [perfil, setPerfil] = useState<PerfilCabecera | null>(null)
-  const datos = userId && perfil?.userId === userId ? perfil : null
+  const datos = usePerfilSesion(userId)
   const nombre = datos?.nombre || email.split('@')[0] || ''
   const inicial = (nombre.charAt(0) || email.charAt(0) || '?').toUpperCase()
   const etiquetaRol = role === 'admin' ? t('role.admin') : role === 'creator' ? t('role.creator') : ''
   const migas = migasDeRuta(pathname, search)
   const anterior = migas.length > 1 ? migas[migas.length - 2] : null
-
-  useEffect(() => {
-    if (!userId) return
-    let activo = true
-    void supabase.from('profiles').select('display_name,username,avatar_url,avatar_source').eq('id', userId).maybeSingle()
-      .then(({ data }) => {
-        if (!activo) return
-        const nombrePerfil = (data?.display_name as string | null | undefined)?.trim() || (data?.username as string | null | undefined) || ''
-        setPerfil({ userId, avatar: urlAvatar(data), nombre: nombrePerfil })
-      })
-    const alCambiar = (evento: Event) => setPerfil(actual => ({
-      userId,
-      nombre: actual?.userId === userId ? actual.nombre : '',
-      avatar: urlAvatar((evento as CustomEvent<AvatarPerfil>).detail),
-    }))
-    window.addEventListener(EVENTO_AVATAR, alCambiar)
-    return () => { activo = false; window.removeEventListener(EVENTO_AVATAR, alCambiar) }
-  }, [userId])
+  const rutaAnterior = migaAnterior?.ruta ?? volverA ?? anterior?.ruta
+  const textoAnterior = migaAnterior?.texto ?? (anterior ? t(anterior.etiqueta) : '')
 
   useEffect(() => {
     if (!menuOpen) return
@@ -100,12 +82,14 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
               const ultima = i === migas.length - 1
               return <li key={`${miga.etiqueta}-${i}`}>
                 {i > 0 && <ChevronRight size={13} aria-hidden="true" />}
-                {ultima || !miga.ruta ? <span aria-current={ultima ? 'page' : undefined}>{t(miga.etiqueta)}</span> : <Link to={miga.ruta}>{t(miga.etiqueta)}</Link>}
+                {i === migas.length - 2 && migaAnterior ? <Link to={migaAnterior.ruta}>{migaAnterior.texto}</Link>
+                  : ultima || !miga.ruta ? <span aria-current={ultima ? 'page' : undefined}>{t(miga.etiqueta)}</span>
+                  : <Link to={i === migas.length - 2 && volverA ? volverA : miga.ruta}>{t(miga.etiqueta)}</Link>}
               </li>
             })}
           </ol>
         </nav>}
-        {anterior?.ruta && <Link className="app-header-volver" to={anterior.ruta} aria-label={`${t('nav.back')} ${t(anterior.etiqueta)}`}><ChevronLeft size={14} aria-hidden="true" />{t(anterior.etiqueta)}</Link>}
+        {anterior && rutaAnterior && <Link className="app-header-volver" to={rutaAnterior} aria-label={`${t('nav.back')} ${textoAnterior}`}><ChevronLeft size={14} aria-hidden="true" />{textoAnterior}</Link>}
         <h1>{title}</h1>
         {migas.length <= 1 && subtitle && <p>{subtitle}</p>}
       </div>

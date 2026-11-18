@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
-  ArrowLeft,
   BookOpen,
   CheckCircle2,
   ClipboardCheck,
@@ -33,6 +32,7 @@ import { crearPropuestaCorreccion, enviarBorradorAprobacion, retirarDeAprobacion
 import '../styles/biblioteca/Libros.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
+import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
 
@@ -481,6 +481,7 @@ async function borrarPropuesta(
     try {
       const {error:err}=await supabase.rpc('chronicle_rechazar_libro',{p_libro_id:rechazandoLibroId,p_motivo:motivoRechazo.trim()})
       if(err)throw err
+      invalidarPendientesRevision()
       setRechazandoLibroId(null);setMotivoRechazo('')
       setMensajeAdmin('Libro rechazado. El motivo quedó disponible para su autor en Mis propuestas.')
       await cargarLibros()
@@ -491,11 +492,6 @@ async function borrarPropuesta(
   return (
     <AppLayout title={t('books.title')} subtitle={t('books.subtitle')}>
       <div className="libros">
-        <Link to="/biblioteca" className="libros-back">
-          <ArrowLeft size={18} />
-          {t('books.back')}
-        </Link>
-
         <div className="libros-tabs">
           {tabs
             .filter((tab) => tab.id !== 'administracion' || esAdministrador)
@@ -559,7 +555,7 @@ async function borrarPropuesta(
         </div>
 
         {esAdministrador && (
-          <div className="libros-admin-info">
+          <div className="libros-admin-info libros-admin-info--escritorio">
             <ShieldCheck size={18} />
             <span>{t('books.adminAccess')}</span>
           </div>
@@ -688,7 +684,7 @@ async function borrarPropuesta(
                     </ModalBorrador>
                   )}
                   {propuesta.estado === 'borrador' && (
-                    <div className="libros-admin-actions">
+                    <div className="libros-admin-actions libros-admin-actions--borrador">
                       <details className="libros-menu-borrador">
                         <summary className="libros-admin-button" aria-label="Acciones del borrador">Acciones ▾</summary>
                         <div className="libros-menu-borrador__opciones">
@@ -701,7 +697,7 @@ async function borrarPropuesta(
                           <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}?origen=propuestas`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
                         </div>
                       </details>
-                      <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
+                      <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button libros-admin-button--editar" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
                       <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Borrar borrador'} onClick={() => setPropuestaParaBorrar({id:propuesta.id,origen:'nueva'})}><Trash2 size={16}/> Borrar borrador</button>
                     </div>
                   )}

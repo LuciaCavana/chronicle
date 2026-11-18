@@ -11,6 +11,12 @@ type Entrada = { clave: string; elemento: Registro; subclases: Registro[]; libro
 const obj = (v: unknown): Registro => v && typeof v==='object' && !Array.isArray(v) ? v as Registro : {}
 const lista = (v: unknown): Registro[] => Array.isArray(v) ? v.filter(x=>x && typeof x==='object' && !Array.isArray(x)) : []
 const txt = (v: unknown): string => typeof v==='string' ? v : typeof v==='number' ? String(v) : ''
+// Las opciones de equipo guardan el id del objeto; el nombre está en el catálogo de objetos de la clase.
+const nombreObjeto = (datos: Registro, item: Registro): string => {
+  const id = txt(item.objetoId)
+  const objeto = lista(datos.objetosCatalogo).find(o => txt(o.id) === id)
+  return txt(objeto?.nombre) || txt(item.nombre) || 'Objeto no disponible'
+}
 const nombre = (v: Registro) => txt(v.nombre)||txt(v.titulo)||'Sin nombre'
 const palabras = (v: unknown): string => Array.isArray(v) ? v.map(txt).filter(Boolean).join(', ') : txt(v)
 function Descripcion({ valor }: { valor: unknown }) {
@@ -53,7 +59,11 @@ function FichaClase({ clase, subclase }: { clase: Registro; subclase?: Registro 
     <section className="catalogo-clases__bloque"><h3>Datos generales</h3><dl className="catalogo-clases__datos">{campos.filter(([,v])=>Boolean(v)).map(([k,v])=><div key={k}><dt>{k}</dt><dd>{txt(v)}</dd></div>)}</dl></section>
     {(lista(datos.equipoOpciones).length>0 || txt(datos.equipoInicial)) && <section className="catalogo-clases__bloque"><h3>Equipo inicial</h3>
       <Descripcion valor={datos.equipoInicial}/>
-      {lista(datos.equipoOpciones).map((grupo,i)=><div key={i}><strong>Grupo {i+1} · Elegir {txt(grupo.elegir)||'1'}</strong>{lista(grupo.opciones).map((opcion,j)=><p key={j}>Opción {j+1}: {lista(opcion.objetos).map(item=>`${txt(item.cantidad)||'1'} × ${txt(item.nombre)||txt(item.objetoId)}`).join(', ')}{Number(opcion.oro)>0?` · ${txt(opcion.oro)} po`:''}</p>)}</div>)}
+      {lista(datos.equipoOpciones).map((grupo,i)=><div key={i} className="catalogo-clases__equipo-grupo"><strong>{lista(datos.equipoOpciones).length>1?`Grupo ${i+1} · `:''}Elegí {txt(grupo.elegir)||'1'}</strong>
+        <div className="catalogo-clases__equipo-opciones">{lista(grupo.opciones).map((opcion,j)=><div key={j} className="catalogo-clases__equipo-opcion"><span className="catalogo-clases__equipo-letra">Opción {String.fromCharCode(65+j)}</span>
+          <ul>{lista(opcion.objetos).map((item,k)=><li key={k}><span>{nombreObjeto(datos,item)}</span><span className="catalogo-clases__equipo-cantidad">× {Number(item.cantidad)>0?txt(item.cantidad):'1'}</span></li>)}{Number(opcion.oro)>0&&<li><span>Oro</span><span className="catalogo-clases__equipo-cantidad">{txt(opcion.oro)} po</span></li>}</ul>
+        </div>)}</div>
+      </div>)}
     </section>}
     {filas.length>0 && <section className="catalogo-clases__bloque"><h3>Tabla de progresión</h3><div className="catalogo-clases__tabla-scroll"><table><thead><tr><th>Nivel</th><th>Características</th>{columnas.map((col,i)=><th key={i}>{nombre(col)}</th>)}</tr></thead><tbody>
       {filas.map((fila,i)=>{const celda=obj(celdas[txt(fila.nivel)]);return <tr key={i}><th>{txt(fila.nivel)}</th><td>{(() => { const base=rasgosBase.filter(r=>Number(r.nivel)===Number(fila.nivel)); const extra=rasgosSubclase.filter(r=>Number(r.nivel)===Number(fila.nivel)); return base.length||extra.length ? <>{base.map((r,j)=><button type="button" key={`base-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace" onClick={()=>irARasgo(r,'base')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}{extra.map((r,j)=><button type="button" key={`sub-${j}`} className="catalogo-clases__tabla-rasgo catalogo-clases__tabla-enlace catalogo-clases__tabla-rasgo--subclase" onClick={()=>irARasgo(r,'sub')} title={`Ver ${nombre(r)}`}>{nombre(r)}</button>)}</> : '—' })()}</td>{columnas.map((col,j)=><td key={j}>{txt(celda[txt(col.id)])|| (txt(col.id)==='competencia' ? '+'+txt(fila.bonificadorCompetencia) : txt(col.id)==='notas'?txt(fila.notas):'—')}</td>)}</tr>})}

@@ -1,13 +1,17 @@
 import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
 import '../styles/biblioteca/NuevaPropuesta.css'
-import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
+import IndiceLibro from '../components/biblioteca/editor/IndiceLibro'
+import CategoriaContenido from '../components/biblioteca/editor/CategoriaContenido'
+import ResumenContenido from '../components/biblioteca/editor/ResumenContenido'
+import type { ElementoActivo, SeccionLibro } from '../components/biblioteca/editor/tipos'
+import '../styles/biblioteca/EditorLibro.css'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import TrasfondoForm from '../components/biblioteca/TrasfondoForm'
 import CriaturaForm from '../components/biblioteca/CriaturaForm'
@@ -30,15 +34,25 @@ import {
   obtenerPropuestaParaEditar,
   guardarElementosCompartidos,
   retirarDeAprobacion,
+  enviarBorradorAprobacion,
 } from '../services/libros'
 
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
+import { categoriasConObjetos, sumarObjetosDeClases } from '../lib/objetosDeClases'
+import ModalBorrador from '../components/biblioteca/ModalBorrador'
 
 type TipoPropuesta = 'nuevo' | 'traduccion'
 type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
 
-const pasos = ['1. Información general', '2. Contenido', '3. Revisión']
+
+const singulares: Record<string, string> = {
+  especies: 'especie', clases: 'clase', subclases: 'subclase', trasfondos: 'trasfondo', criaturas: 'criatura',
+  dotes: 'dote', conjuros: 'conjuro', objetos: 'objeto', otras: 'característica',
+}
+const etiquetasCaracteristica: Record<string, string> = {
+  maestria_arma: 'Maestría de arma', propiedad_arma: 'Propiedad de arma', moneda: 'Moneda', regla_arma: 'Regla de armas', otra: 'Otra característica',
+}
 
 const categories = [
   { id: 'especies', label: 'Especies' },
@@ -50,7 +64,7 @@ const categories = [
   { id: 'conjuros', label: 'Conjuros' },
   { id: 'objetos', label: 'Objetos y equipo' },
   { id: 'reglas', label: 'Reglas' },
-  { id: 'otras', label: 'Otras opciones y características' },
+  { id: 'otras', label: 'Características' },
 ]
 
 const idiomas = [
@@ -110,12 +124,13 @@ export default function NuevaPropuesta() {
     setPublisher(origen.editorial ?? '')
     setBookType(origen.clasificacion ?? '')
     setDescription(origen.descripcion ?? '')
-    setSelectedCategories(origen.categorias ?? [])
+    const objetosOrigen = sumarObjetosDeClases((origen.objetos ?? []) as Elemento[], (origen.clases ?? []) as Elemento[])
+    setSelectedCategories(categoriasConObjetos(origen.categorias ?? [], objetosOrigen.length > (origen.objetos ?? []).length))
     setEspecies((origen.especies ?? []) as Especie[])
     setConjuros((origen.conjuros ?? []) as Conjuro[])
     setClases((origen.clases ?? []) as Elemento[])
     setSubclases((origen.subclases ?? []) as Elemento[])
-    setObjetos((origen.objetos ?? []) as Elemento[])
+    setObjetos(objetosOrigen)
     setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
     setDotes([])
     setTrasfondos([])
@@ -154,17 +169,11 @@ export default function NuevaPropuesta() {
   // Los objetos creados dentro de una clase también forman parte del catálogo del libro.
   const actualizarClaseConObjetos = (actualizada: Elemento) => {
     setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))
-    const catalogo = (actualizada.datos as { objetosCatalogo?: { id: string; nombre: string; descripcion?: string; tipo?: string }[] }).objetosCatalogo
-    if (!Array.isArray(catalogo)) return
-    setObjetos(actuales => {
-      const existentes = new Set(actuales.map(o => o.id))
-      const nuevos = catalogo.filter(o => o.id && o.nombre?.trim() && !existentes.has(o.id))
-        .map(o => ({
-          id: o.id, tipo: 'objeto', nombre: o.nombre, descripcion: o.descripcion ?? '',
-          datos: { tipo: o.tipo === 'arma' ? 'arma' : 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false },
-        } as Elemento))
-      return nuevos.length ? [...actuales, ...nuevos] : actuales
-    })
+    const conObjetosDeClase = sumarObjetosDeClases(objetos, [actualizada])
+    if (conObjetosDeClase !== objetos) {
+      setObjetos(conObjetosDeClase)
+      setSelectedCategories(categorias => categoriasConObjetos(categorias, true))
+    }
   }
   const clasesExternas = versionesPublicadas.flatMap(version =>
     ((version.clases ?? []) as Elemento[]).filter((clase: Elemento) => clase.id && clase.nombre).map((clase: Elemento) => ({
@@ -186,7 +195,14 @@ export default function NuevaPropuesta() {
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
 
   // Navegación entre pasos
-  const [currentStep, setCurrentStep] = useState(1)
+  // Vista del editor: 'datos', 'contenido', 'revisar' o 'cat:<categoría>'.
+  // Un borrador existente abre en el contenido; uno nuevo, en los datos del libro.
+  const [vista, setVista] = useState(() => modoEdicion ? 'contenido' : 'datos')
+  const currentStep = vista === 'datos' ? 1 : vista === 'revisar' ? 3 : 2
+  // En celular el índice es la primera pantalla.
+  const [indiceMovil, setIndiceMovil] = useState(true)
+  const [mensajeGuardado, setMensajeGuardado] = useState('')
+  const [porEliminar, setPorEliminar] = useState<{ categoria: string; id: string; nombre: string } | null>(null)
 
   // Carga (modo edición)
   const [cargandoLibro, setCargandoLibro] = useState(modoEdicion)
@@ -283,7 +299,8 @@ export default function NuevaPropuesta() {
       setBookType(metadatos.clasificacion ?? '')
       setDescription(propuesta.descripcion ?? '')
       setIdioma(propuesta.idioma ?? 'es')
-      setSelectedCategories(propuesta.categorias ?? [])
+      const objetosBorrador = sumarObjetosDeClases(contenido.objetos ?? [], contenido.clases ?? [])
+      setSelectedCategories(categoriasConObjetos(propuesta.categorias ?? [], objetosBorrador.length > (contenido.objetos ?? []).length))
       setEspecies(contenido.especies ?? [])
       setConjuros(contenido.conjuros ?? [])
       setDotes(contenido.dotes ?? [])
@@ -291,7 +308,7 @@ export default function NuevaPropuesta() {
       setCriaturas(contenido.criaturas ?? [])
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
-      setObjetos(contenido.objetos ?? [])
+      setObjetos(objetosBorrador)
       setCaracteristicas(contenido.caracteristicas ?? [])
       baseColaborativa.current = {
         row_version: propuesta.row_version,
@@ -305,7 +322,6 @@ export default function NuevaPropuesta() {
       setRowVersion(propuesta.row_version)
       setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
-      setCurrentStep(1)
 
       return
     }
@@ -333,7 +349,8 @@ export default function NuevaPropuesta() {
         setBookType(libro.clasificacion ?? '')
         setDescription(version.descripcion ?? '')
         setIdioma(version.idioma ?? 'es')
-        setSelectedCategories(version.categorias ?? [])
+        const objetosVersion = sumarObjetosDeClases((version.objetos ?? []) as Elemento[], (version.clases ?? []) as Elemento[])
+        setSelectedCategories(categoriasConObjetos(version.categorias ?? [], objetosVersion.length > (version.objetos ?? []).length))
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
         setDotes([]) // Las versiones publicadas aún no almacenan dotes.
@@ -341,10 +358,9 @@ export default function NuevaPropuesta() {
         setCriaturas([]) // Pendiente de publicación.
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
-        setObjetos((version.objetos ?? []) as Elemento[])
+        setObjetos(objetosVersion)
         setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
-        setCurrentStep(1)
       } catch (error) {
         if (cancelado) return
 
@@ -451,16 +467,16 @@ export default function NuevaPropuesta() {
     }
   }
 
-  async function handleGuardarLibro() {
+  async function handleGuardarLibro(opciones: { enviar?: boolean } = {}) {
     if (guardando || cargandoLibro || accesoCompartido === 'lector' || pendienteAprobacion) {
       return
     }
 
-    if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); setCurrentStep(2); return }
-    if (subclases.some(s => !s.nombre.trim() || !claseValidaSubclase((s.datos as {claseId?: string}).claseId ?? ''))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); setCurrentStep(2); return }
+    if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); setVista('cat:objetos'); return }
+    if (subclases.some(s => !s.nombre.trim() || !claseValidaSubclase((s.datos as {claseId?: string}).claseId ?? ''))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); setVista('cat:subclases'); return }
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
-      setCurrentStep(2)
+      setVista('cat:clases')
       return
     }
 
@@ -518,27 +534,42 @@ export default function NuevaPropuesta() {
         caracteristicas,
       }
 
+      let idGuardado: string | null = propuestaId ?? null
       if (modoEdicionBorrador && propuestaId && rowVersion !== null) {
         if (!baseColaborativa.current) throw new Error('No se pudo recuperar la versión original del borrador.')
-        await guardarElementosCompartidos(propuestaId, baseColaborativa.current, {
-          row_version: rowVersion,
+        const guardado = {
           titulo: datos.titulo,
           descripcion: datos.descripcion,
           idioma: datos.idioma,
           categorias: datos.categorias,
           metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
           contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas },
-        })
+        }
+        const nuevaVersion = await guardarElementosCompartidos(propuestaId, baseColaborativa.current, { row_version: rowVersion, ...guardado })
+        // Lo guardado pasa a ser la base para el próximo guardado por elementos.
+        baseColaborativa.current = { row_version: nuevaVersion, ...guardado }
+        setRowVersion(nuevaVersion)
+        setVersionRemota(null)
       } else if (modoEdicionAnterior && libroId && versionId) {
         await actualizarLibro(libroId, versionId, datos)
       } else {
         const origen = versionesPublicadas.find(version => version.id === libroOriginalId)
         if (tipoPropuesta === 'traduccion' && !origen) throw new Error('Seleccioná una versión publicada como origen.')
-        await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
+        idGuardado = await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
+      instantaneaInicial.current = instantanea()
 
-
-      navigate(accesoCompartido === 'editor' ? '/biblioteca/libros?tab=compartidos' : '/biblioteca/libros?tab=propuestas')
+      if (opciones.enviar && idGuardado) {
+        await enviarBorradorAprobacion(idGuardado)
+        navigate(accesoCompartido === 'editor' ? '/biblioteca/libros?tab=compartidos' : '/biblioteca/libros?tab=propuestas')
+        return
+      }
+      if (!modoEdicion && idGuardado) {
+        // Un libro nuevo pasa a ser un borrador: se sigue editando ahí.
+        navigate(`/biblioteca/libros/editar-borrador/${idGuardado}`, { replace: true })
+        return
+      }
+      setMensajeGuardado('Cambios guardados.')
     } catch (error) {
       console.error('Error al guardar el libro:', error)
 
@@ -550,12 +581,154 @@ export default function NuevaPropuesta() {
     }
   }
 
+  // ---------- Barra fija del editor ----------
+  const editandoElemento = editingCaracteristicaId !== null || showEspecieForm || showConjuroForm || showDoteForm ||
+    showTrasfondoForm || showCriaturaForm || editingClassId !== null || editingSubclassId !== null || editingObjectId !== null
+  // Estos formularios se guardan con su propio botón; volver sin guardar descarta lo cargado en el formulario.
+  const elementoConFormulario = showEspecieForm || showConjuroForm || showDoteForm || showTrasfondoForm || showCriaturaForm
+  const nombreDe = (lista: { id: string; nombre: string }[], id: string | null) => (id ? lista.find(x => x.id === id)?.nombre?.trim() : '') || ''
+  const elementoEnEdicion: { tipo: string; nombre: string } | null =
+    editingClassId !== null ? { tipo: 'Clase', nombre: nombreDe(clases, editingClassId) } :
+    editingSubclassId !== null ? { tipo: 'Subclase', nombre: nombreDe(subclases, editingSubclassId) } :
+    editingObjectId !== null ? { tipo: 'Objeto', nombre: nombreDe(objetos, editingObjectId) } :
+    editingCaracteristicaId !== null ? { tipo: 'Característica', nombre: nombreDe(caracteristicas, editingCaracteristicaId) } :
+    showEspecieForm ? { tipo: 'Especie', nombre: nombreDe(especies, editingSpeciesId) } :
+    showConjuroForm ? { tipo: 'Conjuro', nombre: nombreDe(conjuros, editingConjuroId) } :
+    showDoteForm ? { tipo: 'Dote', nombre: nombreDe(dotes, editingDoteId) } :
+    showTrasfondoForm ? { tipo: 'Trasfondo', nombre: nombreDe(trasfondos, editingTrasfondoId) } :
+    showCriaturaForm ? { tipo: 'Criatura', nombre: nombreDe(criaturas, editingCriaturaId) } : null
+
+  // Elemento agregado desde el índice o la categoría: si se cierra sin tocarlo, no se conserva.
+  const recienCreado = useRef<{ categoria: 'clases' | 'subclases' | 'objetos' | 'otras'; id: string; json: string } | null>(null)
+  function descartarSiNoSeEdito() {
+    const creado = recienCreado.current
+    recienCreado.current = null
+    if (!creado) return
+    const sinCambios = (lista: { id: string }[]) => JSON.stringify(lista.find(x => x.id === creado.id)) === creado.json
+    if (creado.categoria === 'clases' && sinCambios(clases)) setClases(actuales => actuales.filter(x => x.id !== creado.id))
+    if (creado.categoria === 'subclases' && sinCambios(subclases)) setSubclases(actuales => actuales.filter(x => x.id !== creado.id))
+    if (creado.categoria === 'objetos' && sinCambios(objetos)) setObjetos(actuales => actuales.filter(x => x.id !== creado.id))
+    if (creado.categoria === 'otras' && sinCambios(caracteristicas)) setCaracteristicas(actuales => actuales.filter(x => x.id !== creado.id))
+  }
+
+  function cerrarElemento() {
+    descartarSiNoSeEdito()
+    setErrorGuardado('')
+    setEditingCaracteristicaId(null)
+    setEditingObjectId(null)
+    setEditingSubclassId(null)
+    setEditingClassId(null)
+    setShowCriaturaForm(false); setEditingCriaturaId(null)
+    setShowTrasfondoForm(false); setEditingTrasfondoId(null)
+    setShowDoteForm(false); setEditingDoteId(null)
+    setShowConjuroForm(false); setEditingConjuroId(null)
+    cerrarFormularioEspecie()
+    document.querySelector<HTMLElement>('.app-layout-content')?.scrollTo({ top: 0 })
+  }
+
+  // ---------- Índice del libro ----------
+  const subclaseIncompleta = (s: Elemento) => !s.nombre.trim() || !claseValidaSubclase((s.datos as { claseId?: string }).claseId ?? '')
+  const datosSecciones: Record<string, Omit<SeccionLibro, 'id' | 'titulo' | 'singular'>> = {
+    especies: { elementos: especies.map(e => ({ id: e.id, nombre: e.nombre })), agregar: () => abrirFormularioEspecie(null), editar: abrirFormularioEspecie, eliminar: eliminarEspecie },
+    clases: {
+      elementos: clases.map(c => ({ id: c.id, nombre: c.nombre, incompleto: !c.nombre.trim() })),
+      agregar: () => { const nueva: Elemento = { id: crypto.randomUUID(), tipo: 'clase', nombre: '', descripcion: '', datos: {} }; setClases(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'clases', id: nueva.id, json: JSON.stringify(nueva) }; setEditingClassId(nueva.id) },
+      editar: setEditingClassId, eliminar: id => setClases(actuales => actuales.filter(c => c.id !== id)),
+    },
+    subclases: {
+      elementos: subclases.map(s => ({ id: s.id, nombre: s.nombre, detalle: clasesDisponiblesSubclase.find(c => c.id === (s.datos as { claseId?: string }).claseId)?.nombre ?? 'Sin clase principal', incompleto: subclaseIncompleta(s) })),
+      agregar: () => { const nueva: Elemento = { id: crypto.randomUUID(), tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }; setSubclases(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'subclases', id: nueva.id, json: JSON.stringify(nueva) }; setEditingSubclassId(nueva.id) },
+      editar: setEditingSubclassId, eliminar: id => setSubclases(actuales => actuales.filter(s => s.id !== id)),
+    },
+    trasfondos: { elementos: trasfondos.map(t => ({ id: t.id, nombre: t.nombre })), agregar: () => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }, editar: id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }, eliminar: id => setTrasfondos(actuales => actuales.filter(t => t.id !== id)) },
+    criaturas: { elementos: criaturas.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo })), agregar: () => { setEditingCriaturaId(null); setShowCriaturaForm(true) }, editar: id => { setEditingCriaturaId(id); setShowCriaturaForm(true) }, eliminar: id => setCriaturas(actuales => actuales.filter(c => c.id !== id)) },
+    dotes: { elementos: dotes.map(d => ({ id: d.id, nombre: d.nombre, detalle: d.categoria })), agregar: () => { setEditingDoteId(null); setShowDoteForm(true) }, editar: id => { setEditingDoteId(id); setShowDoteForm(true) }, eliminar: id => setDotes(actuales => actuales.filter(d => d.id !== id)) },
+    conjuros: { elementos: conjuros.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo === 'truco' ? 'Truco' : `Nivel ${c.nivel}` })), agregar: () => { setEditingConjuroId(null); setShowConjuroForm(true) }, editar: id => { setEditingConjuroId(id); setShowConjuroForm(true) }, eliminar: id => setConjuros(actuales => actuales.filter(c => c.id !== id)) },
+    objetos: {
+      elementos: objetos.map(o => ({ id: o.id, nombre: o.nombre, detalle: String(o.datos?.tipo ?? 'equipo'), incompleto: !o.nombre.trim() })),
+      agregar: () => { const nuevo: Elemento = { id: crypto.randomUUID(), tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }; setObjetos(actuales => [...actuales, nuevo]); recienCreado.current = { categoria: 'objetos', id: nuevo.id, json: JSON.stringify(nuevo) }; setEditingObjectId(nuevo.id) },
+      editar: setEditingObjectId, eliminar: id => setObjetos(actuales => actuales.filter(o => o.id !== id)),
+    },
+    otras: {
+      elementos: caracteristicas.map(c => ({ id: c.id, nombre: c.nombre, detalle: etiquetasCaracteristica[c.tipo] ?? c.tipo })),
+      agregar: () => { const nueva: CaracteristicaLibro = { id: crypto.randomUUID(), tipo: 'otra', nombre: '', descripcion: '' }; setCaracteristicas(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'otras', id: nueva.id, json: JSON.stringify(nueva) }; setEditingCaracteristicaId(nueva.id) },
+      editar: setEditingCaracteristicaId, eliminar: id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id)),
+      extras: [
+        { etiqueta: 'Agregar propiedades de armas', accion: () => setCaracteristicas(actuales => [...actuales, ...crearPropiedadesArma().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))]) },
+        { etiqueta: 'Agregar monedas', accion: () => setCaracteristicas(actuales => [...actuales, ...crearMonedas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))]) },
+        { etiqueta: 'Agregar reglas de armas', accion: () => setCaracteristicas(actuales => [...actuales, ...crearReglasArmas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))]) },
+        { etiqueta: 'Agregar las 8 maestrías', accion: () => setCaracteristicas(actuales => [...actuales, ...crearMaestrias().filter(item => !actuales.some(c => c.tipo === 'maestria_arma' && c.codigo === item.codigo))]) },
+      ],
+    },
+  }
+  const secciones: SeccionLibro[] = activeCategories.map(categoria => {
+    const datosSeccion = datosSecciones[categoria.id]
+    return datosSeccion
+      ? { id: categoria.id, titulo: categoria.label, singular: singulares[categoria.id] ?? 'elemento', ...datosSeccion }
+      : { id: categoria.id, titulo: categoria.label, singular: 'elemento', elementos: [], sinEditor: true, editar: () => undefined, eliminar: () => undefined }
+  })
+  const seccionActual = vista.startsWith('cat:') ? secciones.find(seccion => seccion.id === vista.slice(4)) ?? null : null
+
+  const activo: ElementoActivo =
+    editingClassId !== null ? { categoria: 'clases', id: editingClassId } :
+    editingSubclassId !== null ? { categoria: 'subclases', id: editingSubclassId } :
+    editingObjectId !== null ? { categoria: 'objetos', id: editingObjectId } :
+    editingCaracteristicaId !== null ? { categoria: 'otras', id: editingCaracteristicaId } :
+    showEspecieForm ? { categoria: 'especies', id: editingSpeciesId } :
+    showConjuroForm ? { categoria: 'conjuros', id: editingConjuroId } :
+    showDoteForm ? { categoria: 'dotes', id: editingDoteId } :
+    showTrasfondoForm ? { categoria: 'trasfondos', id: editingTrasfondoId } :
+    showCriaturaForm ? { categoria: 'criaturas', id: editingCriaturaId } : null
+
+  function irA(nuevaVista: string) {
+    cerrarElemento()
+    setErrorGuardado('')
+    setMensajeGuardado('')
+    setVista(nuevaVista)
+    setIndiceMovil(false)
+  }
+  function abrirElemento(categoria: string, id: string | null) {
+    irA(`cat:${categoria}`)
+    const seccion = secciones.find(s => s.id === categoria)
+    if (!seccion) return
+    if (id === null) seccion.agregar?.()
+    else seccion.editar(id)
+  }
+
+  // Revisión antes de enviar
+  const problemas: { texto: string; categoria?: string; id?: string }[] = [
+    ...(!title.trim() ? [{ texto: 'Falta el título del libro.', categoria: '' }] : []),
+    ...(!bookType ? [{ texto: 'Falta la clasificación del libro.', categoria: '' }] : []),
+    ...(activeCategories.length === 0 ? [{ texto: 'El libro no tiene categorías elegidas.', categoria: '' }] : []),
+    ...clases.filter(c => !c.nombre.trim()).map(c => ({ texto: 'Hay una clase sin nombre.', categoria: 'clases', id: c.id })),
+    ...subclases.filter(subclaseIncompleta).map(s => ({ texto: `La subclase «${s.nombre.trim() || 'sin nombre'}» necesita nombre y una clase principal.`, categoria: 'subclases', id: s.id })),
+    ...objetos.filter(o => !o.nombre.trim()).map(o => ({ texto: 'Hay un objeto sin nombre.', categoria: 'objetos', id: o.id })),
+  ]
+  const categoriasVacias = secciones.filter(seccion => !seccion.sinEditor && seccion.elementos.length === 0)
+
+  // Cambios sin guardar: se compara el contenido actual con el que había al abrir el editor.
+  const instantanea = () => JSON.stringify([title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
+    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas])
+  const instantaneaInicial = useRef<string | null>(null)
+  useEffect(() => {
+    if (!cargandoLibro && instantaneaInicial.current === null) instantaneaInicial.current = instantanea()
+  })
+  const hayCambios = instantaneaInicial.current !== null && instantaneaInicial.current !== instantanea()
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false)
+  const destinoSalida = accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'
+  function pedirSalida() {
+    const sinCambios = instantaneaInicial.current === null || instantaneaInicial.current === instantanea()
+    if (sinCambios || accesoCompartido === 'lector') navigate(destinoSalida)
+    else setConfirmandoSalida(true)
+  }
+
   return (
     <AppLayout
       title={modoEdicion ? 'Editar propuesta' : 'Nueva propuesta'}
       subtitle="Proponé un libro para la Biblioteca de Chronicle"
+      volverA={accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'}
     >
-      <div className="nueva-propuesta">
+      <div className="nueva-propuesta editor-libro">
         {cargandoLibro && (
           <p className="nueva-propuesta-help">Cargando propuesta...</p>
         )}
@@ -571,11 +744,6 @@ export default function NuevaPropuesta() {
             {errorCarga}
           </p>
         )}
-
-        <Link to={accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'} className="nueva-propuesta-back">
-          <ArrowLeft size={18} />
-          Volver a Libros
-        </Link>
 
         {modoEdicionBorrador && accesoCompartido !== 'propietario' && <p className="nueva-propuesta-help" role="status">Borrador compartido · {accesoCompartido === 'editor' ? 'Permiso de edición' : 'Solo lectura'}</p>}
         {modoEdicionBorrador && pendienteAprobacion && accesoCompartido !== 'lector' ? (
@@ -598,33 +766,74 @@ export default function NuevaPropuesta() {
             </button>
           </section>
         ) : accesoCompartido === 'lector' ? <section className="nueva-propuesta-panel"><h3>{title}</h3><p>{description || 'Sin descripción.'}</p><p>Categorías: {selectedCategories.join(', ') || 'Sin categorías'}</p><p>Este borrador está compartido en modo lectura. No podés modificarlo ni enviarlo a aprobación.</p></section> : <>
-        <div className="nueva-propuesta-heading">
-          <BookPlus size={28} />
-          <div>
-            <h2>
-              {modoEdicion
-                ? 'Editar propuesta de libro'
-                : 'Nueva propuesta de libro'}
-            </h2>
-            <p>Completá la información del libro que querés proponer.</p>
+        <div className="editor-libro__barra">
+          <button type="button" className="editor-libro__boton editor-libro__boton--sec editor-libro__salir" onClick={pedirSalida} aria-label="Salir del editor" title="Salir del editor">
+            <ChevronLeft size={18} aria-hidden="true" /><span>Salir</span>
+          </button>
+          <button type="button" className="editor-libro__boton editor-libro__boton--sec editor-libro__indice-boton" onClick={() => setIndiceMovil(true)} aria-label="Ver el índice del libro">
+            <ListTree size={18} aria-hidden="true" />
+          </button>
+          <div className="editor-libro__titulo">
+            <strong>{title.trim() || (modoEdicion ? 'Propuesta sin título' : 'Nueva propuesta')}</strong>
+            <span className="editor-libro__estado">
+              <span className="editor-libro__etiqueta">{modoEdicionBorrador ? 'Borrador' : modoEdicion ? 'Propuesta' : 'Nueva'} · {idioma.toUpperCase()}</span>
+              {guardando ? <span>Guardando…</span>
+                : hayCambios ? <span className="editor-libro__sin-guardar">Cambios sin guardar</span>
+                : mensajeGuardado ? <span className="editor-libro__guardado">{mensajeGuardado}</span> : null}
+            </span>
+          </div>
+          <div className="editor-libro__acciones">
+            {propuestaId && <button type="button" className="editor-libro__boton editor-libro__boton--sec editor-libro__solo-escritorio" disabled={hayCambios}
+              title={hayCambios ? 'Guardá los cambios para verlos en la vista previa' : 'Ver cómo se lee el borrador guardado'}
+              onClick={() => navigate(`/biblioteca/libros/leer-borrador/${propuestaId}?origen=${accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos'}`)}>
+              <Eye size={17} aria-hidden="true" />Vista previa
+            </button>}
+            <button type="button" className="editor-libro__boton" disabled={guardando || cargandoLibro || (modoEdicionBorrador && rowVersion === null)} onClick={() => void handleGuardarLibro()}>
+              <Save size={17} aria-hidden="true" />{guardando ? 'Guardando…' : 'Guardar'}
+            </button>
+            <button type="button" className={`editor-libro__boton editor-libro__boton--primario${vista === 'revisar' ? ' editor-libro__boton--actual' : ''}`} onClick={() => irA('revisar')}>
+              Revisar y enviar
+            </button>
           </div>
         </div>
 
-        <div className="nueva-propuesta-steps">
-          {pasos.map((titulo, index) => (
-            <span
-              key={titulo}
-              className={
-                currentStep === index + 1 ? 'nueva-propuesta-step--active' : ''
-              }
-            >
-              {titulo}
-            </span>
-          ))}
-        </div>
+        <div className={`editor-libro__cuerpo${indiceMovil ? ' editor-libro__cuerpo--indice' : ''}`}>
+          <aside className="editor-libro__lateral">
+            <IndiceLibro
+              secciones={secciones}
+              vista={vista}
+              activo={activo}
+              problemas={problemas.length}
+              onDatos={() => irA('datos')}
+              onContenido={() => irA('contenido')}
+              onRevisar={() => irA('revisar')}
+              onCategoria={id => irA(`cat:${id}`)}
+              onElemento={(categoria, id) => abrirElemento(categoria, id)}
+              onAgregar={categoria => abrirElemento(categoria, null)}
+              disponibles={categories.filter(categoria => !selectedCategories.includes(categoria.id)).map(categoria => ({ id: categoria.id, titulo: categoria.label }))}
+              onAgregarCategoria={id => { setSelectedCategories(actuales => actuales.includes(id) ? actuales : [...actuales, id]); irA(`cat:${id}`) }}
+            />
+          </aside>
+          <div className="editor-libro__principal">
+        {editandoElemento && <div className="editor-libro__volver-elemento">
+          <button type="button" className="editor-libro__boton editor-libro__boton--sec" onClick={cerrarElemento}>
+            {elementoConFormulario ? <X size={17} aria-hidden="true" /> : <ChevronLeft size={17} aria-hidden="true" />}
+            {elementoConFormulario ? 'Cancelar' : `Volver a ${seccionActual?.titulo ?? 'la categoría'}`}
+          </button>
+          {elementoEnEdicion && <span className="editor-libro__elemento-actual"><span>{elementoEnEdicion.tipo}</span><strong>{elementoEnEdicion.nombre || 'Nuevo'}</strong></span>}
+        </div>}
 
         {currentStep === 1 && (
           <>
+            <div className="editor-libro__encabezado editor-libro__encabezado--con-accion">
+              <div>
+                <h2>Datos del libro</h2>
+                <p>Lo que identifica al libro en la Biblioteca. Podés volver acá en cualquier momento.</p>
+              </div>
+              <button type="button" className="editor-libro__boton editor-libro__boton--primario" onClick={() => irA('contenido')}>
+                Contenido del libro<ChevronRight size={17} aria-hidden="true" />
+              </button>
+            </div>
             <section className="nueva-propuesta-panel">
               <h3>Tipo de propuesta</h3>
 
@@ -782,6 +991,23 @@ export default function NuevaPropuesta() {
                 />
               </div>
             </section>
+            <section className="nueva-propuesta-panel">
+              <h3>Qué incluye este libro</h3>
+              <p className="editor-libro__ayuda">Las categorías marcadas aparecen en el índice.</p>
+              <div className="editor-libro__categorias">
+                {categories.map(categoria => (
+                  <label key={categoria.id} className="editor-libro__categoria">
+                    <input type="checkbox" checked={selectedCategories.includes(categoria.id)} onChange={() => toggleCategory(categoria.id)} />
+                    {categoria.label}
+                  </label>
+                ))}
+              </div>
+            </section>
+            <div className="editor-libro__siguiente">
+              <button type="button" className="editor-libro__boton editor-libro__boton--primario" onClick={() => irA('contenido')}>
+                Continuar al contenido<ChevronRight size={17} aria-hidden="true" />
+              </button>
+            </div>
           </>
         )}
 
@@ -807,19 +1033,19 @@ export default function NuevaPropuesta() {
                     </>}
                   </div>
                 })()}
-                <button type="button" className="nueva-propuesta-next" onClick={()=>setEditingCaracteristicaId(null)}>Volver a categorías</button>
+                <button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button>
               </section>
             ) : editingObjectId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
+              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div></section>
             ) : editingSubclassId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clasesDisponiblesSubclase} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel, libro: v.titulo })))]} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
+              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clasesDisponiblesSubclase} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel, libro: v.titulo })))]} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div></section>
             ) : editingClassId !== null ? (
               <section className="nueva-propuesta-panel">
                 <h3>Editar clase</h3>
                 <div className="nueva-propuesta-field"><label>Nombre de la clase *</label><input value={clases.find(c => c.id === editingClassId)?.nombre ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, nombre: e.target.value } : c))} /></div>
                 <div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={clases.find(c => c.id === editingClassId)?.descripcion ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, descripcion: e.target.value } : c))} /></div>
                 <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizarClaseConObjetos} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel, libro: v.titulo })))]} />
-                <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
+                <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div>
               </section>
             ) : showCriaturaForm ? (
               <CriaturaForm key={editingCriaturaId ?? 'nueva'} initialData={criaturas.find(c => c.id === editingCriaturaId)} criaturas={criaturas} conjuros={conjuros} onSave={guardarCriatura} onCancel={() => { setShowCriaturaForm(false); setEditingCriaturaId(null) }}/>
@@ -842,75 +1068,30 @@ export default function NuevaPropuesta() {
                 onCrearConjuro={crearConjuro}
               />
             ) : (
-              <ContenidoLibro
-                categories={activeCategories}
-                caracteristicas={caracteristicas}
-                onAddCaracteristica={() => { const id = crypto.randomUUID(); setCaracteristicas(actuales => [...actuales, { id, tipo: 'otra', nombre: '', descripcion: '' }]); setEditingCaracteristicaId(id) }}
-                onSeedPropiedades={() => setCaracteristicas(actuales => [...actuales, ...crearPropiedadesArma().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
-                onSeedMonedas={() => setCaracteristicas(actuales => [...actuales, ...crearMonedas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
-                onSeedReglas={() => setCaracteristicas(actuales => [...actuales, ...crearReglasArmas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))])}
-                onSeedMaestrias={() => setCaracteristicas(actuales => [...actuales, ...crearMaestrias().filter(item => !actuales.some(c => c.tipo === 'maestria_arma' && c.codigo === item.codigo))])}
-                onEditCaracteristica={setEditingCaracteristicaId}
-                onDeleteCaracteristica={id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id))}
-                allCategories={categories}
-                selectedCategories={selectedCategories}
-                onToggleCategory={toggleCategory}
-                speciesCount={especies.length}
-                conjuros={conjuros}
-                criaturas={criaturas}
-                onAddCriatura={() => { setEditingCriaturaId(null); setShowCriaturaForm(true) }}
-                onEditCriatura={id => { setEditingCriaturaId(id); setShowCriaturaForm(true) }}
-                onDeleteCriatura={id => setCriaturas(actuales => actuales.filter(c => c.id !== id))}
-                trasfondos={trasfondos}
-                onAddTrasfondo={() => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }}
-                onEditTrasfondo={id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }}
-                onDeleteTrasfondo={id => setTrasfondos(actuales => actuales.filter(t => t.id !== id))}
-                dotes={dotes}
-                onAddDote={() => { setEditingDoteId(null); setShowDoteForm(true) }}
-                onEditDote={id => { setEditingDoteId(id); setShowDoteForm(true) }}
-                onDeleteDote={id => setDotes(actuales => actuales.filter(d => d.id !== id))}
-                species={especies.map((especie) => ({
-                  id: especie.id,
-                  nombre: especie.nombre,
-                }))}
-                clases={clases.map(c => ({ id: c.id, nombre: c.nombre }))}
-                objetos={objetos.map(o => ({ id: o.id, nombre: o.nombre, tipo: String(o.datos.tipo ?? 'equipo') }))}
-                onAddObject={() => { const id = crypto.randomUUID(); setObjetos(actuales => [...actuales, { id, tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }]); setEditingObjectId(id) }}
-                onEditObject={setEditingObjectId}
-                onDeleteObject={id => setObjetos(actuales => actuales.filter(o => o.id !== id))}
-                subclases={subclases.map(s => ({ id: s.id, nombre: s.nombre, claseNombre: clasesDisponiblesSubclase.find(c => c.id === (s.datos as {claseId?: string}).claseId)?.nombre ?? 'Clase no disponible' }))}
-                onAddSubclass={() => { const id = crypto.randomUUID(); setSubclases(actuales => [...actuales, { id, tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }]); setEditingSubclassId(id) }}
-                onEditSubclass={setEditingSubclassId}
-                onDeleteSubclass={id => setSubclases(actuales => actuales.filter(s => s.id !== id))}
-                onAddClass={() => {
-                  const id = crypto.randomUUID()
-                  setClases(actuales => [...actuales, { id, tipo: 'clase', nombre: '', descripcion: '', datos: {} }])
-                  setEditingClassId(id)
-                }}
-                onEditClass={setEditingClassId}
-                onDeleteClass={id => setClases(actuales => actuales.filter(c => c.id !== id))}
-                categoryItemCounts={{
-                  otras: caracteristicas.length,
-                  dotes: dotes.length,
-                  trasfondos: trasfondos.length,
-                  criaturas: criaturas.length,
-                  clases: clases.length,
-                  subclases: subclases.length,
-                  objetos: objetos.length,
-                  especies: especies.length,
-                  conjuros: conjuros.length,
-                }}
-                onAddSpecies={() => abrirFormularioEspecie(null)}
-                onEditSpecies={abrirFormularioEspecie}
-                onDeleteSpecies={eliminarEspecie}
-                onAddConjuro={() => { setEditingConjuroId(null); setShowConjuroForm(true) }}
-                onEditConjuro={id => { setEditingConjuroId(id); setShowConjuroForm(true) }}
-                onDeleteConjuro={id => setConjuros(actuales => actuales.filter(c => c.id !== id))}
-              />
+              seccionActual ? <CategoriaContenido seccion={seccionActual} onEliminar={(id, nombre) => setPorEliminar({ categoria: seccionActual.id, id, nombre })} />
+              : <ResumenContenido secciones={secciones} onCategoria={id => irA(`cat:${id}`)} onElemento={abrirElemento} onAgregar={categoria => abrirElemento(categoria, null)} />
             )}
           </>
         )}
 
+        {currentStep === 3 && <div className="editor-libro__encabezado">
+          <h2>Revisar y enviar</h2>
+          <p>Antes de enviar el borrador a aprobación, Chronicle revisa que esté completo.</p>
+        </div>}
+        {currentStep === 3 && <section className="nueva-propuesta-panel editor-libro__controles">
+          <h3>Antes de enviar</h3>
+          {problemas.length === 0 && categoriasVacias.length === 0 && <p className="editor-libro__ok">Todo listo: no hay nada para corregir.</p>}
+          <ul>
+            {problemas.map((problema, i) => <li key={i} className="editor-libro__control editor-libro__control--error">
+              <span>{problema.texto}</span>
+              <button type="button" className="editor-libro__enlace" onClick={() => problema.categoria ? abrirElemento(problema.categoria, problema.id ?? null) : irA('datos')}>Ir a corregir</button>
+            </li>)}
+            {categoriasVacias.map(seccion => <li key={seccion.id} className="editor-libro__control editor-libro__control--aviso">
+              <span>«{seccion.titulo}» está marcada pero no tiene elementos.</span>
+              <button type="button" className="editor-libro__enlace" onClick={() => irA(`cat:${seccion.id}`)}>Ver</button>
+            </li>)}
+          </ul>
+        </section>}
         {currentStep === 3 && (
           <RevisionLibro
             titulo={title}
@@ -928,6 +1109,15 @@ export default function NuevaPropuesta() {
             cantidadObjetos={objetos.length}
           />
         )}
+        {currentStep === 3 && <div className="editor-libro__enviar">
+          {problemas.length > 0 && <span className="editor-libro__ayuda">Corregí lo marcado para poder enviar.</span>}
+          <button type="button" className="editor-libro__boton" disabled={guardando || cargandoLibro} onClick={() => void handleGuardarLibro()}>
+            <Save size={17} aria-hidden="true" />Solo guardar
+          </button>
+          {!modoEdicionAnterior && <button type="button" className="editor-libro__boton editor-libro__boton--primario" disabled={guardando || cargandoLibro || problemas.length > 0} onClick={() => void handleGuardarLibro({ enviar: true })}>
+            <Send size={17} aria-hidden="true" />{guardando ? 'Guardando…' : 'Guardar y enviar a aprobación'}
+          </button>}
+        </div>}
 
         {errorGuardado && (
           <p role="alert" style={{ color: '#e57373' }}>
@@ -935,97 +1125,31 @@ export default function NuevaPropuesta() {
           </p>
         )}
 
-        <div className="nueva-propuesta-actions">
-          {currentStep === 1 ? (
-            <Link to="/biblioteca/libros?tab=propuestas" className="nueva-propuesta-cancel">
-              Cancelar
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="nueva-propuesta-cancel"
-              onClick={() => {
-                setErrorGuardado('')
-                if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
-                } else if (currentStep === 2 && editingClassId !== null) {
-                  setEditingClassId(null)
-                } else if (currentStep === 2 && showCriaturaForm) {
-                  setShowCriaturaForm(false); setEditingCriaturaId(null)
-                } else if (currentStep === 2 && showTrasfondoForm) {
-                  setShowTrasfondoForm(false); setEditingTrasfondoId(null)
-                } else if (currentStep === 2 && showDoteForm) {
-                  setShowDoteForm(false); setEditingDoteId(null)
-                } else if (currentStep === 2 && showConjuroForm) {
-                  setShowConjuroForm(false); setEditingConjuroId(null)
-                } else if (currentStep === 2 && showEspecieForm) {
-                  cerrarFormularioEspecie()
-                } else {
-                  setCurrentStep((paso) => Math.max(1, paso - 1))
-                }
-              }}
-            >
-              Anterior
-            </button>
-          )}
 
-          {currentStep === 1 && (
-            <button
-              type="button"
-              className="nueva-propuesta-next"
-              disabled={
-                !title.trim() ||
-                !bookType ||
-                (tipoPropuesta === 'traduccion' && (!libroOriginalId || versionesPublicadas.some(version => version.id === libroOriginalId && version.idioma === idioma)))
-              }
-              onClick={() => setCurrentStep(2)}
-            >
-              Continuar
-              <ChevronRight size={18} />
-            </button>
-          )}
-
-          {currentStep === 2 && editingCaracteristicaId === null && !showEspecieForm && !showConjuroForm && !showDoteForm && !showTrasfondoForm && !showCriaturaForm && editingClassId === null && editingSubclassId === null && editingObjectId === null && (
-            <button
-              type="button"
-              className="nueva-propuesta-next"
-              onClick={() => {
-                if (objetos.some(o => !o.nombre.trim())) { setErrorGuardado('Todos los objetos deben tener nombre.'); return }
-                if (subclases.some(s => !s.nombre.trim() || !claseValidaSubclase((s.datos as {claseId?: string}).claseId ?? ''))) { setErrorGuardado('Cada subclase debe tener nombre y una clase principal válida.'); return }
-                if (clases.some(clase => !clase.nombre.trim())) {
-                  setErrorGuardado('Todas las clases deben tener un nombre. Editá o eliminá las clases incompletas.')
-                  return
-                }
-                setErrorGuardado('')
-                setCurrentStep(3)
-              }}
-            >
-              Continuar a revisión
-              <ChevronRight size={18} />
-            </button>
-          )}
-
-          {currentStep === 3 && (
-            <button
-              type="button"
-              className="nueva-propuesta-next"
- 
-              disabled={
-                guardando ||
-                cargandoLibro ||
-                (modoEdicionAnterior && !versionId) ||
-                (modoEdicionBorrador && rowVersion === null) ||
-                (tipoPropuesta === 'traduccion' && !libroOriginalId)
-              }
-              onClick={handleGuardarLibro}
-            >
-              {guardando
-                ? 'Guardando...'
-                : modoEdicion
-                  ? 'Guardar cambios'
-                  : 'Guardar propuesta'}
-            </button>
-          )}
+          </div>
         </div>
+
+        {porEliminar && <ModalBorrador titulo="Eliminar elemento" onClose={() => setPorEliminar(null)}>
+          <div className="nueva-propuesta-salida">
+            <h3>¿Eliminar «{porEliminar.nombre}»?</h3>
+            <p>Se quita del borrador. Si te arrepentís, no guardes los cambios.</p>
+            <div className="nueva-propuesta-salida-acciones">
+              <button type="button" className="nueva-propuesta-cancel" onClick={() => setPorEliminar(null)}>Cancelar</button>
+              <button type="button" className="nueva-propuesta-salida-confirmar" onClick={() => { secciones.find(seccion => seccion.id === porEliminar.categoria)?.eliminar(porEliminar.id); setPorEliminar(null) }}>Eliminar</button>
+            </div>
+          </div>
+        </ModalBorrador>}
+
+        {confirmandoSalida && <ModalBorrador titulo="Salir del editor" onClose={() => setConfirmandoSalida(false)}>
+          <div className="nueva-propuesta-salida">
+            <h3>¿Salir sin guardar?</h3>
+            <p>Hay cambios en esta propuesta que todavía no guardaste. Si salís ahora, se pierden.</p>
+            <div className="nueva-propuesta-salida-acciones">
+              <button type="button" className="nueva-propuesta-cancel" onClick={() => setConfirmandoSalida(false)}>Seguir editando</button>
+              <button type="button" className="nueva-propuesta-salida-confirmar" onClick={() => navigate(destinoSalida)}>Salir sin guardar</button>
+            </div>
+          </div>
+        </ModalBorrador>}
         </>}
       </div>
     </AppLayout>

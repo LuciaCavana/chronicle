@@ -135,7 +135,6 @@
 .conjuros-rasgo .conjuros-rasgo__resultados {
   display: flex; flex-direction: column; gap: 6px;
   max-height: 300px; overflow-y: auto; padding: 2px 4px 2px 2px;
-  scrollbar-color: var(--cr-borde-dorado) transparent;
 }
 .conjuros-rasgo .conjuros-rasgo__resultado {
   flex: none; align-items: center; gap: 12px; min-height: 52px; box-sizing: border-box;

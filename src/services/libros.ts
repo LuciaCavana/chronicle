@@ -6,6 +6,7 @@ import type { Criatura } from '../types/criatura'
 import type { Dote } from '../types/trasfondo'
 import type { Conjuro } from '../types/conjuro'
 import type { Elemento } from './chronicleLibros'
+import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 const ESTADO_PENDIENTE = 'pendiente'
 
@@ -362,6 +363,7 @@ export async function enviarBorradorAprobacion(propuestaId: string) {
     p_propuesta_id: propuestaId,
   })
   if (error) throw error
+  invalidarPendientesRevision()
 }
 
 /** Retira un borrador de la cola de aprobación para poder volver a editarlo.
@@ -372,6 +374,7 @@ export async function retirarDeAprobacion(propuestaId: string) {
     p_propuesta_id: propuestaId,
   })
   if (error) throw error
+  invalidarPendientesRevision()
 }
 
 export async function crearPropuestaCorreccion(libroId: string, versionId: string): Promise<string> {
