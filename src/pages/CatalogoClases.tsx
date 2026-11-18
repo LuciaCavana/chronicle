@@ -61,7 +61,7 @@ function FichaClase({ clase, subclase }: { clase: Registro; subclase?: Registro 
       <Descripcion valor={datos.equipoInicial}/>
       {lista(datos.equipoOpciones).map((grupo,i)=><div key={i} className="catalogo-clases__equipo-grupo"><strong>{lista(datos.equipoOpciones).length>1?`Grupo ${i+1} · `:''}Elegí {txt(grupo.elegir)||'1'}</strong>
         <div className="catalogo-clases__equipo-opciones">{lista(grupo.opciones).map((opcion,j)=><div key={j} className="catalogo-clases__equipo-opcion"><span className="catalogo-clases__equipo-letra">Opción {String.fromCharCode(65+j)}</span>
-          <ul>{lista(opcion.objetos).map((item,k)=><li key={k}>{Number(item.cantidad)>1?<span className="catalogo-clases__equipo-cantidad">{txt(item.cantidad)} ×</span>:null}{nombreObjeto(datos,item)}</li>)}{Number(opcion.oro)>0&&<li>{txt(opcion.oro)} po</li>}</ul>
+          <ul>{lista(opcion.objetos).map((item,k)=><li key={k}><span>{nombreObjeto(datos,item)}</span><span className="catalogo-clases__equipo-cantidad">× {Number(item.cantidad)>0?txt(item.cantidad):'1'}</span></li>)}{Number(opcion.oro)>0&&<li><span>Oro</span><span className="catalogo-clases__equipo-cantidad">{txt(opcion.oro)} po</span></li>}</ul>
         </div>)}</div>
       </div>)}
     </section>}

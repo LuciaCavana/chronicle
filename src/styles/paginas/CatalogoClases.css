@@ -44,5 +44,6 @@
 .catalogo-clases__equipo-opcion { padding: 12px 14px; background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
 .catalogo-clases__equipo-letra { display: block; margin-bottom: 6px; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-acento); }
 .catalogo-clases__equipo-opcion ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 4px; }
-.catalogo-clases__equipo-opcion li { display: flex; gap: 6px; font-size: 14px; line-height: 1.4; }
-.catalogo-clases__equipo-cantidad { color: var(--color-texto-suave); white-space: nowrap; }
+.catalogo-clases__equipo-opcion li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; font-size: 14px; line-height: 1.4; border-bottom: 1px dashed var(--color-borde-suave); }
+.catalogo-clases__equipo-opcion li:last-child { border-bottom: 0; }
+.catalogo-clases__equipo-cantidad { flex: none; color: var(--color-acento); font-variant-numeric: tabular-nums; white-space: nowrap; }
