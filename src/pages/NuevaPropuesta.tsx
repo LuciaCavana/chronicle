@@ -1087,7 +1087,7 @@ export default function NuevaPropuesta() {
           <button type="button" className="editor-libro__boton" disabled={guardando || cargandoLibro} onClick={() => void handleGuardarLibro()}>
             <Save size={17} aria-hidden="true" />Solo guardar
           </button>
-          {!modoEdicionAnterior && accesoCompartido !== 'lector' && <button type="button" className="editor-libro__boton editor-libro__boton--primario" disabled={guardando || cargandoLibro || problemas.length > 0} onClick={() => void handleGuardarLibro({ enviar: true })}>
+          {!modoEdicionAnterior && <button type="button" className="editor-libro__boton editor-libro__boton--primario" disabled={guardando || cargandoLibro || problemas.length > 0} onClick={() => void handleGuardarLibro({ enviar: true })}>
             <Send size={17} aria-hidden="true" />{guardando ? 'Guardando…' : 'Guardar y enviar a aprobación'}
           </button>}
         </div>}
