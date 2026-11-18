@@ -64,7 +64,7 @@ const categories = [
   { id: 'conjuros', label: 'Conjuros' },
   { id: 'objetos', label: 'Objetos y equipo' },
   { id: 'reglas', label: 'Reglas' },
-  { id: 'otras', label: 'Otras opciones y características' },
+  { id: 'otras', label: 'Características' },
 ]
 
 const idiomas = [
