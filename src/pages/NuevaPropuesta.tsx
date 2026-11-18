@@ -4,6 +4,8 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
+import { useAuth } from '../contexts/useAuth'
+import { borrarRespaldoBorrador, useAvisoAntesDeSalir, useRespaldoBorrador } from '../hooks/useRespaldoBorrador'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
 import '../styles/biblioteca/NuevaPropuesta.css'
@@ -558,6 +560,8 @@ export default function NuevaPropuesta() {
         idGuardado = await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
       instantaneaInicial.current = instantanea()
+      // Ya está en el servidor: la copia local deja de hacer falta.
+      respaldoLocal.descartar()
 
       if (opciones.enviar && idGuardado) {
         await enviarBorradorAprobacion(idGuardado)
@@ -714,6 +718,46 @@ export default function NuevaPropuesta() {
     if (!cargandoLibro && instantaneaInicial.current === null) instantaneaInicial.current = instantanea()
   })
   const hayCambios = instantaneaInicial.current !== null && instantaneaInicial.current !== instantanea()
+
+  // ---------- Copia local de lo escrito ----------
+  // Si se recarga, se cierra la pestaña o se actualiza la app sin guardar, lo escrito
+  // queda en este navegador y se ofrece recuperarlo al volver a abrir el borrador.
+  const { session } = useAuth()
+  const usuarioId = session?.user.id ?? null
+  const claveRespaldo = usuarioId
+    ? `${usuarioId}:${propuestaId ? `borrador:${propuestaId}` : libroId ? `libro:${libroId}` : 'nueva'}`
+    : null
+  const puedeEditar = accesoCompartido !== 'lector' && !pendienteAprobacion
+  const datosRespaldo = {
+    title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
+    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas,
+    tipoPropuesta, libroOriginalId,
+  }
+  const respaldoLocal = useRespaldoBorrador({
+    clave: claveRespaldo,
+    listo: !cargandoLibro && !errorCarga,
+    habilitado: puedeEditar,
+    conCambios: hayCambios,
+    datos: datosRespaldo,
+    firma: instantanea(),
+    firmaServidor: instantaneaInicial.current ?? instantanea(),
+    version: rowVersion,
+  })
+  function recuperarRespaldo() {
+    const d = respaldoLocal.recuperar()
+    if (!d) return
+    setTitle(d.title); setBookCode(d.bookCode); setEdition(d.edition); setPublisher(d.publisher)
+    setBookType(d.bookType); setDescription(d.description); setIdioma(d.idioma)
+    setSelectedCategories(d.selectedCategories)
+    setEspecies(d.especies); setConjuros(d.conjuros); setDotes(d.dotes); setTrasfondos(d.trasfondos)
+    setCriaturas(d.criaturas); setClases(d.clases); setSubclases(d.subclases); setObjetos(d.objetos)
+    setCaracteristicas(d.caracteristicas)
+    if (!modoEdicion) { setTipoPropuesta(d.tipoPropuesta); setLibroOriginalId(d.libroOriginalId) }
+    setMensajeGuardado('')
+  }
+  // Aviso del navegador al recargar o cerrar con cambios sin guardar
+  // (incluye los formularios de especie, conjuro, dote, trasfondo y criatura abiertos).
+  useAvisoAntesDeSalir(puedeEditar && (hayCambios || elementoConFormulario))
   const [confirmandoSalida, setConfirmandoSalida] = useState(false)
   // A dónde vuelve el editor: la pestaña desde la que se abrió (?origen=), o según el permiso si no vino.
   const [parametros] = useSearchParams()
@@ -721,7 +765,7 @@ export default function NuevaPropuesta() {
     propuestas: { texto: 'Mis propuestas', ruta: '/biblioteca/libros?tab=propuestas' },
     compartidos: { texto: 'Compartidos conmigo', ruta: '/biblioteca/libros?tab=compartidos' },
     catalogo: { texto: 'Catálogo', ruta: '/biblioteca/libros?tab=catalogo' },
-    administracion: { texto: 'Revisión de libros', ruta: '/biblioteca/libros?tab=administracion' },
+    administracion: { texto: 'Revisión de libros', ruta: '/administracion/revision' },
   }
   const origenEditor = parametros.get('origen') ?? ''
   const volver = origenesEditor[origenEditor] ?? origenesEditor[accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos']
@@ -747,6 +791,21 @@ export default function NuevaPropuesta() {
           <div role="alert" style={{ border: '1px solid #d8b77b', borderRadius: 10, background: '#342d24', color: '#f0dfbd', padding: 16, marginBottom: 16 }}>
             <strong>Otro colaborador guardó una versión nueva de este borrador.</strong>
             <p>Tu edición local no se reemplazó. No guardes encima de los cambios ajenos: el sistema rechazará una versión desactualizada. Para ver la versión nueva, abrí el borrador en otra pestaña. Recargar esta pestaña descartará tus cambios sin guardar.</p>
+          </div>
+        )}
+        {respaldoLocal.respaldo && puedeEditar && (
+          <div role="alert" className="editor-libro__respaldo">
+            <div className="editor-libro__respaldo-texto">
+              <strong>Encontramos cambios sin guardar</strong>
+              <p>Quedaron guardados en este navegador el {new Date(respaldoLocal.respaldo.guardadoEn).toLocaleString()}. ¿Querés recuperarlos?</p>
+              {respaldoLocal.respaldoDesactualizado && (
+                <p>Este borrador se guardó de nuevo después de esa copia. Si la recuperás y guardás, lo que se cambió en esos mismos elementos se reemplaza por tu copia.</p>
+              )}
+            </div>
+            <div className="editor-libro__respaldo-acciones">
+              <button type="button" className="editor-libro__boton" onClick={recuperarRespaldo}>Recuperar cambios</button>
+              <button type="button" className="editor-libro__boton editor-libro__boton--sec" onClick={respaldoLocal.descartar}>Descartar</button>
+            </div>
           </div>
         )}
         {errorCarga && (
@@ -1156,7 +1215,7 @@ export default function NuevaPropuesta() {
             <p>Hay cambios en esta propuesta que todavía no guardaste. Si salís ahora, se pierden.</p>
             <div className="nueva-propuesta-salida-acciones">
               <button type="button" className="nueva-propuesta-cancel" onClick={() => setConfirmandoSalida(false)}>Seguir editando</button>
-              <button type="button" className="nueva-propuesta-salida-confirmar" onClick={() => navigate(destinoSalida)}>Salir sin guardar</button>
+              <button type="button" className="nueva-propuesta-salida-confirmar" onClick={() => { borrarRespaldoBorrador(claveRespaldo); navigate(destinoSalida) }}>Salir sin guardar</button>
             </div>
           </div>
         </ModalBorrador>}

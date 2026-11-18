@@ -351,3 +351,26 @@
   .resumen-contenido__tarjeta { min-height: 40px; justify-content: center; }
   .resumen-contenido__agregar { min-height: 44px; }
 }
+
+/* ---------- Copia local: cambios sin guardar recuperables ---------- */
+.editor-libro__respaldo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+  padding: 16px 18px;
+  background: var(--color-fondo-activo);
+  border: 1px solid var(--color-acento-tenue);
+  border-radius: var(--radio-lg);
+  color: var(--color-texto);
+}
+.editor-libro__respaldo-texto { flex: 1 1 320px; min-width: 0; }
+.editor-libro__respaldo-texto strong { color: var(--color-texto-titulo); }
+.editor-libro__respaldo-texto p { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--color-texto-suave); }
+.editor-libro__respaldo-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 768px) {
+  .editor-libro__respaldo-acciones { width: 100%; }
+  .editor-libro__respaldo-acciones .editor-libro__boton { flex: 1; min-height: 46px; }
+}

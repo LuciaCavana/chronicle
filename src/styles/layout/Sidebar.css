@@ -118,7 +118,30 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
 
 /* Subítems de Biblioteca */
 .sidebar-bloque { display: flex; flex-direction: column; gap: 2px; }
-.sidebar-subitems { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-subitems { display: grid; grid-template-rows: 1fr; }
+.sidebar-subitems-lista { display: flex; flex-direction: column; gap: 2px; min-height: 0; overflow: hidden; }
+.sidebar-flecha { display: none; flex-shrink: 0; margin-left: auto; color: var(--color-texto-navegacion); transition: transform .2s ease; }
+
+/* Con mouse: Biblioteca se despliega al pasar por encima (o al enfocarla con el teclado).
+   Si ya estás en una sección de Biblioteca queda abierta para ver dónde estás. */
+@media (hover: hover) and (min-width: 769px) {
+  .sidebar-flecha { display: block; }
+  .sidebar-subitems {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows .2s ease, opacity .2s ease;
+  }
+  .sidebar-bloque:hover .sidebar-subitems,
+  .sidebar-bloque:focus-within .sidebar-subitems,
+  .sidebar-bloque--abierto .sidebar-subitems {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transition-delay: .08s;
+  }
+  .sidebar-bloque:hover .sidebar-flecha,
+  .sidebar-bloque:focus-within .sidebar-flecha,
+  .sidebar-bloque--abierto .sidebar-flecha { transform: rotate(180deg); }
+}
 .sidebar-subitem {
   position: relative;
   display: flex;
@@ -161,6 +184,7 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
   .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-nombre,
   .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-texto,
   .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-pronto,
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-flecha,
   .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-subitems { display: none; }
   .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-grupo {
     width: 28px;
@@ -216,5 +240,5 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar, .sidebar-panel, .sidebar-item { transition: none; }
+  .sidebar, .sidebar-panel, .sidebar-item, .sidebar-subitems, .sidebar-flecha { transition: none; }
 }

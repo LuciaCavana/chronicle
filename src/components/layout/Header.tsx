@@ -20,7 +20,7 @@ export default function Header({ title, subtitle, volverA, migaAnterior, onOpenM
   const { session, role } = useAuth()
   const { t, language, setLanguage } = useLanguage()
   const navigate = useNavigate()
-  const { pathname, search } = useLocation()
+  const { pathname } = useLocation()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -33,7 +33,7 @@ export default function Header({ title, subtitle, volverA, migaAnterior, onOpenM
   const nombre = datos?.nombre || email.split('@')[0] || ''
   const inicial = (nombre.charAt(0) || email.charAt(0) || '?').toUpperCase()
   const etiquetaRol = role === 'admin' ? t('role.admin') : role === 'creator' ? t('role.creator') : ''
-  const migas = migasDeRuta(pathname, search)
+  const migas = migasDeRuta(pathname)
   const anterior = migas.length > 1 ? migas[migas.length - 2] : null
   const rutaAnterior = migaAnterior?.ruta ?? volverA ?? anterior?.ruta
   const textoAnterior = migaAnterior?.texto ?? (anterior ? t(anterior.etiqueta) : '')

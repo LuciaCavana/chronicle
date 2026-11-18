@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   BookOpen,
   CheckCircle2,
@@ -16,7 +16,6 @@ import {
   History,
   Share2,
   Search,
-  Shield,
   ShieldCheck,
   Trash2,
   type LucideIcon,
@@ -76,11 +75,10 @@ type Libro = {
   libro_versiones: VersionLibro[]
 }
 
-const tabs: { id: BooksTab; label: TranslationKey; icon: LucideIcon }[] = [
+const tabs: { id: Exclude<BooksTab, 'administracion'>; label: TranslationKey; icon: LucideIcon }[] = [
   { id: 'catalogo', label: 'books.catalog', icon: LibraryBig },
   { id: 'propuestas', label: 'books.proposals', icon: FileText },
   { id: 'compartidos', label: 'books.shared', icon: BookOpen },
-  { id: 'administracion', label: 'books.admin', icon: Shield },
 ]
 
 const mensajesEstado: Record<EstadoLibro, string> = {
@@ -91,13 +89,24 @@ const mensajesEstado: Record<EstadoLibro, string> = {
   rechazado: 'El libro fue rechazado.',
 }
 
-export default function Libros() {
+type Props = {
+  /** 'administracion': la revisión de libros, que se abre desde Gestión y no es una pestaña de Libros. */
+  modo?: 'biblioteca' | 'administracion'
+}
+
+/** Pestaña de la biblioteca según ?tab=. La revisión ya no es una pestaña de Libros. */
+function pestanaDeUrl(tab: string | null): BooksTab {
+  return tab === 'compartidos' || tab === 'propuestas' ? tab : 'catalogo'
+}
+
+export default function Libros({ modo = 'biblioteca' }: Props) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const { t } = useLanguage()
+  const enAdministracion = modo === 'administracion'
 
   const [activeTab, setActiveTab] = useState<BooksTab>(
-    searchParams.get('tab') === 'administracion' ? 'administracion' : searchParams.get('tab') === 'compartidos' ? 'compartidos' : searchParams.get('tab') === 'propuestas' ? 'propuestas' : 'catalogo'
+    enAdministracion ? 'administracion' : pestanaDeUrl(searchParams.get('tab'))
   )
   const [search, setSearch] = useState('')
   const [filtroAdministracion, setFiltroAdministracion] = useState<'pendientes'|'publicados'|'ocultos'|'borrados'>(() => { const valor = searchParams.get('seccion'); return valor === 'publicados' || valor === 'ocultos' || valor === 'borrados' ? valor : 'pendientes' })
@@ -297,11 +306,10 @@ export default function Libros() {
   }, [])
 
   useEffect(() => {
-    const tab = searchParams.get('tab')
-    setActiveTab(tab === 'administracion' || tab === 'propuestas' || tab === 'compartidos' ? tab : 'catalogo')
+    setActiveTab(enAdministracion ? 'administracion' : pestanaDeUrl(searchParams.get('tab')))
     const seccion = searchParams.get('seccion')
     setFiltroAdministracion(seccion === 'publicados' || seccion === 'ocultos' || seccion === 'borrados' ? seccion : 'pendientes')
-  }, [searchParams])
+  }, [searchParams, enAdministracion])
 
   function changeTab(tab: BooksTab) {
     setActiveTab(tab)
@@ -310,7 +318,7 @@ export default function Libros() {
     if (tab === 'catalogo') {
       setSearchParams({})
     } else {
-      setSearchParams(tab === 'administracion' ? { tab, seccion: filtroAdministracion } : { tab })
+      setSearchParams({ tab })
     }
   }
 
@@ -489,12 +497,22 @@ async function borrarPropuesta(
     finally{setActualizandoId(null)}
   }
 
+  // Enlaces viejos a la revisión dentro de Libros: se mandan a la nueva ruta.
+  if (!enAdministracion && searchParams.get('tab') === 'administracion') {
+    const seccion = searchParams.get('seccion')
+    return <Navigate to={`/administracion/revision${seccion ? `?seccion=${encodeURIComponent(seccion)}` : ''}`} replace />
+  }
+  // La revisión es solo para administración; Supabase vuelve a validar cada acción.
+  if (enAdministracion && !cargando && !error && !esAdministrador) return <Navigate to="/home" replace />
+
   return (
-    <AppLayout title={t('books.title')} subtitle={t('books.subtitle')}>
+    <AppLayout
+      title={enAdministracion ? t('books.admin') : t('books.title')}
+      subtitle={enAdministracion ? undefined : t('books.subtitle')}
+    >
       <div className="libros">
-        <div className="libros-tabs">
+        {!enAdministracion && <div className="libros-tabs">
           {tabs
-            .filter((tab) => tab.id !== 'administracion' || esAdministrador)
             .map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -508,7 +526,7 @@ async function borrarPropuesta(
                 {t(label)}
               </button>
             ))}
-        </div>
+        </div>}
 
         {activeTab === 'propuestas' && (
           <div className="libros-propuestas-header">
@@ -535,7 +553,7 @@ async function borrarPropuesta(
               ['ocultos','Libros ocultos'],
               ['borrados','Libros borrados']
             ] as const).map(([clave, nombre]) => (
-              <button key={clave} type="button" className={`libros-tab ${filtroAdministracion === clave ? 'libros-tab--active' : ''}`} onClick={() => {setFiltroAdministracion(clave);setSearch('');setSearchParams({tab:'administracion',seccion:clave})}}>{nombre}</button>
+              <button key={clave} type="button" className={`libros-tab ${filtroAdministracion === clave ? 'libros-tab--active' : ''}`} onClick={() => {setFiltroAdministracion(clave);setSearch('');setSearchParams({seccion:clave})}}>{nombre}</button>
             ))}
           </div>
         )}
