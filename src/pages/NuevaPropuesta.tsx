@@ -598,7 +598,21 @@ export default function NuevaPropuesta() {
     showTrasfondoForm ? { tipo: 'Trasfondo', nombre: nombreDe(trasfondos, editingTrasfondoId) } :
     showCriaturaForm ? { tipo: 'Criatura', nombre: nombreDe(criaturas, editingCriaturaId) } : null
 
+  // Elemento agregado desde el índice o la categoría: si se cierra sin tocarlo, no se conserva.
+  const recienCreado = useRef<{ categoria: 'clases' | 'subclases' | 'objetos' | 'otras'; id: string; json: string } | null>(null)
+  function descartarSiNoSeEdito() {
+    const creado = recienCreado.current
+    recienCreado.current = null
+    if (!creado) return
+    const sinCambios = (lista: { id: string }[]) => JSON.stringify(lista.find(x => x.id === creado.id)) === creado.json
+    if (creado.categoria === 'clases' && sinCambios(clases)) setClases(actuales => actuales.filter(x => x.id !== creado.id))
+    if (creado.categoria === 'subclases' && sinCambios(subclases)) setSubclases(actuales => actuales.filter(x => x.id !== creado.id))
+    if (creado.categoria === 'objetos' && sinCambios(objetos)) setObjetos(actuales => actuales.filter(x => x.id !== creado.id))
+    if (creado.categoria === 'otras' && sinCambios(caracteristicas)) setCaracteristicas(actuales => actuales.filter(x => x.id !== creado.id))
+  }
+
   function cerrarElemento() {
+    descartarSiNoSeEdito()
     setErrorGuardado('')
     setEditingCaracteristicaId(null)
     setEditingObjectId(null)
@@ -618,12 +632,12 @@ export default function NuevaPropuesta() {
     especies: { elementos: especies.map(e => ({ id: e.id, nombre: e.nombre })), agregar: () => abrirFormularioEspecie(null), editar: abrirFormularioEspecie, eliminar: eliminarEspecie },
     clases: {
       elementos: clases.map(c => ({ id: c.id, nombre: c.nombre, incompleto: !c.nombre.trim() })),
-      agregar: () => { const id = crypto.randomUUID(); setClases(actuales => [...actuales, { id, tipo: 'clase', nombre: '', descripcion: '', datos: {} }]); setEditingClassId(id) },
+      agregar: () => { const nueva: Elemento = { id: crypto.randomUUID(), tipo: 'clase', nombre: '', descripcion: '', datos: {} }; setClases(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'clases', id: nueva.id, json: JSON.stringify(nueva) }; setEditingClassId(nueva.id) },
       editar: setEditingClassId, eliminar: id => setClases(actuales => actuales.filter(c => c.id !== id)),
     },
     subclases: {
       elementos: subclases.map(s => ({ id: s.id, nombre: s.nombre, detalle: clasesDisponiblesSubclase.find(c => c.id === (s.datos as { claseId?: string }).claseId)?.nombre ?? 'Sin clase principal', incompleto: subclaseIncompleta(s) })),
-      agregar: () => { const id = crypto.randomUUID(); setSubclases(actuales => [...actuales, { id, tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }]); setEditingSubclassId(id) },
+      agregar: () => { const nueva: Elemento = { id: crypto.randomUUID(), tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }; setSubclases(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'subclases', id: nueva.id, json: JSON.stringify(nueva) }; setEditingSubclassId(nueva.id) },
       editar: setEditingSubclassId, eliminar: id => setSubclases(actuales => actuales.filter(s => s.id !== id)),
     },
     trasfondos: { elementos: trasfondos.map(t => ({ id: t.id, nombre: t.nombre })), agregar: () => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }, editar: id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }, eliminar: id => setTrasfondos(actuales => actuales.filter(t => t.id !== id)) },
@@ -632,12 +646,12 @@ export default function NuevaPropuesta() {
     conjuros: { elementos: conjuros.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo === 'truco' ? 'Truco' : `Nivel ${c.nivel}` })), agregar: () => { setEditingConjuroId(null); setShowConjuroForm(true) }, editar: id => { setEditingConjuroId(id); setShowConjuroForm(true) }, eliminar: id => setConjuros(actuales => actuales.filter(c => c.id !== id)) },
     objetos: {
       elementos: objetos.map(o => ({ id: o.id, nombre: o.nombre, detalle: String(o.datos?.tipo ?? 'equipo'), incompleto: !o.nombre.trim() })),
-      agregar: () => { const id = crypto.randomUUID(); setObjetos(actuales => [...actuales, { id, tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }]); setEditingObjectId(id) },
+      agregar: () => { const nuevo: Elemento = { id: crypto.randomUUID(), tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }; setObjetos(actuales => [...actuales, nuevo]); recienCreado.current = { categoria: 'objetos', id: nuevo.id, json: JSON.stringify(nuevo) }; setEditingObjectId(nuevo.id) },
       editar: setEditingObjectId, eliminar: id => setObjetos(actuales => actuales.filter(o => o.id !== id)),
     },
     otras: {
       elementos: caracteristicas.map(c => ({ id: c.id, nombre: c.nombre, detalle: etiquetasCaracteristica[c.tipo] ?? c.tipo })),
-      agregar: () => { const id = crypto.randomUUID(); setCaracteristicas(actuales => [...actuales, { id, tipo: 'otra', nombre: '', descripcion: '' }]); setEditingCaracteristicaId(id) },
+      agregar: () => { const nueva: CaracteristicaLibro = { id: crypto.randomUUID(), tipo: 'otra', nombre: '', descripcion: '' }; setCaracteristicas(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'otras', id: nueva.id, json: JSON.stringify(nueva) }; setEditingCaracteristicaId(nueva.id) },
       editar: setEditingCaracteristicaId, eliminar: id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id)),
       extras: [
         { etiqueta: 'Agregar propiedades de armas', accion: () => setCaracteristicas(actuales => [...actuales, ...crearPropiedadesArma().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))]) },
@@ -795,6 +809,8 @@ export default function NuevaPropuesta() {
               onCategoria={id => irA(`cat:${id}`)}
               onElemento={(categoria, id) => abrirElemento(categoria, id)}
               onAgregar={categoria => abrirElemento(categoria, null)}
+              disponibles={categories.filter(categoria => !selectedCategories.includes(categoria.id)).map(categoria => ({ id: categoria.id, titulo: categoria.label }))}
+              onAgregarCategoria={id => { setSelectedCategories(actuales => actuales.includes(id) ? actuales : [...actuales, id]); irA(`cat:${id}`) }}
             />
           </aside>
           <div className="editor-libro__principal">
@@ -1006,19 +1022,19 @@ export default function NuevaPropuesta() {
                     </>}
                   </div>
                 })()}
-                <button type="button" className="nueva-propuesta-next" onClick={()=>setEditingCaracteristicaId(null)}>Volver a categorías</button>
+                <button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button>
               </section>
             ) : editingObjectId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingObjectId(null)}>Volver a categorías</button></div></section>
+              <section className="nueva-propuesta-panel"><h3>Editar objeto</h3><div className="nueva-propuesta-field"><label>Nombre del objeto *</label><input value={objetos.find(o => o.id === editingObjectId)?.nombre ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, nombre: e.target.value } : o))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={4} value={objetos.find(o => o.id === editingObjectId)?.descripcion ?? ''} onChange={e => setObjetos(actuales => actuales.map(o => o.id === editingObjectId ? { ...o, descripcion: e.target.value } : o))}/></div><ObjetoForm elemento={objetos.find(o => o.id === editingObjectId)!} objetos={objetos} caracteristicas={caracteristicas} onChange={actualizado => setObjetos(actuales => actuales.map(o => o.id === actualizado.id ? actualizado : o))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div></section>
             ) : editingSubclassId !== null ? (
-              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clasesDisponiblesSubclase} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel, libro: v.titulo })))]} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingSubclassId(null)}>Volver a categorías</button></div></section>
+              <section className="nueva-propuesta-panel"><h3>Editar subclase</h3><div className="nueva-propuesta-field"><label>Nombre de la subclase *</label><input value={subclases.find(s => s.id === editingSubclassId)?.nombre ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, nombre: e.target.value } : s))}/></div><div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={subclases.find(s => s.id === editingSubclassId)?.descripcion ?? ''} onChange={e => setSubclases(actuales => actuales.map(s => s.id === editingSubclassId ? { ...s, descripcion: e.target.value } : s))}/></div><SubclaseForm elemento={subclases.find(s => s.id === editingSubclassId)!} clases={clasesDisponiblesSubclase} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel, libro: v.titulo })))]} onChange={actualizada => setSubclases(actuales => actuales.map(s => s.id === actualizada.id ? actualizada : s))}/><div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div></section>
             ) : editingClassId !== null ? (
               <section className="nueva-propuesta-panel">
                 <h3>Editar clase</h3>
                 <div className="nueva-propuesta-field"><label>Nombre de la clase *</label><input value={clases.find(c => c.id === editingClassId)?.nombre ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, nombre: e.target.value } : c))} /></div>
                 <div className="nueva-propuesta-field"><label>Descripción</label><textarea rows={3} value={clases.find(c => c.id === editingClassId)?.descripcion ?? ""} onChange={e => setClases(actuales => actuales.map(c => c.id === editingClassId ? { ...c, descripcion: e.target.value } : c))} /></div>
                 <ClaseForm elemento={clases.find(c => c.id === editingClassId)!} onChange={actualizarClaseConObjetos} conjurosDisponibles={[...conjuros.map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel })), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).filter(c => !conjuros.some(local => local.id === c.id)).map(c => ({ id: c.id, nombre: c.nombre, nivel: c.nivel, libro: v.titulo })))]} />
-                <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={() => setEditingClassId(null)}>Volver a categorías</button></div>
+                <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-next" onClick={cerrarElemento}>Listo</button></div>
               </section>
             ) : showCriaturaForm ? (
               <CriaturaForm key={editingCriaturaId ?? 'nueva'} initialData={criaturas.find(c => c.id === editingCriaturaId)} criaturas={criaturas} conjuros={conjuros} onSave={guardarCriatura} onCancel={() => { setShowCriaturaForm(false); setEditingCriaturaId(null) }}/>

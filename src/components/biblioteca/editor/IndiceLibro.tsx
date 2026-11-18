@@ -12,10 +12,14 @@ type Props = {
   onCategoria: (id: string) => void
   onElemento: (categoria: string, id: string) => void
   onAgregar: (categoria: string) => void
+  /** Categorías que el libro todavía no tiene. */
+  disponibles: { id: string; titulo: string }[]
+  onAgregarCategoria: (id: string) => void
 }
 
 /** Índice del libro: datos, categorías activas con sus elementos y revisión. */
-export default function IndiceLibro({ secciones, vista, activo, problemas, onDatos, onRevisar, onCategoria, onElemento, onAgregar }: Props) {
+export default function IndiceLibro({ secciones, vista, activo, problemas, onDatos, onRevisar, onCategoria, onElemento, onAgregar, disponibles, onAgregarCategoria }: Props) {
+  const [eligiendoCategoria, setEligiendoCategoria] = useState(false)
   const categoriaActual = vista.startsWith('cat:') ? vista.slice(4) : null
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set(categoriaActual ? [categoriaActual] : []))
   const estaAbierta = (id: string) => abiertas.has(id) || id === categoriaActual
@@ -67,6 +71,17 @@ export default function IndiceLibro({ secciones, vista, activo, problemas, onDat
           </div>
         )
       })}
+
+      {disponibles.length > 0 && <div className="indice-libro__nueva-categoria">
+        <button type="button" className="indice-libro__agregar-categoria" aria-expanded={eligiendoCategoria} onClick={() => setEligiendoCategoria(!eligiendoCategoria)}>
+          <Plus size={15} aria-hidden="true" />Agregar categoría
+        </button>
+        {eligiendoCategoria && <ul className="indice-libro__opciones" aria-label="Categorías para agregar">
+          {disponibles.map(categoria => <li key={categoria.id}>
+            <button type="button" onClick={() => { setEligiendoCategoria(false); onAgregarCategoria(categoria.id) }}>{categoria.titulo}</button>
+          </li>)}
+        </ul>}
+      </div>}
 
       <button type="button" className={`indice-libro__entrada indice-libro__revisar${vista === 'revisar' ? ' indice-libro__entrada--activa' : ''}`} aria-current={vista === 'revisar' ? 'page' : undefined} onClick={onRevisar}>
         <ClipboardCheck size={18} aria-hidden="true" />Revisar y enviar

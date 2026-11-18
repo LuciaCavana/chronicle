@@ -273,3 +273,27 @@
   .editor-libro__enviar { padding-bottom: 8px; }
   .editor-libro__enviar .editor-libro__boton { flex: 1 1 100%; min-height: 48px; }
 }
+
+/* Agregar categoría desde el índice */
+.indice-libro__nueva-categoria { margin-top: 4px; }
+.indice-libro__agregar-categoria {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 36px;
+  padding: 0 10px;
+  background: transparent;
+  border: 1px dashed var(--color-borde-navegacion);
+  border-radius: var(--radio-md);
+  color: var(--color-acento);
+  font-size: 13.5px;
+  text-align: left;
+}
+.indice-libro__agregar-categoria:hover { border-color: var(--color-acento-borde); background: var(--color-fondo-panel); }
+.indice-libro__opciones { list-style: none; margin: 6px 0 0; padding: 6px; display: flex; flex-direction: column; gap: 2px; background: var(--color-fondo-menu); border: 1px solid var(--color-borde-suave); border-radius: 10px; }
+.indice-libro__opciones button { width: 100%; min-height: 36px; padding: 0 10px; background: transparent; border: 0; border-radius: 7px; color: var(--color-texto); font-size: 13.5px; text-align: left; }
+.indice-libro__opciones button:hover { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
+@media (max-width: 768px) {
+  .indice-libro__agregar-categoria, .indice-libro__opciones button { min-height: 46px; font-size: 15px; }
+}
