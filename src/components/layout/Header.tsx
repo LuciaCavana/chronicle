@@ -1,13 +1,13 @@
-
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Bell, CircleUserRound, LogOut, Settings, UserRound, Menu } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { ChevronDown, ChevronLeft, ChevronRight, Globe, LogOut, Menu, SlidersHorizontal, UserRound } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
 import { supabase } from '../../lib/supabase'
 import { EVENTO_AVATAR, urlAvatar, type AvatarPerfil } from '../../services/avatar'
-import '../../styles/layout/Header.css'
 import { useLanguage } from '../../i18n/useLanguage'
+import { migasDeRuta } from '../../lib/navegacion'
+import '../../styles/layout/Header.css'
 
 type HeaderProps = {
   title: string
@@ -15,45 +15,68 @@ type HeaderProps = {
   onOpenMenu?: () => void
 }
 
+type PerfilCabecera = { userId: string; avatar: string | null; nombre: string }
+
 export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
-  const { session } = useAuth()
-  const { t } = useLanguage()
+  const { session, role } = useAuth()
+  const { t, language, setLanguage } = useLanguage()
   const navigate = useNavigate()
+  const { pathname, search } = useLocation()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const contenedorPerfil = useRef<HTMLDivElement>(null)
 
   const email = session?.user.email ?? ''
-  const initial = email.charAt(0).toUpperCase() || '?'
   const userId = session?.user.id
-  const [avatarCargado, setAvatarCargado] = useState<{ userId: string; url: string | null } | null>(null)
-  const avatar = userId && avatarCargado?.userId === userId ? avatarCargado.url : null
+  const [perfil, setPerfil] = useState<PerfilCabecera | null>(null)
+  const datos = userId && perfil?.userId === userId ? perfil : null
+  const nombre = datos?.nombre || email.split('@')[0] || ''
+  const inicial = (nombre.charAt(0) || email.charAt(0) || '?').toUpperCase()
+  const etiquetaRol = role === 'admin' ? t('role.admin') : role === 'creator' ? t('role.creator') : ''
+  const migas = migasDeRuta(pathname, search)
+  const anterior = migas.length > 1 ? migas[migas.length - 2] : null
 
   useEffect(() => {
     if (!userId) return
     let activo = true
-    void supabase.from('profiles').select('avatar_url,avatar_source').eq('id', userId).maybeSingle()
-      .then(({ data }) => { if (activo) setAvatarCargado({ userId, url: urlAvatar(data) }) })
-    const alCambiar = (evento: Event) => setAvatarCargado({ userId, url: urlAvatar((evento as CustomEvent<AvatarPerfil>).detail) })
+    void supabase.from('profiles').select('display_name,username,avatar_url,avatar_source').eq('id', userId).maybeSingle()
+      .then(({ data }) => {
+        if (!activo) return
+        const nombrePerfil = (data?.display_name as string | null | undefined)?.trim() || (data?.username as string | null | undefined) || ''
+        setPerfil({ userId, avatar: urlAvatar(data), nombre: nombrePerfil })
+      })
+    const alCambiar = (evento: Event) => setPerfil(actual => ({
+      userId,
+      nombre: actual?.userId === userId ? actual.nombre : '',
+      avatar: urlAvatar((evento as CustomEvent<AvatarPerfil>).detail),
+    }))
     window.addEventListener(EVENTO_AVATAR, alCambiar)
     return () => { activo = false; window.removeEventListener(EVENTO_AVATAR, alCambiar) }
   }, [userId])
 
+  useEffect(() => {
+    if (!menuOpen) return
+    const fuera = (evento: MouseEvent) => {
+      if (contenedorPerfil.current && !contenedorPerfil.current.contains(evento.target as Node)) setMenuOpen(false)
+    }
+    const tecla = (evento: KeyboardEvent) => { if (evento.key === 'Escape') setMenuOpen(false) }
+    document.addEventListener('mousedown', fuera)
+    document.addEventListener('keydown', tecla)
+    return () => { document.removeEventListener('mousedown', fuera); document.removeEventListener('keydown', tecla) }
+  }, [menuOpen])
+
   async function handleLogout() {
     if (loading) return
-
     setLoading(true)
     setError('')
-
     try {
       const { error: logoutError } = await authService.logout()
-
       if (logoutError) {
         setError('No se pudo cerrar la sesión.')
         return
       }
-
       navigate('/login', { replace: true })
     } catch {
       setError('No se pudo conectar con el servidor.')
@@ -62,73 +85,76 @@ export default function Header({ title, subtitle, onOpenMenu }: HeaderProps) {
     }
   }
 
+  const avatar = (clase: string) => <span className={`app-avatar ${clase}`} aria-hidden="true">
+    {datos?.avatar ? <img src={datos.avatar} alt="" className="app-avatar-img" /> : inicial}
+  </span>
+
   return (
     <header className="app-header">
-      <button type="button" className="app-header-mobile-menu" aria-label="Abrir menú" onClick={onOpenMenu}><Menu size={24} /></button>
+      <button type="button" className="app-header-mobile-menu" aria-label={t('nav.openMenu')} onClick={onOpenMenu}><Menu size={22} aria-hidden="true" /></button>
+
       <div className="app-header-title">
+        {migas.length > 1 && <nav className="app-header-migas" aria-label={t('nav.breadcrumb')}>
+          <ol>
+            {migas.map((miga, i) => {
+              const ultima = i === migas.length - 1
+              return <li key={`${miga.etiqueta}-${i}`}>
+                {i > 0 && <ChevronRight size={13} aria-hidden="true" />}
+                {ultima || !miga.ruta ? <span aria-current={ultima ? 'page' : undefined}>{t(miga.etiqueta)}</span> : <Link to={miga.ruta}>{t(miga.etiqueta)}</Link>}
+              </li>
+            })}
+          </ol>
+        </nav>}
+        {anterior?.ruta && <Link className="app-header-volver" to={anterior.ruta} aria-label={`${t('nav.back')} ${t(anterior.etiqueta)}`}><ChevronLeft size={14} aria-hidden="true" />{t(anterior.etiqueta)}</Link>}
         <h1>{title}</h1>
-        {subtitle && <p>{subtitle}</p>}
+        {migas.length <= 1 && subtitle && <p>{subtitle}</p>}
       </div>
 
       <div className="app-header-actions">
-        {error && (
-          <span className="app-header-error" role="alert">
-            {error}
-          </span>
-        )}
+        {error && <span className="app-header-error" role="alert">{error}</span>}
 
-        <button
-          type="button"
-          className="app-header-icon-button"
-          title="Notificaciones (próximamente)"
-          aria-label="Notificaciones (próximamente)"
-          disabled
-        >
-          <Bell size={21} />
-        </button>
-
-        <div className="app-header-profile">
-          <button
-            type="button"
-            className="app-header-avatar"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-expanded={menuOpen}
-            aria-label="Abrir menú de usuario"
-          >
-            {avatar ? <img src={avatar} alt="" className="app-header-avatar-img" /> : initial}
+        <div className="app-header-profile" ref={contenedorPerfil}>
+          <button type="button" className={`app-header-perfil${menuOpen ? ' app-header-perfil--abierto' : ''}`} onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} aria-haspopup="menu" aria-label={t('nav.userMenu')}>
+            {avatar('app-avatar--chico')}
+            <span className="app-header-perfil-datos">
+              <span className="app-header-perfil-nombre">{nombre}</span>
+              {etiquetaRol && <span className="app-header-perfil-rol">{etiquetaRol}</span>}
+            </span>
+            <ChevronDown className="app-header-perfil-flecha" size={16} aria-hidden="true" />
           </button>
 
-          {menuOpen && (
-            <div className="app-header-dropdown">
-              <div className="app-header-user">
-                <CircleUserRound size={20} />
-                <span>{email}</span>
+          {menuOpen && <>
+            <button type="button" className="app-header-fondo" aria-label={t('nav.closeMenu')} onClick={() => setMenuOpen(false)} />
+            <div className="app-header-dropdown" role="menu" aria-label={t('nav.userMenu')}>
+              <span className="app-header-agarre" aria-hidden="true" />
+              <div className="app-header-tarjeta">
+                {avatar('app-avatar--grande')}
+                <span className="app-header-tarjeta-datos">
+                  <strong>{nombre}</strong>
+                  <span>{email}</span>
+                  {etiquetaRol && <span className="app-header-rol">{etiquetaRol}</span>}
+                </span>
               </div>
-
               <div className="app-header-dropdown-divider" />
-
-              <button type="button" onClick={() => { setMenuOpen(false); navigate("/perfil") }}>
-                <UserRound size={17} />
-                {t('nav.profile')}
+              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); navigate('/perfil') }}>
+                <UserRound size={18} aria-hidden="true" />{t('nav.profile')}
               </button>
-
-              <button type="button" onClick={() => { setMenuOpen(false); navigate("/configuracion") }}>
-                <Settings size={17} />
-                {t('nav.settings')}
+              <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); navigate('/configuracion') }}>
+                <SlidersHorizontal size={18} aria-hidden="true" />{t('nav.settings')}
               </button>
-
+              <div className="app-header-idioma">
+                <span><Globe size={18} aria-hidden="true" />{t('nav.language')}</span>
+                <span className="app-header-idioma-opciones" role="group" aria-label={t('nav.language')}>
+                  <button type="button" aria-pressed={language === 'es'} onClick={() => setLanguage('es')}>ES</button>
+                  <button type="button" aria-pressed={language === 'en'} onClick={() => setLanguage('en')}>EN</button>
+                </span>
+              </div>
               <div className="app-header-dropdown-divider" />
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                disabled={loading}
-              >
-                <LogOut size={17} />
-                {loading ? t('nav.loggingOut') : t('nav.logout')}
+              <button type="button" role="menuitem" className="app-header-salir" onClick={handleLogout} disabled={loading}>
+                <LogOut size={18} aria-hidden="true" />{loading ? t('nav.loggingOut') : t('nav.logout')}
               </button>
             </div>
-          )}
+          </>}
         </div>
       </div>
     </header>

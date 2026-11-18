@@ -1,135 +1,273 @@
+/* ==========================================================================
+   Menú lateral
+   Dos modos en escritorio: fijado (abierto, 248 px) y riel (solo íconos, 72 px).
+   En el riel, los nombres y los subítems aparecen flotando al pasar el mouse
+   o al llegar con el teclado, sin empujar el contenido.
+   En celular (≤ 768 px) es un cajón que entra desde la izquierda.
+   ========================================================================== */
 
 .sidebar {
-  width: 250px;
-  min-width: 250px;
+  width: 248px;
+  min-width: 248px;
   height: 100vh;
-  background: var(--color-fondo-campo);
-  color: var(--color-texto);
-  border-right: 1px solid var(--color-borde-suave);
-
+  height: 100dvh;
   display: flex;
   flex-direction: column;
-
-  transition: width 0.25s ease, min-width 0.25s ease;
+  background: var(--color-fondo-navegacion);
+  border-right: 1px solid var(--color-borde-navegacion);
+  color: var(--color-texto);
+  font-family: var(--fuente-sans);
+  position: relative;
+  z-index: 30;
+  transition: width .2s ease, min-width .2s ease;
 }
 
-.sidebar--collapsed {
-  width: 72px;
-  min-width: 72px;
-}
-
-.sidebar-header {
-  min-height: 76px;
+/* ---------- Marca ---------- */
+.sidebar-cabecera {
+  height: 68px;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px;
-  gap: 8px;
+  padding: 0 14px 0 18px;
+  border-bottom: 1px solid var(--color-separador-navegacion);
 }
-
-.sidebar-brand {
-  font-size: 17px;
-  font-weight: 700;
-  letter-spacing: 2px;
+.sidebar-marca { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; border-radius: var(--radio-md); }
+.sidebar-marca:focus-visible { outline: var(--foco); outline-offset: 3px; }
+.sidebar-monograma {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radio-md);
+  background: var(--color-fondo-avatar);
+  border: 1px solid var(--color-acento-borde);
   color: var(--color-acento);
-  white-space: nowrap;
+  font-family: var(--fuente-serif);
+  font-size: 18px;
+  font-weight: 700;
 }
+.sidebar-nombre { font-family: var(--fuente-serif); font-size: 16px; letter-spacing: .16em; color: var(--color-texto); white-space: nowrap; }
+.sidebar-cerrar-movil { display: none; }
 
-.sidebar-toggle {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
+/* ---------- Navegación ---------- */
+.sidebar-nav { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; overflow-y: auto; }
+.sidebar-grupo { padding: 14px 12px 6px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-texto-apagado); white-space: nowrap; }
 
-  border: 1px solid var(--color-borde);
-  border-radius: 8px;
-  background: var(--color-fondo-panel);
-  color: var(--color-texto);
-
-  cursor: pointer;
-}
-
-.sidebar-toggle:hover {
-  background: var(--color-borde-suave);
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-}
-
-.sidebar-link {
+.sidebar-item {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-
-  min-height: 46px;
-  padding: 10px 12px;
-  border-radius: 9px;
-
-  color: var(--color-texto-tenue);
+  gap: 12px;
+  min-height: 42px;
+  padding: 0 12px;
+  border-radius: var(--radio-md);
+  color: var(--color-texto-navegacion);
+  font-size: 14px;
   text-decoration: none;
   white-space: nowrap;
-  overflow: hidden;
+  transition: background .15s ease, color .15s ease;
+}
+a.sidebar-item:hover { background: var(--color-fondo-panel); color: var(--color-texto); }
+.sidebar-item:focus-visible { outline: var(--foco); outline-offset: -2px; }
+.sidebar-icono { flex: none; }
+.sidebar-texto { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 
-  transition: background 0.2s, color 0.2s;
+.sidebar-item--activo { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
+a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
+.sidebar-item--activo .sidebar-icono { color: var(--color-acento); }
+.sidebar-item--activo::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-acento);
 }
 
-.sidebar-link:hover {
-  background: var(--color-fondo-alterno);
-  color: #ffffff;
+.sidebar-item--pronto { color: var(--color-texto-apagado); cursor: default; }
+.sidebar-pronto { margin-left: auto; padding: 2px 8px; border: 1px solid var(--color-borde); border-radius: var(--radio-pildora); font-size: 11px; color: var(--color-texto-suave); }
+
+.sidebar-insignia {
+  margin-left: auto;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radio-pildora);
+  background: var(--color-acento);
+  color: var(--color-texto-sobre-acento);
+  font-size: 11.5px;
+  font-weight: 700;
 }
 
-.sidebar-link--active {
-  background: var(--color-borde-suave);
-  color: #e9c98d;
+/* Subítems de Biblioteca */
+.sidebar-bloque { position: relative; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-subitems { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-subitems-titulo { display: none; }
+.sidebar-subitem {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px 0 44px;
+  border-radius: var(--radio-md);
+  color: var(--color-texto-navegacion);
+  font-size: 13.5px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.sidebar-subitem:hover { background: var(--color-fondo-panel); color: var(--color-texto); }
+.sidebar-subitem:focus-visible { outline: var(--foco); outline-offset: -2px; }
+.sidebar-subitem--activo { position: relative; background: var(--color-fondo-subactivo); color: var(--color-texto); }
+.sidebar-subitem--activo::before {
+  content: '';
+  position: absolute;
+  left: 28px;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-acento);
 }
 
-.sidebar-icon {
-  width: 24px;
-  min-width: 24px;
-  text-align: center;
-  font-size: 23px;
+/* Nombre flotante: solo se usa en el riel */
+.sidebar-flotante { display: none; }
+
+/* ---------- Pie ---------- */
+.sidebar-pie { flex: none; padding: 12px 10px; border-top: 1px solid var(--color-separador-navegacion); }
+.sidebar-fijar {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 12px;
+  background: transparent;
+  border: 1px solid var(--color-borde-navegacion);
+  border-radius: 10px;
+  color: var(--color-texto-suave);
+  font: inherit;
+  font-size: 13.5px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.sidebar-fijar:hover { color: var(--color-texto); border-color: var(--color-acento-borde); }
+.sidebar-fijar:focus-visible { outline: var(--foco); outline-offset: 2px; }
+
+/* ==========================================================================
+   Riel (menú contraído en escritorio)
+   ========================================================================== */
+@media (min-width: 769px) {
+  .sidebar--riel { width: 72px; min-width: 72px; }
+  .sidebar--riel .sidebar-cabecera { justify-content: center; padding: 0; }
+  .sidebar--riel .sidebar-nombre,
+  .sidebar--riel .sidebar-texto,
+  .sidebar--riel .sidebar-pronto,
+  .sidebar--riel .sidebar-grupo { display: none; }
+  .sidebar--riel .sidebar-monograma { width: 36px; height: 36px; font-size: 19px; }
+  .sidebar--riel .sidebar-nav { align-items: center; padding: 10px 0; overflow: visible; }
+  .sidebar--riel .sidebar-nav > .sidebar-grupo { display: block; width: 28px; height: 1px; padding: 0; margin: 6px 0; background: var(--color-borde-navegacion); font-size: 0; }
+  .sidebar--riel .sidebar-item { width: 48px; min-height: 44px; padding: 0; justify-content: center; border-radius: 10px; }
+  .sidebar--riel .sidebar-item--activo::before { left: -12px; top: 10px; bottom: 10px; }
+  .sidebar--riel .sidebar-insignia {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+  }
+  .sidebar--riel .sidebar-pie { display: grid; place-items: center; }
+  .sidebar--riel .sidebar-fijar { width: 40px; padding: 0; justify-content: center; }
+
+  /* Nombre flotante al pasar el mouse o con el teclado */
+  .sidebar--riel .sidebar-flotante {
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 7px 11px;
+    background: var(--color-texto);
+    color: var(--color-texto-sobre-acento);
+    border-radius: 7px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 40;
+  }
+  .sidebar--riel .sidebar-item:hover .sidebar-flotante,
+  .sidebar--riel .sidebar-item:focus-visible .sidebar-flotante { display: block; }
+
+  /* Subítems de Biblioteca como panel flotante */
+  .sidebar--riel .sidebar-bloque { align-items: center; }
+  .sidebar--riel .sidebar-subitems {
+    display: none;
+    position: absolute;
+    left: calc(100% + 8px);
+    top: -8px;
+    width: 210px;
+    padding: 8px;
+    box-sizing: border-box;
+    background: var(--color-fondo-menu);
+    border: 1px solid var(--color-borde-suave);
+    border-radius: var(--radio-lg);
+    box-shadow: 0 12px 38px rgba(0, 0, 0, .45);
+    z-index: 40;
+  }
+  /* Puente invisible para que el panel no se cierre al mover el mouse hacia él */
+  .sidebar--riel .sidebar-subitems::before { content: ''; position: absolute; left: -12px; top: 0; bottom: 0; width: 12px; }
+  .sidebar--riel .sidebar-bloque:hover .sidebar-subitems,
+  .sidebar--riel .sidebar-bloque:focus-within .sidebar-subitems { display: flex; }
+  .sidebar--riel .sidebar-subitems-titulo { display: block; padding: 6px 10px 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-texto-apagado); }
+  .sidebar--riel .sidebar-subitem { padding: 0 12px; min-height: 40px; font-size: 14px; color: var(--color-texto); }
+  .sidebar--riel .sidebar-subitem--activo { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
+  .sidebar--riel .sidebar-subitem--activo::before { display: none; }
 }
 
-.sidebar-label {
-  font-size: 14px;
-  font-weight: 500;
+/* Tablets táctiles: sin mouse no hay flotantes, el riel queda como accesos directos */
+@media (hover: none) and (min-width: 769px) {
+  .sidebar--riel .sidebar-bloque:hover .sidebar-subitems { display: none; }
 }
 
-.sidebar--collapsed .sidebar-header {
-  justify-content: center;
-  padding: 16px 8px;
+/* ==========================================================================
+   Celular: cajón lateral
+   ========================================================================== */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 50;
+    width: min(312px, 86vw);
+    min-width: 0;
+    transform: translateX(-105%);
+    transition: transform .22s ease;
+    box-shadow: 16px 0 40px rgba(0, 0, 0, .45);
+  }
+  .sidebar--movil-abierto { transform: translateX(0); }
+  .sidebar-cabecera { height: 60px; padding: 0 8px 0 16px; }
+  .sidebar-cerrar-movil {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: 0;
+    border-radius: 10px;
+    color: var(--color-texto-navegacion);
+    cursor: pointer;
+  }
+  .sidebar-cerrar-movil:focus-visible { outline: var(--foco); }
+  .sidebar-item { min-height: 46px; font-size: 15px; }
+  .sidebar-subitem { min-height: 42px; font-size: 14.5px; }
+  .sidebar-pie { display: none; }
 }
 
-.sidebar--collapsed .sidebar-nav {
-  padding: 12px 8px;
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .sidebar-item { transition: none; }
 }
-
-.sidebar--collapsed .sidebar-link {
-  justify-content: center;
-  padding: 10px 0;
-}
-
-
-.sidebar--collapsed .sidebar-header {
-  justify-content: center;
-}
-
-.sidebar--collapsed .sidebar-brand {
-  display: none;
-}
-
-.sidebar-header {
-  justify-content: center;
-}
-
-.sidebar-icon {
-  width: 24px;
-  height: 24px;
-  min-width: 24px;
-  flex-shrink: 0;
-}
-@media(max-width:768px){.sidebar,.sidebar.sidebar--collapsed{position:fixed;z-index:50;top:0;bottom:0;left:0;width:min(290px,85vw);min-width:0;height:100dvh;transform:translateX(-105%);transition:transform .22s ease;box-shadow:12px 0 30px #0005;overflow-y:auto}.sidebar.sidebar--mobile-open{transform:translateX(0)}.sidebar .sidebar-header,.sidebar.sidebar--collapsed .sidebar-header{justify-content:center;padding:16px}.sidebar.sidebar--collapsed .sidebar-brand{display:inline}.sidebar.sidebar--collapsed .sidebar-nav{padding:12px}.sidebar.sidebar--collapsed .sidebar-link{justify-content:flex-start;padding:10px 12px}.sidebar.sidebar--collapsed .sidebar-label{display:inline}}
-@media(hover:none) and (min-width:769px){.sidebar{width:72px;min-width:72px}}

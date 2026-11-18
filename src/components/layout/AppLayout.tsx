@@ -19,7 +19,7 @@ export default function AppLayout({
   return (
     <div className="app-layout">
       {mobileMenuOpen && <button className="app-mobile-backdrop" type="button" aria-label="Cerrar menú" onClick={() => setMobileMenuOpen(false)} />}
-      <Sidebar mobileOpen={mobileMenuOpen} onNavigate={() => setMobileMenuOpen(false)} />
+      <Sidebar mobileOpen={mobileMenuOpen} onNavigate={() => setMobileMenuOpen(false)} onCloseMobile={() => setMobileMenuOpen(false)} />
 
       <div className="app-layout-main">
         <Header title={title} subtitle={subtitle} onOpenMenu={() => setMobileMenuOpen(true)} />
