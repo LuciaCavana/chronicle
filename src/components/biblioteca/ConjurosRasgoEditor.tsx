@@ -130,8 +130,8 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange, n
         </div>
       </fieldset>
       <div className="conjuros-rasgo__seleccion">
-        <div className="conjuros-rasgo__seleccion-chips"><span>{seleccion.length} seleccionados:</span>{seleccion.map(id => <span className="conjuros-rasgo__chip" key={id}>{nombres.get(id)?.nombre}<button type="button" className="conjuros-rasgo__chip-quitar" aria-label={`Quitar ${nombres.get(id)?.nombre} de la selección`} onClick={() => setSeleccion(s => s.filter(x => x !== id))}>×</button></span>)}</div>
-        <div className="conjuros-rasgo__seleccion-pie"><span>Se agregan como <strong>{nombreRegla(regla)}</strong></span><div className="conjuros-rasgo__pie"><button type="button" className="conjuros-rasgo__boton" onClick={() => setVista('lista')}>Volver</button><button type="button" className="conjuros-rasgo__boton--primario" disabled={!seleccion.length} onClick={agregar}>Agregar {seleccion.length} conjuros</button></div></div>
+        <div className="conjuros-rasgo__seleccion-chips"><span>{seleccion.length === 0 ? 'Marcá uno o más conjuros de la lista.' : `${seleccion.length} ${seleccion.length === 1 ? 'seleccionado' : 'seleccionados'}:`}</span>{seleccion.map(id => <span className="conjuros-rasgo__chip" key={id}>{nombres.get(id)?.nombre}<button type="button" className="conjuros-rasgo__chip-quitar" aria-label={`Quitar ${nombres.get(id)?.nombre} de la selección`} onClick={() => setSeleccion(s => s.filter(x => x !== id))}>×</button></span>)}</div>
+        <div className="conjuros-rasgo__seleccion-pie"><span>Se agregan como <strong>{nombreRegla(regla)}</strong></span><div className="conjuros-rasgo__pie"><button type="button" className="conjuros-rasgo__boton" onClick={() => setVista('lista')}>Cancelar</button><button type="button" className="conjuros-rasgo__boton--primario" disabled={!seleccion.length} onClick={agregar}>{seleccion.length === 0 ? 'Agregar conjuros' : `Agregar ${seleccion.length} ${seleccion.length === 1 ? 'conjuro' : 'conjuros'}`}</button></div></div>
       </div>
     </div>}
     {vista === 'personalizada' && <div className="conjuros-rasgo__panel">
