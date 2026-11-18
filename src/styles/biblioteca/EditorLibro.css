@@ -88,7 +88,7 @@
   background: var(--color-fondo-navegacion);
   border-right: 1px solid var(--color-separador-navegacion);
 }
-.editor-libro__principal { min-width: 0; max-width: 1000px; padding: 24px 32px 56px; display: flex; flex-direction: column; }
+.editor-libro__principal { min-width: 0; padding: 24px 32px 56px; display: flex; flex-direction: column; }
 
 .editor-libro__encabezado { margin-bottom: 18px; }
 .editor-libro__encabezado h2 { margin: 0; font-size: 26px; font-weight: 400; color: var(--color-texto-titulo); }
