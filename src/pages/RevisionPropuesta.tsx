@@ -50,12 +50,12 @@ export default function RevisionPropuesta() {
   try {
    if(accion==='aprobar') await aprobarRevision(id)
    else await rechazarRevision(id,motivo.trim())
-   navigate('/biblioteca/libros?tab=administracion')
+   navigate('/administracion/revision')
   } catch(e){setErrorAccion(e instanceof Error?e.message:t('review.error'))}
   finally{setOcupado(false)}
  }
  return <AppLayout title={t('review.pageTitle')}><main className="rev">
-  <nav className="rev__migas"><Link to="/biblioteca/libros?tab=administracion"><ArrowLeft size={16}/>{t('review.back')}</Link></nav>
+  <nav className="rev__migas"><Link to="/administracion/revision"><ArrowLeft size={16}/>{t('review.back')}</Link></nav>
   {revision.cargando?<div className="rev__cargando" role="status">{t('review.loading')}<div/><div/><div/></div>:
   revision.error?<div role="alert" className="rev__error">{revision.error}</div>:
   revision.propuesta&&revision.envio?<><header className="rev__encabezado">

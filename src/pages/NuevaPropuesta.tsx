@@ -721,7 +721,7 @@ export default function NuevaPropuesta() {
     propuestas: { texto: 'Mis propuestas', ruta: '/biblioteca/libros?tab=propuestas' },
     compartidos: { texto: 'Compartidos conmigo', ruta: '/biblioteca/libros?tab=compartidos' },
     catalogo: { texto: 'Catálogo', ruta: '/biblioteca/libros?tab=catalogo' },
-    administracion: { texto: 'Revisión de libros', ruta: '/biblioteca/libros?tab=administracion' },
+    administracion: { texto: 'Revisión de libros', ruta: '/administracion/revision' },
   }
   const origenEditor = parametros.get('origen') ?? ''
   const volver = origenesEditor[origenEditor] ?? origenesEditor[accesoCompartido === 'propietario' ? 'propuestas' : 'compartidos']

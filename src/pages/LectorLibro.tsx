@@ -240,7 +240,7 @@ export default function LectorLibro() {
     ? `/biblioteca/libros/editar-borrador/${propuestaId}${origenDelEditor ? `?origen=${encodeURIComponent(origenDelEditor)}` : ''}`
     : desdeRevision
     ? `/biblioteca/libros/revision/${propuestaId}`
-    : desdeAdministracion ? `/biblioteca/libros?tab=administracion&seccion=${seccionAdmin}`
+    : desdeAdministracion ? `/administracion/revision?seccion=${seccionAdmin}`
     : desdeCompartidos ? '/biblioteca/libros?tab=compartidos'
     : esBorrador ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros'
   const [libro,setLibro] = useState<LibroPublicado|null>(null)

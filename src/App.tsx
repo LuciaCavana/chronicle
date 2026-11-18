@@ -206,6 +206,7 @@ function AppRoutes() {
       <Route path="/perfil" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/configuracion" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/administracion" element={<ProtectedRoute><Administracion /></ProtectedRoute>} />
+      <Route path="/administracion/revision" element={<ProtectedRoute><Libros modo="administracion" /></ProtectedRoute>} />
       <Route
         path="/home"
         element={

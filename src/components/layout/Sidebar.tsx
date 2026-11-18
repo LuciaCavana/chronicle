@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Backpack, BookOpen, ChevronDown, ClipboardCheck, House, ScrollText, ShieldCheck, UsersRound, X, type LucideIcon } from 'lucide-react'
+import { Backpack, BookOpen, ChevronDown, House, ScrollText, ShieldCheck, UsersRound, X, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
 import { useLanguage } from '../../i18n/useLanguage'
 import type { TranslationKey } from '../../i18n/translations'
@@ -13,10 +13,10 @@ type Props = { mobileOpen?: boolean; onNavigate?: () => void; onCloseMobile?: ()
 export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile }: Props) {
   const { t } = useLanguage()
   const { role } = useAuth()
-  const { pathname, search } = useLocation()
+  const { pathname } = useLocation()
   const esAdmin = role === 'creator' || role === 'admin'
   const pendientes = usePendientesRevision(esAdmin)
-  const actual = seccionActual(pathname, search)
+  const actual = seccionActual(pathname)
   const enBiblioteca = actual === 'biblioteca' || actual === 'libros' || actual === 'clases' || actual === 'conjuros'
 
   const enlace = (seccion: SeccionMenu, ruta: string, etiqueta: TranslationKey, Icono: LucideIcon, extra?: ReactNode) => {
@@ -80,8 +80,8 @@ export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile 
 
         {esAdmin && <>
           <div className="sidebar-grupo">{t('sidebar.management')}</div>
-          {enlace('revision', '/biblioteca/libros?tab=administracion', 'sidebar.review', ClipboardCheck, insignia)}
-          {enlace('administracion', '/administracion', 'sidebar.admin', ShieldCheck)}
+          {/* La revisión de libros se abre desde Administración; la insignia avisa si hay pendientes. */}
+          {enlace('administracion', '/administracion', 'sidebar.admin', ShieldCheck, insignia)}
         </>}
       </nav>
 
