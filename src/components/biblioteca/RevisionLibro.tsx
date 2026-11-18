@@ -1,4 +1,5 @@
 import { useLanguage } from '../../i18n/useLanguage'
+import type { TranslationKey } from '../../i18n/translations'
 
 type Categoria = {
   id: string
@@ -14,13 +15,30 @@ type RevisionLibroProps = {
   idioma: string
   descripcion: string
   categorias: Categoria[]
-  cantidadEspecies: number
-  cantidadConjuros: number
-  cantidadClases?: number
-  cantidadSubclases?: number
-  cantidadObjetos?: number
+  /** Cantidad de elementos por categoría. Las categorías que todavía no tienen editor no figuran. */
+  cantidades: Record<string, number>
 }
 
+const clasificaciones: Record<string, string> = {
+  source: 'Source',
+  partnered: 'Partnered',
+  other: 'Other',
+  homebrew: 'Homebrew',
+}
+
+const idiomas: Record<string, string> = {
+  es: 'Español',
+  en: 'Inglés',
+  pt: 'Portugués',
+  fr: 'Francés',
+  de: 'Alemán',
+  it: 'Italiano',
+}
+
+/**
+ * Resumen de lo que se va a enviar a aprobación. Los problemas a corregir se
+ * muestran aparte, en "Antes de enviar", con enlaces para ir a corregirlos.
+ */
 export default function RevisionLibro({
   titulo,
   codigo,
@@ -30,125 +48,59 @@ export default function RevisionLibro({
   idioma,
   descripcion,
   categorias,
-  cantidadEspecies,
-  cantidadConjuros,
-  cantidadClases = 0,
-  cantidadSubclases = 0,
-  cantidadObjetos = 0,
+  cantidades,
 }: RevisionLibroProps) {
   const { t } = useLanguage()
-  const clasificaciones: Record<string, string> = {
-    source: 'Source',
-    partnered: 'Partnered',
-    other: 'Other',
-    homebrew: 'Homebrew',
-  }
+  // Las etiquetas traen ":" al final (se usaban en línea); en la grilla no hace falta.
+  const rotulo = (clave: TranslationKey) => t(clave).replace(/:\s*$/, '')
 
-  const idiomas: Record<string, string> = {
-    es: 'Español',
-    en: 'Inglés',
-    pt: 'Portugués',
-    fr: 'Francés',
-    de: 'Alemán',
-    it: 'Italiano',
-  }
-
-
-const advertencias: string[] = []
-
-if (categorias.length === 0) {
-  advertencias.push(t('review.warningCategory'))
-}
-
-if (
-  categorias.some((categoria) => categoria.id === 'especies') &&
-  cantidadEspecies === 0
-) {
-  advertencias.push(
-    t('review.warningSpecies')
-  )
-}
-
-if (categorias.some(categoria => categoria.id === 'objetos') && cantidadObjetos === 0) {
-  advertencias.push(t('review.warningItems'))
-}
-
-if (categorias.some(categoria => categoria.id === 'subclases') && cantidadSubclases === 0) {
-  advertencias.push(t('review.warningSubclasses'))
-}
-
-if (categorias.some(categoria => categoria.id === 'clases') && cantidadClases === 0) {
-  advertencias.push(t('review.warningClasses'))
-}
-
-if (
-  categorias.some((categoria) => categoria.id === 'conjuros') &&
-  cantidadConjuros === 0
-) {
-  advertencias.push(
-    t('review.warningSpells')
-  )
-}
-
+  const datos: { clave: TranslationKey; valor: string; falta?: boolean }[] = [
+    { clave: 'review.title', valor: titulo || t('review.incomplete'), falta: !titulo },
+    { clave: 'review.reference', valor: codigo || t('review.unspecifiedF'), falta: !codigo },
+    { clave: 'review.edition', valor: edicion || t('review.unspecifiedF'), falta: !edicion },
+    { clave: 'review.publisher', valor: editorial || t('review.unspecifiedM'), falta: !editorial },
+    { clave: 'review.classification', valor: clasificaciones[clasificacion] || t('review.incomplete'), falta: !clasificaciones[clasificacion] },
+    { clave: 'review.language', valor: idiomas[idioma] || idioma },
+  ]
 
   return (
     <div className="revision-libro">
-      <section className="nueva-propuesta-panel">
+      <section className="nueva-propuesta-panel revision-libro__panel">
         <h3>{t('review.general')}</h3>
-
-        <p><strong>{t('review.title')}</strong> {titulo || t('review.incomplete')}</p>
-        <p><strong>{t('review.reference')}</strong> {codigo || t('review.unspecifiedF')}</p>
-        <p><strong>{t('review.edition')}</strong> {edicion || t('review.unspecifiedF')}</p>
-        <p><strong>{t('review.publisher')}</strong> {editorial || t('review.unspecifiedM')}</p>
-        <p>
-          <strong>{t('review.classification')}</strong>{' '}
-          {clasificaciones[clasificacion] || t('review.incomplete')}
-        </p>
-        <p><strong>{t('review.language')}</strong> {idiomas[idioma] || idioma}</p>
-        <p><strong>{t('review.description')}</strong> {descripcion || t('review.noDescription')}</p>
+        <dl className="revision-libro__datos">
+          {datos.map(({ clave, valor, falta }) => (
+            <div key={clave} className="revision-libro__dato">
+              <dt>{rotulo(clave)}</dt>
+              <dd className={falta ? 'revision-libro__falta' : undefined}>{valor}</dd>
+            </div>
+          ))}
+          <div className="revision-libro__dato revision-libro__dato--ancho">
+            <dt>{rotulo('review.description')}</dt>
+            <dd className={descripcion ? 'revision-libro__descripcion' : 'revision-libro__falta'}>{descripcion || t('review.noDescription')}</dd>
+          </div>
+        </dl>
       </section>
 
-      <section className="nueva-propuesta-panel">
+      <section className="nueva-propuesta-panel revision-libro__panel">
         <h3>{t('review.content')}</h3>
-
         {categorias.length === 0 ? (
-          <p>{t('review.noCategories')}</p>
+          <p className="revision-libro__falta">{t('review.noCategories')}</p>
         ) : (
-          <ul>
-            {categorias.map((categoria) => (
-              <li key={categoria.id}>
-                {categoria.label}
-                {categoria.id === 'especies'
-                ? ` — ${cantidadEspecies} ${t('review.species')}`
-                : categoria.id === 'clases'
-                    ? ` — ${cantidadClases} ${t('review.classes')}`
-                : categoria.id === 'subclases'
-                    ? ` — ${cantidadSubclases} ${t('review.subclasses')}`
-                : categoria.id === 'objetos'
-                    ? ` — ${cantidadObjetos} ${t('review.items')}`
-                : categoria.id === 'conjuros'
-                    ? ` — ${cantidadConjuros} ${t('review.spells')}`
-                    : ` — ${t('review.noElements')}`}
-              </li>
-            ))}
+          <ul className="revision-libro__categorias">
+            {categorias.map((categoria) => {
+              const cantidad = cantidades[categoria.id]
+              return (
+                <li key={categoria.id} className="revision-libro__categoria">
+                  <span>{categoria.label}</span>
+                  {cantidad !== undefined && <span className={cantidad === 0 ? 'revision-libro__cantidad revision-libro__cantidad--vacia' : 'revision-libro__cantidad'}>
+                    {cantidad === 0 ? t('review.noElements') : cantidad === 1 ? t('review.elementOne') : `${cantidad} ${t('review.elements')}`}
+                  </span>}
+                </li>
+              )
+            })}
           </ul>
         )}
       </section>
-
-      {advertencias.length > 0 && (
-        <section className="nueva-propuesta-panel">
-          <h3>{t('review.warnings')}</h3>
-          <ul>
-            {advertencias.map((advertencia) => (
-              <li key={advertencia}>{advertencia}</li>
-            ))}
-          </ul>
-          <p>
-            {t('review.warningInfo')}
-          </p>
-        </section>
-      )}
-      
     </div>
   )
 }

@@ -831,7 +831,7 @@ export default function NuevaPropuesta() {
         )}
 
         {versionRemota !== null && (
-          <div role="alert" style={{ border: '1px solid #d8b77b', borderRadius: 10, background: '#342d24', color: '#f0dfbd', padding: 16, marginBottom: 16 }}>
+          <div role="alert" className="editor-libro__aviso">
             <strong>Otro colaborador guardó una versión nueva de este borrador.</strong>
             <p>Tu edición local no se reemplazó. No guardes encima de los cambios ajenos: el sistema rechazará una versión desactualizada. Para ver la versión nueva, abrí el borrador en otra pestaña. Recargar esta pestaña descartará tus cambios sin guardar.</p>
           </div>
@@ -852,7 +852,7 @@ export default function NuevaPropuesta() {
           </div>
         )}
         {errorCarga && (
-          <p role="alert" style={{ color: '#e57373' }}>
+          <p role="alert" className="editor-libro__error">
             {errorCarga}
           </p>
         )}
@@ -866,7 +866,7 @@ export default function NuevaPropuesta() {
               retirarlo de la revisión; después vas a tener que volver a enviarlo.
             </p>
             {errorRetiro && (
-              <p role="alert" style={{ color: '#e57373' }}>{errorRetiro}</p>
+              <p role="alert" className="editor-libro__error">{errorRetiro}</p>
             )}
             <button
               type="button"
@@ -1215,11 +1215,7 @@ export default function NuevaPropuesta() {
             idioma={idioma}
             descripcion={description}
             categorias={activeCategories}
-            cantidadEspecies={especies.length}
-            cantidadConjuros={conjuros.length}
-            cantidadClases={clases.length}
-            cantidadSubclases={subclases.length}
-            cantidadObjetos={objetos.length}
+            cantidades={Object.fromEntries(secciones.filter(seccion => !seccion.sinEditor).map(seccion => [seccion.id, seccion.elementos.length]))}
           />
         )}
         {currentStep === 3 && <div className="editor-libro__enviar">
@@ -1233,7 +1229,7 @@ export default function NuevaPropuesta() {
         </div>}
 
         {errorGuardado && (
-          <p role="alert" style={{ color: '#e57373' }}>
+          <p role="alert" className="editor-libro__error">
             {errorGuardado}
           </p>
         )}
