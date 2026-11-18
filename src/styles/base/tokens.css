@@ -50,6 +50,7 @@
 
   /* ---------- Estados ---------- */
   --color-peligro: #e5a0a8;
+  --color-peligro-claro: #eeb4ba;      /* hover de botones de peligro */
   --color-peligro-borde: #87505a;
   --color-peligro-fondo: #34262a;
   --color-error-texto: #e19a9a;
