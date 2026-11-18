@@ -34,8 +34,17 @@ export async function cargarRevision(propuestaId: string) {
  const cambios = Array.isArray(envio.operaciones_snapshot) ? envio.operaciones_snapshot as Cambio[] : []
  return { propuesta: propuesta as PropuestaRevision, envio: envio as EnvioRevision, cambios }
 }
-export async function aprobarRevision(propuestaId: string) {
- const { error } = await supabase.rpc('chronicle_aprobar_propuesta', { p_propuesta_id: propuestaId })
+export type DecisionEnviada = { i: number; decision: 'aceptar' | 'descartar' | 'parcial'; campos?: string[] }
+/**
+ * Aprueba la propuesta. Sin decisiones se aplica todo; con decisiones, solo lo aceptado
+ * (lo descartado vuelve al borrador del autor). El comentario le llega al autor.
+ */
+export async function aprobarRevision(propuestaId: string, decisiones: DecisionEnviada[] = [], comentario = '') {
+ const { error } = await supabase.rpc('chronicle_aprobar_propuesta', {
+  p_propuesta_id: propuestaId,
+  p_decisiones: decisiones.length ? decisiones : null,
+  p_comentario: comentario.trim() || null,
+ })
  if (error) throw errorDeSupabase(error, 'aprobar la propuesta')
  invalidarPendientesRevision()
 }

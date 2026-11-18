@@ -1,8 +1,9 @@
 import { Check, Minus, Pencil, Plus, Layers } from 'lucide-react'
 import { diferenciasCampos, type Cambio } from '../../../lib/diferencias'
 import { useLanguage } from '../../../i18n/useLanguage'
+import type { Decision } from '../../../hooks/useRevisionPropuesta'
 type Item = { cambio: Cambio; indice: number }
-type Props = { grupos: {categoria:string;items:Item[]}[]; seleccion:number; revisados:Set<number>; onSelect:(indice:number)=>void }
+type Props = { grupos: {categoria:string;items:Item[]}[]; seleccion:number; revisados:Set<number>; onSelect:(indice:number)=>void; decisiones?:Record<number,Decision> }
 export function nombreCambio(cambio: Cambio): string {
  if (cambio.categoria === 'datos_generales') return cambio.elemento_id || cambio.categoria
  const contenido = cambio.despues ?? cambio.antes
@@ -18,16 +19,18 @@ export function tipoCambio(cambio: Cambio) {
  if (cambio.accion.includes('categoria')) return 'categorias'
  return 'modificar'
 }
-export default function ListaCambios({grupos,seleccion,revisados,onSelect}:Props) {
+export default function ListaCambios({grupos,seleccion,revisados,onSelect,decisiones={}}:Props) {
  const {t} = useLanguage()
  return <div className="rev-lista">{grupos.map(grupo=><section key={grupo.categoria}>
  <h3>{grupo.categoria.replaceAll('_',' ')} <small>{grupo.items.length}</small></h3>
  {grupo.items.map(({cambio,indice})=><button type="button" key={indice}
- className={`rev-lista__item rev-lista__item--${tipoCambio(cambio)} ${seleccion===indice?'rev-lista__item--activo':''}`}
+ className={`rev-lista__item rev-lista__item--${tipoCambio(cambio)} ${seleccion===indice?'rev-lista__item--activo':''} ${decisiones[indice]?.decision==='descartar'?'rev-lista__item--descartado':''}`}
  aria-current={seleccion===indice?'true':undefined} onClick={()=>onSelect(indice)}>
  <span aria-hidden="true">{tipoCambio(cambio)==='agregar'?<Plus size={16}/>:tipoCambio(cambio)==='retirar'?<Minus size={16}/>:tipoCambio(cambio)==='categorias'?<Layers size={16}/>:<Pencil size={16}/>}</span>
  <span className="rev-lista__nombre">{nombreCambio(cambio)}</span>
  {tipoCambio(cambio)==='modificar' && <small>{cambio.accion==='modificar_campo'?1:diferenciasCampos(cambio.antes,cambio.despues).length} {t('review.fields')}</small>}
+ {decisiones[indice]?.decision==='descartar'&&<span className="rev-lista__decision rev-lista__decision--descartado">{t('review.discarded')}</span>}
+ {decisiones[indice]?.decision==='parcial'&&<span className="rev-lista__decision">{t('review.partial')}</span>}
  {revisados.has(indice)&&<Check size={17} className="rev-lista__revisado" aria-label={t('review.reviewed')}/>}
  </button>)}
  </section>)}</div>

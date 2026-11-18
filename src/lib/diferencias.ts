@@ -1,5 +1,5 @@
 /** Comparación pura para la revisión de propuestas de Chronicle. */
-export type AccionCambio = 'agregar' | 'modificar' | 'retirar' | 'modificar_campo' | 'activar_categoria' | 'desactivar_categoria'
+export type AccionCambio = 'agregar' | 'modificar' | 'corregir' | 'retirar' | 'modificar_campo' | 'activar_categoria' | 'desactivar_categoria'
 export type Cambio = {
   categoria: string
   accion: AccionCambio
@@ -169,4 +169,16 @@ export function compararVersiones(antes: DocumentoVersion, despues: DocumentoVer
       cambios.push({ categoria, accion: 'agregar', elemento_id: id, antes: null, despues: valor })
   }
   return agruparCambios(cambios).flatMap(grupo => grupo.cambios)
+}
+
+/**
+ * Campos de primer nivel que cambiaron en un elemento modificado ("corregir").
+ * Son los que el administrador puede aceptar uno por uno; una lista interna
+ * (por ejemplo, los rasgos de una clase) cuenta como un solo campo.
+ */
+export function camposModificados(cambio: Cambio): string[] {
+  if (cambio.accion !== 'corregir' || !esObjeto(cambio.antes) || !esObjeto(cambio.despues)) return []
+  const antes = cambio.antes, despues = cambio.despues
+  const claves = [...new Set([...Object.keys(antes), ...Object.keys(despues)])]
+  return claves.filter(clave => clave !== 'id' && !iguales(antes[clave], despues[clave]))
 }

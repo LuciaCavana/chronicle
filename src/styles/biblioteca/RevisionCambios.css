@@ -6,3 +6,54 @@
 .rev__autor button{min-height:30px;padding:3px 9px;font-size:12px}
 .rev__historial{margin:10px 0 16px;padding:16px;background:var(--color-fondo-panel);border:1px solid var(--color-borde-suave);border-radius:10px}
 .rev__historial ul{margin:8px 0;padding-left:20px}
+
+/* ---------- Decisión por cambio: aplicar, descartar o solo algunos campos ---------- */
+.rev-decision {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  background: var(--color-fondo-seccion);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-md);
+}
+.rev-decision__opciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.rev .rev-decision__boton { min-height: 44px; }
+.rev .rev-decision__boton--aplicar[aria-pressed="true"] { background: var(--color-exito-fondo); border-color: var(--color-exito-borde); color: var(--color-exito-claro); }
+.rev .rev-decision__boton--descartar[aria-pressed="true"] { background: var(--color-peligro-fondo); border-color: var(--color-peligro-borde); color: var(--color-peligro); }
+.rev-decision__campos { min-width: 0; margin: 0; padding: 0; border: 0; }
+.rev-decision__campos legend { margin-bottom: 8px; padding: 0; font-size: 13px; color: var(--color-texto-etiqueta); }
+.rev-decision__lista { display: flex; flex-wrap: wrap; gap: 8px; }
+.rev-decision__campo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  background: var(--color-fondo-campo);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: var(--radio-pildora);
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.rev-decision__campo:has(input:checked) { border-color: var(--color-exito-borde); color: var(--color-exito-claro); }
+.rev-decision__campo input { accent-color: var(--color-acento); width: 16px; height: 16px; }
+.rev-decision__campos .rev__secundario { margin: 8px 0 0; }
+.rev-decision__aviso { margin: 0; font-size: 13.5px; color: var(--color-peligro); }
+
+/* En la lista: qué cambios quedan afuera o se aplican en parte. */
+.rev-lista__item--descartado .rev-lista__nombre { text-decoration: line-through; color: var(--color-texto-suave); }
+.rev-lista__decision {
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: var(--radio-pildora);
+  background: var(--color-fondo-activo);
+  font-size: 11.5px;
+  color: var(--color-acento-claro);
+}
+.rev-lista__decision--descartado { background: var(--color-peligro-fondo); color: var(--color-peligro); }
+
+/* Barra de aprobación: resumen de decisiones y aviso si no queda nada para aplicar. */
+.rev-barra__resumen { margin: 0 0 6px; font-size: 13px; color: var(--color-acento-claro); }
+.rev-barra__aviso { flex: 1 1 260px; margin: 0; font-size: 13px; color: var(--color-peligro); }
+.rev__nota-completa { margin: 14px 0 0; }
