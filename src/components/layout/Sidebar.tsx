@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Backpack, BookOpen, ChevronDown, House, ScrollText, ShieldCheck, UsersRound, X, type LucideIcon } from 'lucide-react'
+import { Backpack, BookOpen, ChevronDown, ClipboardCheck, House, ScrollText, ShieldCheck, UsersRound, X, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
 import { useLanguage } from '../../i18n/useLanguage'
 import type { TranslationKey } from '../../i18n/translations'
@@ -80,8 +80,8 @@ export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile 
 
         {esAdmin && <>
           <div className="sidebar-grupo">{t('sidebar.management')}</div>
-          {/* La revisión de libros se abre desde Administración; la insignia avisa si hay pendientes. */}
-          {enlace('administracion', '/administracion', 'sidebar.admin', ShieldCheck, insignia)}
+          {enlace('revision', '/administracion/revision', 'sidebar.review', ClipboardCheck, insignia)}
+          {enlace('administracion', '/administracion', 'sidebar.admin', ShieldCheck)}
         </>}
       </nav>
 

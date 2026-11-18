@@ -22,7 +22,6 @@ import {
 } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
-import NavAdministracion from '../components/administracion/NavAdministracion'
 import ColaboradoresBorrador from '../components/biblioteca/ColaboradoresBorrador'
 import HistorialBorrador from '../components/biblioteca/HistorialBorrador'
 import HistorialAprobaciones from '../components/biblioteca/HistorialAprobaciones'
@@ -91,7 +90,7 @@ const mensajesEstado: Record<EstadoLibro, string> = {
 }
 
 type Props = {
-  /** 'administracion': la revisión de libros, que solo se abre desde Administración. */
+  /** 'administracion': la revisión de libros, que se abre desde Gestión y no es una pestaña de Libros. */
   modo?: 'biblioteca' | 'administracion'
 }
 
@@ -498,7 +497,7 @@ async function borrarPropuesta(
     finally{setActualizandoId(null)}
   }
 
-  // Enlaces viejos a la revisión dentro de Libros: se mandan a Administración.
+  // Enlaces viejos a la revisión dentro de Libros: se mandan a la nueva ruta.
   if (!enAdministracion && searchParams.get('tab') === 'administracion') {
     const seccion = searchParams.get('seccion')
     return <Navigate to={`/administracion/revision${seccion ? `?seccion=${encodeURIComponent(seccion)}` : ''}`} replace />
@@ -508,11 +507,11 @@ async function borrarPropuesta(
 
   return (
     <AppLayout
-      title={enAdministracion ? t('sidebar.admin') : t('books.title')}
-      subtitle={enAdministracion ? t('books.admin') : t('books.subtitle')}
+      title={enAdministracion ? t('books.admin') : t('books.title')}
+      subtitle={enAdministracion ? undefined : t('books.subtitle')}
     >
       <div className="libros">
-        {enAdministracion ? <NavAdministracion /> : <div className="libros-tabs">
+        {!enAdministracion && <div className="libros-tabs">
           {tabs
             .map(({ id, label, icon: Icon }) => (
               <button

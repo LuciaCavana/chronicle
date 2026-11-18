@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { Crown, Lock, Search, ShieldCheck, ShieldOff, UserRound, UsersRound, X, type LucideIcon } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
-import NavAdministracion from '../components/administracion/NavAdministracion'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/useAuth'
 import { urlAvatar } from '../services/avatar'
@@ -143,7 +142,6 @@ export default function Administracion() {
   return (
     <AppLayout title="Administración" subtitle="Usuarios y permisos de Chronicle">
       <div className="admin">
-        <NavAdministracion />
         <div className="admin-resumen" role="group" aria-label="Filtrar por rol">
           {filtros.map(({ valor, etiqueta, Icono }) => (
             <button key={valor} type="button" className={`admin-tarjeta admin-tarjeta--${valor}`} aria-pressed={filtro === valor} onClick={() => setFiltro(valor)}>
