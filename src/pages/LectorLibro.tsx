@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
+import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, WandSparkles, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { calcularFormula } from '../lib/formulasProgresion'
 import '../styles/biblioteca/LectorLibro.css'
+import logoOscuro from '../assets/logo-oscuro.svg'
 
 type Registro = Record<string, unknown>
 type Version = {
@@ -81,10 +82,10 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
   return <>
     {rasgoAbierto && <div className="lector-libro__modal-capa" role="presentation" onMouseDown={evento => { if (evento.target === evento.currentTarget) setRasgoAbierto(null) }}>
       <div className="lector-libro__modal-rasgo" role="dialog" aria-modal="true" aria-labelledby="lector-rasgo-titulo">
-        <button type="button" className="lector-libro__modal-cerrar" onClick={() => setRasgoAbierto(null)} aria-label="Cerrar definición"><X size={20}/></button>
+        <button type="button" className="lector-libro__modal-cerrar" onClick={() => setRasgoAbierto(null)} aria-label="Cerrar definición"><X size={20} aria-hidden="true"/></button>
         <div className="lector-libro__modal-cabecera">
           <h3 id="lector-rasgo-titulo">{tituloElemento(rasgoAbierto, 0)}</h3>
-          <span>Nivel {mostrar(rasgoAbierto.nivel)}</span>
+          <span className="lector-libro__rasgo-nivel">Nivel {mostrar(rasgoAbierto.nivel)}</span>
         </div>
         <div className="lector-libro__modal-cuerpo">
           <TextoSeguro valor={rasgoAbierto.descripcion}/>
@@ -141,7 +142,7 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
     {rasgos.length>0 && <section className="lector-libro__clase-bloque">
       <h4>Características de clase</h4>
       <div className="lector-libro__rasgos">{rasgos.map((rasgo,i)=><article className="lector-libro__rasgo" key={texto(rasgo.id)||i}>
-        <div className="lector-libro__rasgo-encabezado"><strong>Nivel {mostrar(rasgo.nivel)}: {tituloElemento(rasgo,i)}.</strong></div>
+        <div className="lector-libro__rasgo-encabezado"><span className="lector-libro__rasgo-nivel">Nivel {mostrar(rasgo.nivel)}</span><strong>{tituloElemento(rasgo,i)}</strong></div>
         <TextoSeguro valor={rasgo.descripcion}/>
       </article>)}</div>
     </section>}
@@ -149,14 +150,14 @@ function ClaseCompleta({ clase }: { clase: Registro }) {
 }
 function ClasesDesplegables({ seccion }: { seccion: Seccion }) {
   return <section id={seccion.id} className="lector-libro__seccion">
-    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>{seccion.titulo}</h2></div>
+    <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>{seccion.titulo}</h2></div>
     <div className="lector-libro__clases">
       {seccion.elementos.map((clase, indice) => (
         <details className="lector-libro__clase" key={texto(clase.id) || indice}>
           <summary className="lector-libro__clase-resumen">
-            <span className="lector-libro__clase-insignia"><BookOpen size={20}/></span>
+            <span className="lector-libro__clase-insignia"><BookOpen size={20} aria-hidden="true"/></span>
             <span className="lector-libro__clase-titulo">{tituloElemento(clase, indice)}</span>
-            <ChevronRight className="lector-libro__clase-flecha" size={20}/>
+            <ChevronRight className="lector-libro__clase-flecha" size={20} aria-hidden="true"/>
           </summary>
           <div className="lector-libro__clase-contenido"><ClaseCompleta clase={clase}/></div>
         </details>
@@ -166,15 +167,15 @@ function ClasesDesplegables({ seccion }: { seccion: Seccion }) {
 }
 function SubclasesDesplegables({ seccion, clases }: { seccion: Seccion; clases: Registro[] }) {
   return <section id={seccion.id} className="lector-libro__seccion">
-    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>Subclases</h2></div>
+    <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>Subclases</h2></div>
     <div className="lector-libro__clases">{seccion.elementos.map((subclase,i) => {
       const datos=valorObjeto(subclase.datos)
       const clase=clases.find(c => texto(c.id)===texto(datos.claseId))
       const rasgos=lista(datos.rasgos).sort((a,b)=>Number(a.nivel||0)-Number(b.nivel||0))
       return <details className="lector-libro__clase" key={texto(subclase.id)||i}>
-        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><BookOpen size={20}/></span><span className="lector-libro__clase-titulo">{tituloElemento(subclase,i)} · {clase ? tituloElemento(clase,0) : 'Clase no disponible'}</span><ChevronRight className="lector-libro__clase-flecha" size={20}/></summary>
+        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><BookOpen size={20} aria-hidden="true"/></span><span className="lector-libro__clase-titulo">{tituloElemento(subclase,i)} <span className="lector-libro__clase-detalle">· {clase ? tituloElemento(clase,0) : 'Clase no disponible'}</span></span><ChevronRight className="lector-libro__clase-flecha" size={20} aria-hidden="true"/></summary>
         <div className="lector-libro__clase-contenido"><TextoSeguro valor={subclase.descripcion}/>
-          {rasgos.length>0 && <section className="lector-libro__clase-bloque"><h4>Características de subclase</h4><div className="lector-libro__rasgos">{rasgos.map((rasgo,j)=><article className="lector-libro__rasgo" key={texto(rasgo.id)||j}><div className="lector-libro__rasgo-encabezado"><strong>Nivel {mostrar(rasgo.nivel)}: {tituloElemento(rasgo,j)}</strong></div><TextoSeguro valor={rasgo.descripcion}/></article>)}</div></section>}
+          {rasgos.length>0 && <section className="lector-libro__clase-bloque"><h4>Características de subclase</h4><div className="lector-libro__rasgos">{rasgos.map((rasgo,j)=><article className="lector-libro__rasgo" key={texto(rasgo.id)||j}><div className="lector-libro__rasgo-encabezado"><span className="lector-libro__rasgo-nivel">Nivel {mostrar(rasgo.nivel)}</span><strong>{tituloElemento(rasgo,j)}</strong></div><TextoSeguro valor={rasgo.descripcion}/></article>)}</div></section>}
         </div>
       </details>
     })}</div>
@@ -182,7 +183,7 @@ function SubclasesDesplegables({ seccion, clases }: { seccion: Seccion; clases: 
 }
 function SeccionContenido({ seccion }: { seccion: Seccion }) {
   return <section id={seccion.id} className="lector-libro__seccion">
-    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>{seccion.titulo}</h2></div>
+    <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>{seccion.titulo}</h2></div>
     {seccion.elementos.length === 0
       ? <p className="lector-libro__vacio">Todavía no hay contenido publicado en esta sección.</p>
       : <div className="lector-libro__entradas">{seccion.elementos.map((elemento, i) => <article className="lector-libro__entrada" key={texto(elemento.id) || i}>
@@ -194,7 +195,7 @@ function SeccionContenido({ seccion }: { seccion: Seccion }) {
 }
 function ConjurosDesplegables({ seccion }: { seccion: Seccion }) {
   return <section className="lector-libro__seccion" id={seccion.id}>
-    <div className="lector-libro__seccion-encabezado"><Feather size={20}/><h2>Conjuros</h2></div>
+    <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>Conjuros</h2></div>
     <div className="lector-libro__clases">{seccion.elementos.map((conjuro,i) => {
       const nivel = Number(conjuro.nivel ?? 0)
       const origen = texto(conjuro.libroOrigen)
@@ -203,21 +204,20 @@ function ConjurosDesplegables({ seccion }: { seccion: Seccion }) {
       const material = texto(conjuro.componenteMaterial)
       const clases = valoresTexto(conjuro.clases)
       return <details className="lector-libro__clase" key={texto(conjuro.id)||i}>
-        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><BookOpen size={20}/></span><span className="lector-libro__clase-titulo">{tituloElemento(conjuro,i)}</span><ChevronRight className="lector-libro__clase-flecha" size={20}/></summary>
-        <article className="lector-libro__conjuro">
+        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><WandSparkles size={20} aria-hidden="true"/></span><span className="lector-libro__clase-titulo">{tituloElemento(conjuro,i)} <span className="lector-libro__clase-detalle">· {nivel===0 ? 'Truco' : `Nivel ${nivel}`}</span></span><ChevronRight className="lector-libro__clase-flecha" size={20} aria-hidden="true"/></summary>
+        <article className="lector-libro__conjuro" aria-label={tituloElemento(conjuro,i)}>
           <header className="lector-libro__conjuro-cabecera">
-            <h3>{tituloElemento(conjuro,i)}</h3>
+            <p className="lector-libro__conjuro-escuela">{nivel===0 ? 'Truco' : `Conjuro de nivel ${nivel}`}{texto(conjuro.escuela) ? ` · ${texto(conjuro.escuela)}` : ''}{conjuro.ritual ? ' (ritual)' : ''}</p>
             {(origen || (Number.isInteger(pagina) && pagina>0)) && <span className="lector-libro__conjuro-fuente">{origen}{origen && pagina>0 ? ' · ' : ''}{pagina>0 ? `pág. ${pagina}` : ''}</span>}
           </header>
-          <p className="lector-libro__conjuro-escuela"><em>{nivel===0 ? 'Truco' : `Conjuro de nivel ${nivel}`}{texto(conjuro.escuela) ? ` · ${texto(conjuro.escuela)}` : ''}{conjuro.ritual ? ' (ritual)' : ''}</em></p>
-          <div className="lector-libro__conjuro-datos">
-            {texto(conjuro.tiempoLanzamiento) && <p><strong>Tiempo de lanzamiento:</strong> {texto(conjuro.tiempoLanzamiento)}</p>}
-            {texto(conjuro.alcance) && <p><strong>Alcance:</strong> {texto(conjuro.alcance)}</p>}
-            {componentes && <p><strong>Componentes:</strong> {componentes}{material ? ` (${material})` : ''}</p>}
-            {texto(conjuro.duracion) && <p><strong>Duración:</strong> {conjuro.concentracion ? 'Concentración, ' : ''}{texto(conjuro.duracion)}</p>}
-          </div>
+          <dl className="lector-libro__conjuro-datos">
+            {texto(conjuro.tiempoLanzamiento) && <div className="lector-libro__conjuro-dato"><dt>Tiempo de lanzamiento</dt><dd>{texto(conjuro.tiempoLanzamiento)}</dd></div>}
+            {texto(conjuro.alcance) && <div className="lector-libro__conjuro-dato"><dt>Alcance</dt><dd>{texto(conjuro.alcance)}</dd></div>}
+            {componentes && <div className="lector-libro__conjuro-dato"><dt>Componentes</dt><dd>{componentes}{material ? ` (${material})` : ''}</dd></div>}
+            {texto(conjuro.duracion) && <div className="lector-libro__conjuro-dato"><dt>Duración</dt><dd>{conjuro.concentracion ? 'Concentración, ' : ''}{texto(conjuro.duracion)}</dd></div>}
+          </dl>
           <TextoSeguro valor={conjuro.descripcion}/>
-          {clases.length>0 && <p className="lector-libro__conjuro-clases"><strong>Clases:</strong> {clases.join(', ')}</p>}
+          {clases.length>0 && <p className="lector-libro__conjuro-clases">Clases: {clases.map(c => <span key={c}>{c}</span>)}</p>}
         </article>
       </details>
     })}</div>
@@ -312,6 +312,35 @@ export default function LectorLibro() {
     {id:'criaturas',titulo:'Criaturas',elementos:lista(extras.criaturas)},
     {id:'caracteristicas',titulo:'Características y reglas',elementos:lista(extras.caracteristicas)}
   ].filter(seccion => categoriasActivas.includes(seccion.id)) : []
+  const seccionesConContenido = secciones.filter(s=>s.elementos.length>0)
+  const indice = [{ id: 'introduccion', titulo: 'Introducción' }, ...seccionesConContenido.map(s => ({ id: s.id, titulo: s.titulo }))]
+  const idsIndice = indice.map(item => item.id).join('|')
+  // Sección que se está leyendo: la última cuyo comienzo ya pasó el borde superior.
+  const [seccionActiva, setSeccionActiva] = useState('introduccion')
+  const indiceRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    const contenedor = document.querySelector<HTMLElement>('.app-layout-content')
+    if (!contenedor || !idsIndice) return
+    const ids = idsIndice.split('|')
+    const actualizar = () => {
+      const borde = contenedor.getBoundingClientRect().top + 120
+      let actual = ids[0]
+      for (const id of ids) {
+        const elemento = document.getElementById(id)
+        if (elemento && elemento.getBoundingClientRect().top <= borde) actual = id
+      }
+      setSeccionActiva(actual)
+    }
+    contenedor.addEventListener('scroll', actualizar, { passive: true })
+    return () => contenedor.removeEventListener('scroll', actualizar)
+  }, [idsIndice])
+  // En celular el índice es una fila desplazable: se acomoda para que se vea la sección actual.
+  useEffect(() => {
+    const fila = indiceRef.current
+    const enlace = fila?.querySelector<HTMLElement>(`[data-seccion="${seccionActiva}"]`)
+    if (!fila || !enlace || fila.scrollWidth <= fila.clientWidth) return
+    fila.scrollTo({ left: enlace.offsetLeft - 8, behavior: 'smooth' })
+  }, [seccionActiva])
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
   const textoVolver = desdeEditor ? 'Editor' : desdeRevision ? 'Revisión' : desdeAdministracion ? 'Revisión de libros' : desdeCompartidos ? 'Compartidos conmigo' : esBorrador ? 'Mis propuestas' : 'Libros y propuestas'
   return <AppLayout title={version?.titulo || 'Biblioteca'} subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"} migaAnterior={{ texto: textoVolver, ruta: destinoVolver }}>
@@ -324,24 +353,24 @@ export default function LectorLibro() {
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>
         <header className="lector-libro__portada">
-          <div className="lector-libro__sello"><BookOpen size={30} strokeWidth={1.5}/></div>
-          <span className="lector-libro__sobre">{esBorrador ? "CHRONICLE · VISTA PREVIA — BORRADOR SIN PUBLICAR" : "CHRONICLE · BIBLIOTECA"}</span>
+          <img className="lector-libro__sello" src={logoOscuro} alt="" width={64} height={64}/>
+          <span className={`lector-libro__sobre${esBorrador ? ' lector-libro__sobre--borrador' : ''}`}>{esBorrador ? 'Vista previa · borrador sin publicar' : 'Biblioteca de Chronicle'}</span>
           <h1>{version.titulo || 'Libro sin título'}</h1>
-          <div className="lector-libro__ornamento"><span/>✦<span/></div>
           <p className="lector-libro__subtitulo">{libro.editorial || 'Una obra de la comunidad'}</p>
           <div className="lector-libro__metadatos">
             {libro.edicion && <span>Edición {libro.edicion}</span>}
             {libro.codigo && <span>{libro.codigo}</span>}
             {libro.clasificacion && <span>{libro.clasificacion}</span>}
           </div>
+          {libro.libro_versiones.length>1 && <div className="lector-libro__idioma"><label htmlFor="lector-version">Versión / idioma</label><select id="lector-version" value={version.id} onChange={e=>setVersionId(e.target.value)}>{libro.libro_versiones.map(v=><option key={v.id} value={v.id}>{v.idioma.toUpperCase()} · {v.titulo}</option>)}</select></div>}
         </header>
         <div className="lector-libro__disposicion">
-          <aside className="lector-libro__indice" aria-label="Índice del libro">
-            <div className="lector-libro__indice-titulo"><ScrollText size={18}/> CONTENIDO</div>
-            <a href="#introduccion"><span>01</span> Introducción <ChevronRight size={14}/></a>
-            {secciones.filter(s=>s.elementos.length>0).map((seccion,i)=><a key={seccion.id} href={`#${seccion.id}`}><span>{String(i+2).padStart(2,'0')}</span>{seccion.titulo}<ChevronRight size={14}/></a>)}
-            {libro.libro_versiones.length>1 && <div className="lector-libro__idioma"><label htmlFor="lector-version">Versión / idioma</label><select id="lector-version" value={version.id} onChange={e=>setVersionId(e.target.value)}>{libro.libro_versiones.map(v=><option key={v.id} value={v.id}>{v.idioma.toUpperCase()} · {v.titulo}</option>)}</select></div>}
-          </aside>
+          <nav className="lector-libro__indice" aria-label="Índice del libro" ref={indiceRef}>
+            <div className="lector-libro__indice-titulo"><ScrollText size={16} aria-hidden="true"/> Contenido</div>
+            {indice.map((item,i)=><a key={item.id} href={`#${item.id}`} data-seccion={item.id}
+              className={seccionActiva===item.id ? 'lector-libro__indice-actual' : undefined}
+              aria-current={seccionActiva===item.id ? 'location' : undefined}><span>{String(i+1).padStart(2,'0')}</span>{item.titulo}</a>)}
+          </nav>
           <div className="lector-libro__paginas">
             <section id="introduccion" className="lector-libro__introduccion">
               <span className="lector-libro__eyebrow">PREFACIO</span>
@@ -349,9 +378,9 @@ export default function LectorLibro() {
               <TextoSeguro valor={version.descripcion || 'Un nuevo mundo de aventuras te espera entre estas páginas.'}/>
               {categorias.length>0 && <div className="lector-libro__categorias">{categorias.map(c=><span key={c}>{c}</span>)}</div>}
             </section>
-            {secciones.filter(s=>s.elementos.length>0).map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : s.id === 'subclases' ? <SubclasesDesplegables key={s.id} seccion={s} clases={lista(version.clases)}/> : s.id === 'conjuros' ? <ConjurosDesplegables key={s.id} seccion={s}/> : <SeccionContenido key={s.id} seccion={s}/>)}
-            {secciones.every(s=>s.elementos.length===0) && <p className="lector-libro__vacio">Este libro todavía no tiene entradas estructuradas disponibles para leer.</p>}
-            <footer className="lector-libro__pie">✦ <span>Chronicle · Fin del contenido disponible</span> ✦</footer>
+            {seccionesConContenido.map(s=>s.id === 'clases' ? <ClasesDesplegables key={s.id} seccion={s}/> : s.id === 'subclases' ? <SubclasesDesplegables key={s.id} seccion={s} clases={lista(version.clases)}/> : s.id === 'conjuros' ? <ConjurosDesplegables key={s.id} seccion={s}/> : <SeccionContenido key={s.id} seccion={s}/>)}
+            {seccionesConContenido.length===0 && <p className="lector-libro__vacio">Este libro todavía no tiene entradas estructuradas disponibles para leer.</p>}
+            <footer className="lector-libro__pie">Fin del contenido disponible</footer>
           </div>
         </div>
       </> : null}

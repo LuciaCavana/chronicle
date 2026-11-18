@@ -20,6 +20,7 @@
   --color-texto-suave: #a4a3b2;       /* ayudas, texto secundario */
   --color-texto-tenue: #aaa9b6;       /* texto secundario alternativo */
   --color-texto-sobre-acento: #171923;/* texto encima del dorado */
+  --color-texto-lectura: #d8d1c9;     /* párrafos largos del lector de libros */
 
   /* ---------- Superficies (de más oscura a más clara) ---------- */
   --color-fondo-app: #10121a;
@@ -39,6 +40,9 @@
   --color-fondo-subactivo: #1d1f2a;   /* subítem de la página actual */
   --color-fondo-menu: #1e2029;        /* desplegables y paneles flotantes */
   --color-fondo-avatar: #2d2a26;
+
+  /* ---------- Capas ---------- */
+  --color-capa-modal: rgba(7, 8, 11, .78); /* fondo oscuro detrás de un modal */
 
   /* ---------- Bordes ---------- */
   --color-borde: #454354;             /* borde de campos */
