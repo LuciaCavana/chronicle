@@ -206,8 +206,8 @@ export default function NuevaPropuesta() {
 
   // Navegación entre pasos
   // Vista del editor: 'datos', 'contenido', 'revisar' o 'cat:<categoría>'.
-  // Un borrador existente abre en el contenido; uno nuevo, en los datos del libro.
-  const [vista, setVista] = useState(() => modoEdicion ? 'contenido' : 'datos')
+  // El editor siempre abre en los datos del libro, sea un borrador nuevo o uno existente.
+  const [vista, setVista] = useState('datos')
   const currentStep = vista === 'datos' ? 1 : vista === 'revisar' ? 3 : 2
   // En celular el índice es la primera pantalla.
   const [indiceMovil, setIndiceMovil] = useState(true)
