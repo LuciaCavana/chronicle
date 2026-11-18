@@ -34,6 +34,7 @@ import {
 
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
+import { categoriasConObjetos, sumarObjetosDeClases } from '../lib/objetosDeClases'
 
 type TipoPropuesta = 'nuevo' | 'traduccion'
 type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
@@ -110,12 +111,13 @@ export default function NuevaPropuesta() {
     setPublisher(origen.editorial ?? '')
     setBookType(origen.clasificacion ?? '')
     setDescription(origen.descripcion ?? '')
-    setSelectedCategories(origen.categorias ?? [])
+    const objetosOrigen = sumarObjetosDeClases((origen.objetos ?? []) as Elemento[], (origen.clases ?? []) as Elemento[])
+    setSelectedCategories(categoriasConObjetos(origen.categorias ?? [], objetosOrigen.length > (origen.objetos ?? []).length))
     setEspecies((origen.especies ?? []) as Especie[])
     setConjuros((origen.conjuros ?? []) as Conjuro[])
     setClases((origen.clases ?? []) as Elemento[])
     setSubclases((origen.subclases ?? []) as Elemento[])
-    setObjetos((origen.objetos ?? []) as Elemento[])
+    setObjetos(objetosOrigen)
     setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
     setDotes([])
     setTrasfondos([])
@@ -154,17 +156,11 @@ export default function NuevaPropuesta() {
   // Los objetos creados dentro de una clase también forman parte del catálogo del libro.
   const actualizarClaseConObjetos = (actualizada: Elemento) => {
     setClases(actuales => actuales.map(c => c.id === actualizada.id ? actualizada : c))
-    const catalogo = (actualizada.datos as { objetosCatalogo?: { id: string; nombre: string; descripcion?: string; tipo?: string }[] }).objetosCatalogo
-    if (!Array.isArray(catalogo)) return
-    setObjetos(actuales => {
-      const existentes = new Set(actuales.map(o => o.id))
-      const nuevos = catalogo.filter(o => o.id && o.nombre?.trim() && !existentes.has(o.id))
-        .map(o => ({
-          id: o.id, tipo: 'objeto', nombre: o.nombre, descripcion: o.descripcion ?? '',
-          datos: { tipo: o.tipo === 'arma' ? 'arma' : 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false },
-        } as Elemento))
-      return nuevos.length ? [...actuales, ...nuevos] : actuales
-    })
+    const conObjetosDeClase = sumarObjetosDeClases(objetos, [actualizada])
+    if (conObjetosDeClase !== objetos) {
+      setObjetos(conObjetosDeClase)
+      setSelectedCategories(categorias => categoriasConObjetos(categorias, true))
+    }
   }
   const clasesExternas = versionesPublicadas.flatMap(version =>
     ((version.clases ?? []) as Elemento[]).filter((clase: Elemento) => clase.id && clase.nombre).map((clase: Elemento) => ({
@@ -283,7 +279,8 @@ export default function NuevaPropuesta() {
       setBookType(metadatos.clasificacion ?? '')
       setDescription(propuesta.descripcion ?? '')
       setIdioma(propuesta.idioma ?? 'es')
-      setSelectedCategories(propuesta.categorias ?? [])
+      const objetosBorrador = sumarObjetosDeClases(contenido.objetos ?? [], contenido.clases ?? [])
+      setSelectedCategories(categoriasConObjetos(propuesta.categorias ?? [], objetosBorrador.length > (contenido.objetos ?? []).length))
       setEspecies(contenido.especies ?? [])
       setConjuros(contenido.conjuros ?? [])
       setDotes(contenido.dotes ?? [])
@@ -291,7 +288,7 @@ export default function NuevaPropuesta() {
       setCriaturas(contenido.criaturas ?? [])
       setClases(contenido.clases ?? [])
       setSubclases(contenido.subclases ?? [])
-      setObjetos(contenido.objetos ?? [])
+      setObjetos(objetosBorrador)
       setCaracteristicas(contenido.caracteristicas ?? [])
       baseColaborativa.current = {
         row_version: propuesta.row_version,
@@ -333,7 +330,8 @@ export default function NuevaPropuesta() {
         setBookType(libro.clasificacion ?? '')
         setDescription(version.descripcion ?? '')
         setIdioma(version.idioma ?? 'es')
-        setSelectedCategories(version.categorias ?? [])
+        const objetosVersion = sumarObjetosDeClases((version.objetos ?? []) as Elemento[], (version.clases ?? []) as Elemento[])
+        setSelectedCategories(categoriasConObjetos(version.categorias ?? [], objetosVersion.length > (version.objetos ?? []).length))
         setEspecies((version.especies ?? []) as Especie[])
         setConjuros((version.conjuros ?? []) as Conjuro[])
         setDotes([]) // Las versiones publicadas aún no almacenan dotes.
@@ -341,7 +339,7 @@ export default function NuevaPropuesta() {
         setCriaturas([]) // Pendiente de publicación.
         setClases((version.clases ?? []) as Elemento[])
         setSubclases((version.subclases ?? []) as Elemento[])
-        setObjetos((version.objetos ?? []) as Elemento[])
+        setObjetos(objetosVersion)
         setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
         setCurrentStep(1)
