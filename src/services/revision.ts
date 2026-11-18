@@ -1,6 +1,7 @@
 import { supabase } from '../lib/supabase'
 import type { Cambio } from '../lib/diferencias'
 import { errorDeSupabase } from '../lib/erroresSupabase'
+import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 export type PropuestaRevision = {
  id: string; titulo: string; idioma: string; tipo: string; autor_id: string
@@ -36,10 +37,12 @@ export async function cargarRevision(propuestaId: string) {
 export async function aprobarRevision(propuestaId: string) {
  const { error } = await supabase.rpc('chronicle_aprobar_propuesta', { p_propuesta_id: propuestaId })
  if (error) throw errorDeSupabase(error, 'aprobar la propuesta')
+ invalidarPendientesRevision()
 }
 export async function rechazarRevision(propuestaId: string, motivo: string) {
  const { error } = await supabase.rpc('chronicle_rechazar_propuesta', { p_propuesta_id: propuestaId, p_motivo: motivo })
  if (error) throw errorDeSupabase(error, 'rechazar la propuesta')
+ invalidarPendientesRevision()
 }
 
 export type ActividadAutor = {

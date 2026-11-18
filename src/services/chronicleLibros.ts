@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 export type EstadoLibro = 'borrador' | 'pendiente' | 'rechazado' | 'publicado'
 export type Capitulo = { id: string; titulo: string; texto: string }
@@ -34,12 +35,14 @@ export async function guardarLibroMotor(input: LibroEntrada, id: string | null =
 export async function enviarLibroMotor(id: string, revision: number) {
   const { error } = await supabase.rpc('chronicle_enviar_libro', { p_id: id, p_revision: revision })
   if (error) throw error
+  invalidarPendientesRevision()
 }
 export async function resolverLibroMotor(id: string, revision: number, aprobar: boolean, comentario: string) {
   const { error } = await supabase.rpc('chronicle_resolver_libro', {
     p_id: id, p_revision: revision, p_aprobar: aprobar, p_comentario: comentario,
   })
   if (error) throw error
+  invalidarPendientesRevision()
 }
 export async function soyAdminMotor() {
   const { data, error } = await supabase.rpc('chronicle_es_admin')

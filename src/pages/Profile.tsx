@@ -7,6 +7,7 @@ import { useAuth } from '../contexts/useAuth'
 import { supabase } from '../lib/supabase'
 import { cambiarAvatar, quitarAvatar, urlAvatar } from '../services/avatar'
 import { useLanguage } from '../i18n/useLanguage'
+import { actualizarPerfilSesion } from '../hooks/usePerfilSesion'
 
 type ProfileData = {
   id: string
@@ -81,6 +82,7 @@ export default function Profile() {
       setDisplayName(data.display_name)
       setUsername(data.username)
       setBio(data.bio)
+      actualizarPerfilSesion({ nombre: data.display_name?.trim() || data.username || '' })
       setMessage(t('profile.saved'))
     }
     setSaving(false)

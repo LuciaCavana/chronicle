@@ -32,6 +32,7 @@ import { crearPropuestaCorreccion, enviarBorradorAprobacion, retirarDeAprobacion
 import '../styles/biblioteca/Libros.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
+import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 type BooksTab = 'catalogo' | 'propuestas' | 'compartidos' | 'administracion'
 
@@ -480,6 +481,7 @@ async function borrarPropuesta(
     try {
       const {error:err}=await supabase.rpc('chronicle_rechazar_libro',{p_libro_id:rechazandoLibroId,p_motivo:motivoRechazo.trim()})
       if(err)throw err
+      invalidarPendientesRevision()
       setRechazandoLibroId(null);setMotivoRechazo('')
       setMensajeAdmin('Libro rechazado. El motivo quedó disponible para su autor en Mis propuestas.')
       await cargarLibros()

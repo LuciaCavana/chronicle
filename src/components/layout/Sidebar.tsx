@@ -15,7 +15,7 @@ export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile 
   const { role } = useAuth()
   const { pathname, search } = useLocation()
   const esAdmin = role === 'creator' || role === 'admin'
-  const pendientes = usePendientesRevision(esAdmin, pathname + search)
+  const pendientes = usePendientesRevision(esAdmin)
   const actual = seccionActual(pathname, search)
   const enBiblioteca = actual === 'biblioteca' || actual === 'libros' || actual === 'clases' || actual === 'conjuros'
 
