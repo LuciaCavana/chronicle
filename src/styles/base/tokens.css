@@ -29,6 +29,17 @@
   --color-fondo-elevado: #242331;     /* chips, recuadros sobre panel */
   --color-fondo-alterno: #292b39;
 
+  /* ---------- Navegación (cabecera y menú lateral) ---------- */
+  --color-fondo-navegacion: #13151e;
+  --color-borde-navegacion: #2a2a38;
+  --color-separador-navegacion: #23232f;
+  --color-texto-navegacion: #b9b6c4;
+  --color-texto-apagado: #8e8c9c;     /* rótulos de grupo, ítems "Pronto" */
+  --color-fondo-activo: #2a2621;      /* ítem de la página actual */
+  --color-fondo-subactivo: #1d1f2a;   /* subítem de la página actual */
+  --color-fondo-menu: #1e2029;        /* desplegables y paneles flotantes */
+  --color-fondo-avatar: #2d2a26;
+
   /* ---------- Bordes ---------- */
   --color-borde: #454354;             /* borde de campos */
   --color-borde-suave: #343342;       /* borde de paneles */
@@ -39,6 +50,7 @@
 
   /* ---------- Estados ---------- */
   --color-peligro: #e5a0a8;
+  --color-peligro-claro: #eeb4ba;      /* hover de botones de peligro */
   --color-peligro-borde: #87505a;
   --color-peligro-fondo: #34262a;
   --color-error-texto: #e19a9a;

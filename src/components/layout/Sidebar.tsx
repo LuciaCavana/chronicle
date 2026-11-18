@@ -1,78 +1,87 @@
-
-import { useState } from 'react'
+import type { ReactNode } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import { Backpack, BookOpen, ClipboardCheck, House, ScrollText, ShieldCheck, UsersRound, X, type LucideIcon } from 'lucide-react'
 import { useAuth } from '../../contexts/useAuth'
-import { NavLink } from 'react-router-dom'
-import '../../styles/layout/Sidebar.css'
 import { useLanguage } from '../../i18n/useLanguage'
 import type { TranslationKey } from '../../i18n/translations'
-import {
-  House,
-  UsersRound,
-  ScrollText,
-  BookOpen,
-  Backpack,
-  ShieldCheck,
-} from 'lucide-react'
+import { seccionActual, type SeccionMenu } from '../../lib/navegacion'
+import { usePendientesRevision } from '../../hooks/usePendientesRevision'
+import '../../styles/layout/Sidebar.css'
 
+type Props = { mobileOpen?: boolean; onNavigate?: () => void; onCloseMobile?: () => void }
 
-
-const menuItems: { label: TranslationKey; icon: typeof House; path: string }[] = [
-  { label: 'sidebar.home', icon: House, path: '/home' },
-  { label: 'sidebar.characters', icon: UsersRound, path: '/personajes' },
-  { label: 'sidebar.campaigns', icon: ScrollText, path: '/campanas' },
-  { label: 'sidebar.library', icon: BookOpen, path: '/biblioteca' },
-  { label: 'sidebar.inventory', icon: Backpack, path: '/inventario' },
-]
-
-export default function Sidebar({ mobileOpen = false, onNavigate }: { mobileOpen?: boolean; onNavigate?: () => void }) {
-  const [collapsed, setCollapsed] = useState(true)
+export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile }: Props) {
   const { t } = useLanguage()
-  // El rol viene del contexto de sesión; Supabase verifica los permisos reales.
   const { role } = useAuth()
+  const { pathname, search } = useLocation()
   const esAdmin = role === 'creator' || role === 'admin'
+  const pendientes = usePendientesRevision(esAdmin, pathname + search)
+  const actual = seccionActual(pathname, search)
+  const enBiblioteca = actual === 'biblioteca' || actual === 'libros' || actual === 'clases' || actual === 'conjuros'
+
+  const enlace = (seccion: SeccionMenu, ruta: string, etiqueta: TranslationKey, Icono: LucideIcon, extra?: ReactNode) => {
+    const activo = actual === seccion
+    return <Link to={ruta} onClick={onNavigate} className={`sidebar-item${activo ? ' sidebar-item--activo' : ''}`} aria-current={activo ? 'page' : undefined}>
+      <Icono className="sidebar-icono" size={20} strokeWidth={1.8} aria-hidden="true"/>
+      <span className="sidebar-texto">{t(etiqueta)}</span>
+      {extra}
+    </Link>
+  }
+
+  const pronto = (etiqueta: TranslationKey, Icono: LucideIcon) =>
+    <span className="sidebar-item sidebar-item--pronto" aria-disabled="true">
+      <Icono className="sidebar-icono" size={20} strokeWidth={1.8} aria-hidden="true"/>
+      <span className="sidebar-texto">{t(etiqueta)}</span>
+      <span className="sidebar-pronto">{t('sidebar.soon')}</span>
+    </span>
+
+  const subitem = (seccion: SeccionMenu, ruta: string, etiqueta: TranslationKey) =>
+    <Link to={ruta} onClick={onNavigate} className={`sidebar-subitem${actual === seccion ? ' sidebar-subitem--activo' : ''}`} aria-current={actual === seccion ? 'page' : undefined}>{t(etiqueta)}</Link>
+
+  const insignia = pendientes > 0
+    ? <span className="sidebar-insignia" aria-label={`${pendientes} ${t('sidebar.pending')}`}>{pendientes > 99 ? '99+' : pendientes}</span>
+    : null
 
   return (
-    <aside
-      className={`sidebar ${collapsed ? 'sidebar--collapsed' : ''} ${mobileOpen ? 'sidebar--mobile-open' : ''}`}
-      onMouseEnter={() => setCollapsed(false)}
-      onMouseLeave={() => setCollapsed(true)}
-    >
-      <div className="sidebar-header">
-        {(!collapsed || mobileOpen) && (
-          <span className="sidebar-brand">CHRONICLE</span>
-        )}
+    <aside className={`sidebar${mobileOpen ? ' sidebar--movil-abierto' : ''}`}>
+      <div className="sidebar-panel">
+      <div className="sidebar-cabecera">
+        <Link to="/home" onClick={onNavigate} className="sidebar-marca" aria-label={t('sidebar.home.aria')}>
+          <span className="sidebar-monograma" aria-hidden="true">C</span>
+          <span className="sidebar-nombre">CHRONICLE</span>
+        </Link>
+        <button type="button" className="sidebar-cerrar-movil" aria-label={t('nav.closeMenu')} onClick={onCloseMobile}><X size={20} aria-hidden="true"/></button>
       </div>
 
       <nav className="sidebar-nav" aria-label={t('sidebar.menu')}>
-        {[...menuItems, ...(esAdmin ? [{ label: 'sidebar.admin' as TranslationKey, icon: ShieldCheck, path: '/administracion' }] : [])].map((item) => {
-          const Icon = item.icon
+        {enlace('inicio', '/home', 'sidebar.home', House)}
 
-          return (
-            <NavLink
-              key={item.path}
-              onClick={onNavigate}
-              to={item.path}
-              className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'sidebar-link--active' : ''}`
-              }
-              title={collapsed && !mobileOpen ? t(item.label) : undefined}
-            >
-              <Icon
-                className="sidebar-icon"
-                size={22}
-                strokeWidth={1.8}
-                aria-hidden="true"
-              />
+        <div className="sidebar-grupo">{t('sidebar.content')}</div>
+        <div className="sidebar-bloque">
+          <Link to="/biblioteca" onClick={onNavigate} className={`sidebar-item${enBiblioteca ? ' sidebar-item--activo' : ''}`} aria-current={actual === 'biblioteca' ? 'page' : undefined}>
+            <BookOpen className="sidebar-icono" size={20} strokeWidth={1.8} aria-hidden="true"/>
+            <span className="sidebar-texto">{t('sidebar.library')}</span>
+          </Link>
+          <div className="sidebar-subitems">
+            {subitem('libros', '/biblioteca/libros', 'sidebar.books')}
+            {subitem('clases', '/biblioteca/clases', 'sidebar.classes')}
+            {subitem('conjuros', '/biblioteca/conjuros', 'sidebar.spells')}
+          </div>
+        </div>
 
-              {!collapsed && (
-                <span className="sidebar-label">
-                  {t(item.label)}
-                </span>
-              )}
-            </NavLink>
-          )
-        })}
+        <div className="sidebar-grupo">{t('sidebar.game')}</div>
+        {pronto('sidebar.characters', UsersRound)}
+        {pronto('sidebar.campaigns', ScrollText)}
+        {pronto('sidebar.inventory', Backpack)}
+
+        {esAdmin && <>
+          <div className="sidebar-grupo">{t('sidebar.management')}</div>
+          {enlace('revision', '/biblioteca/libros?tab=administracion', 'sidebar.review', ClipboardCheck, insignia)}
+          {enlace('administracion', '/administracion', 'sidebar.admin', ShieldCheck)}
+        </>}
       </nav>
+
+      </div>
     </aside>
   )
 }
