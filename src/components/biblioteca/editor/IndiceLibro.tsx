@@ -8,6 +8,7 @@ type Props = {
   activo: ElementoActivo
   problemas: number
   onDatos: () => void
+  onContenido: () => void
   onRevisar: () => void
   onCategoria: (id: string) => void
   onElemento: (categoria: string, id: string) => void
@@ -18,7 +19,7 @@ type Props = {
 }
 
 /** Índice del libro: datos, categorías activas con sus elementos y revisión. */
-export default function IndiceLibro({ secciones, vista, activo, problemas, onDatos, onRevisar, onCategoria, onElemento, onAgregar, disponibles, onAgregarCategoria }: Props) {
+export default function IndiceLibro({ secciones, vista, activo, problemas, onDatos, onContenido, onRevisar, onCategoria, onElemento, onAgregar, disponibles, onAgregarCategoria }: Props) {
   const [eligiendoCategoria, setEligiendoCategoria] = useState(false)
   const categoriaActual = vista.startsWith('cat:') ? vista.slice(4) : null
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set(categoriaActual ? [categoriaActual] : []))
@@ -35,7 +36,9 @@ export default function IndiceLibro({ secciones, vista, activo, problemas, onDat
         <BookOpen size={18} aria-hidden="true" />Datos del libro
       </button>
 
-      <span className="indice-libro__grupo">Contenido</span>
+      <button type="button" className={`indice-libro__grupo indice-libro__grupo--boton${vista === 'contenido' ? ' indice-libro__grupo--activo' : ''}`} aria-current={vista === 'contenido' ? 'page' : undefined} onClick={onContenido}>
+        Contenido<span>Ver todo</span>
+      </button>
       {secciones.length === 0 && <p className="indice-libro__vacio">Elegí qué incluye el libro en “Datos del libro”.</p>}
       {secciones.map(seccion => {
         const abierta = estaAbierta(seccion.id)

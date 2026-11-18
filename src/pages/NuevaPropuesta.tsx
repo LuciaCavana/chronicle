@@ -1,7 +1,7 @@
 import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ChevronLeft, Eye, ListTree, Save, Send, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase'
 import '../styles/biblioteca/NuevaPropuesta.css'
 import IndiceLibro from '../components/biblioteca/editor/IndiceLibro'
 import CategoriaContenido from '../components/biblioteca/editor/CategoriaContenido'
+import ResumenContenido from '../components/biblioteca/editor/ResumenContenido'
 import type { ElementoActivo, SeccionLibro } from '../components/biblioteca/editor/tipos'
 import '../styles/biblioteca/EditorLibro.css'
 import EspecieForm from '../components/biblioteca/EspecieForm'
@@ -194,8 +195,9 @@ export default function NuevaPropuesta() {
   const [editingSpeciesId, setEditingSpeciesId] = useState<string | null>(null)
 
   // Navegación entre pasos
-  // Vista del editor: 'datos', 'revisar' o 'cat:<categoría>'.
-  const [vista, setVista] = useState('datos')
+  // Vista del editor: 'datos', 'contenido', 'revisar' o 'cat:<categoría>'.
+  // Un borrador existente abre en el contenido; uno nuevo, en los datos del libro.
+  const [vista, setVista] = useState(() => modoEdicion ? 'contenido' : 'datos')
   const currentStep = vista === 'datos' ? 1 : vista === 'revisar' ? 3 : 2
   // En celular el índice es la primera pantalla.
   const [indiceMovil, setIndiceMovil] = useState(true)
@@ -320,7 +322,6 @@ export default function NuevaPropuesta() {
       setRowVersion(propuesta.row_version)
       setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
-      setVista('datos')
 
       return
     }
@@ -360,7 +361,6 @@ export default function NuevaPropuesta() {
         setObjetos(objetosVersion)
         setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
-        setVista('datos')
       } catch (error) {
         if (cancelado) return
 
@@ -805,6 +805,7 @@ export default function NuevaPropuesta() {
               activo={activo}
               problemas={problemas.length}
               onDatos={() => irA('datos')}
+              onContenido={() => irA('contenido')}
               onRevisar={() => irA('revisar')}
               onCategoria={id => irA(`cat:${id}`)}
               onElemento={(categoria, id) => abrirElemento(categoria, id)}
@@ -824,9 +825,14 @@ export default function NuevaPropuesta() {
 
         {currentStep === 1 && (
           <>
-            <div className="editor-libro__encabezado">
-              <h2>Datos del libro</h2>
-              <p>Lo que identifica al libro en la Biblioteca. Podés volver acá en cualquier momento.</p>
+            <div className="editor-libro__encabezado editor-libro__encabezado--con-accion">
+              <div>
+                <h2>Datos del libro</h2>
+                <p>Lo que identifica al libro en la Biblioteca. Podés volver acá en cualquier momento.</p>
+              </div>
+              <button type="button" className="editor-libro__boton editor-libro__boton--primario" onClick={() => irA('contenido')}>
+                Contenido del libro<ChevronRight size={17} aria-hidden="true" />
+              </button>
             </div>
             <section className="nueva-propuesta-panel">
               <h3>Tipo de propuesta</h3>
@@ -997,6 +1003,11 @@ export default function NuevaPropuesta() {
                 ))}
               </div>
             </section>
+            <div className="editor-libro__siguiente">
+              <button type="button" className="editor-libro__boton editor-libro__boton--primario" onClick={() => irA('contenido')}>
+                Continuar al contenido<ChevronRight size={17} aria-hidden="true" />
+              </button>
+            </div>
           </>
         )}
 
@@ -1058,7 +1069,7 @@ export default function NuevaPropuesta() {
               />
             ) : (
               seccionActual ? <CategoriaContenido seccion={seccionActual} onEliminar={(id, nombre) => setPorEliminar({ categoria: seccionActual.id, id, nombre })} />
-              : <p className="editor-libro__ayuda">Elegí una categoría en el índice.</p>
+              : <ResumenContenido secciones={secciones} onCategoria={id => irA(`cat:${id}`)} onElemento={abrirElemento} onAgregar={categoria => abrirElemento(categoria, null)} />
             )}
           </>
         )}

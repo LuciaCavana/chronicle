@@ -14,7 +14,12 @@
   margin: calc(-1 * var(--relleno-contenido, 28px));
   padding: 0;
   font-family: var(--fuente-sans);
+  /* La barra va siempre primera: si un aviso quedara arriba, al bajar el índice fijo se metería debajo de ella */
+  display: flex;
+  flex-direction: column;
 }
+.editor-libro__barra { order: -1; }
+.editor-libro__oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* Avisos de carga y colaboración, y las vistas de solo lectura / en aprobación */
 .editor-libro > .nueva-propuesta-help,
@@ -296,4 +301,52 @@
 .indice-libro__opciones button:hover { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
 @media (max-width: 768px) {
   .indice-libro__agregar-categoria, .indice-libro__opciones button { min-height: 46px; font-size: 15px; }
+}
+
+/* Encabezado con acción a la derecha (Datos del libro → Contenido) */
+.editor-libro__encabezado--con-accion { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.editor-libro__siguiente { display: flex; justify-content: flex-end; margin-top: 4px; }
+
+/* "Contenido" del índice como enlace a la vista general */
+.indice-libro__grupo--boton { display: flex; align-items: center; justify-content: space-between; width: 100%; background: transparent; border: 0; border-radius: var(--radio-md); text-align: left; }
+.indice-libro__grupo--boton span { font-size: 11px; letter-spacing: 0; text-transform: none; color: var(--color-acento); opacity: 0; transition: opacity .15s ease; }
+.indice-libro__grupo--boton:hover span, .indice-libro__grupo--boton:focus-visible span, .indice-libro__grupo--activo span { opacity: 1; }
+.indice-libro__grupo--boton:hover { background: var(--color-fondo-panel); }
+.indice-libro__grupo--activo { color: var(--color-acento-claro); background: var(--color-fondo-activo); }
+
+/* ==========================================================================
+   Contenido del libro: un cuadro por categoría
+   ========================================================================== */
+.resumen-contenido__cuadros { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; align-items: start; }
+.resumen-contenido__cuadro { display: flex; flex-direction: column; gap: 10px; padding: 14px; background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: 12px; }
+.resumen-contenido__cabecera { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.resumen-contenido__titulo { display: inline-flex; align-items: center; gap: 4px; padding: 0; background: none; border: 0; color: var(--color-texto-titulo); font-family: var(--fuente-serif); font-size: 18px; cursor: pointer; }
+.resumen-contenido__titulo svg { color: var(--color-acento); }
+.resumen-contenido__titulo:hover { color: var(--color-acento-claro); }
+.resumen-contenido__titulo:focus-visible { outline: var(--foco); outline-offset: 2px; border-radius: 4px; }
+.resumen-contenido__cantidad { min-width: 26px; padding: 2px 8px; border-radius: var(--radio-pildora); background: var(--color-fondo-elevado); color: var(--color-acento); font-size: 12.5px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.resumen-contenido__buscar { display: flex; align-items: center; gap: 8px; min-height: 36px; padding: 0 10px; background: var(--color-fondo-app); border: 1px solid var(--color-borde); border-radius: var(--radio-md); color: var(--color-texto-suave); }
+.resumen-contenido__buscar:focus-within { border-color: var(--color-acento); }
+.editor-libro .resumen-contenido__buscar input { flex: 1; min-width: 0; min-height: 0; padding: 7px 0; background: transparent; border: 0; outline: none; box-shadow: none; color: var(--color-texto); font: inherit; font-size: 13.5px; }
+.categoria-contenido__buscar { max-width: 420px; min-height: 42px; }
+
+.resumen-contenido__tarjetas { list-style: none; margin: 0; padding: 2px; display: flex; flex-wrap: wrap; gap: 6px; max-height: 236px; overflow-y: auto; }
+.resumen-contenido__tarjeta { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; max-width: 100%; padding: 6px 10px; background: var(--color-fondo-elevado); border: 1px solid var(--color-borde); border-radius: var(--radio-md); color: var(--color-texto); font: inherit; text-align: left; cursor: pointer; }
+.resumen-contenido__tarjeta strong { max-width: 220px; font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.resumen-contenido__tarjeta span { font-size: 11.5px; color: var(--color-texto-suave); }
+.resumen-contenido__tarjeta:hover { border-color: var(--color-acento-borde); background: var(--color-fondo-activo); }
+.resumen-contenido__tarjeta:focus-visible { outline: var(--foco); outline-offset: 1px; }
+.resumen-contenido__tarjeta--incompleta { border-color: var(--color-peligro-borde); }
+.resumen-contenido__tarjeta--incompleta span { color: var(--color-peligro); }
+.resumen-contenido__vacio { margin: 0; font-size: 13px; color: var(--color-texto-apagado); }
+.resumen-contenido__agregar { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 4px 2px; background: none; border: 0; color: var(--color-acento); font: inherit; font-size: 13px; cursor: pointer; }
+.resumen-contenido__agregar:hover { color: var(--color-acento-claro); }
+.resumen-contenido__agregar:focus-visible { outline: var(--foco); outline-offset: 2px; border-radius: 4px; }
+
+@media (max-width: 768px) {
+  .editor-libro__encabezado--con-accion .editor-libro__boton, .editor-libro__siguiente .editor-libro__boton { width: 100%; min-height: 46px; }
+  .resumen-contenido__cuadros { grid-template-columns: 1fr; }
+  .resumen-contenido__tarjeta { min-height: 40px; justify-content: center; }
+  .resumen-contenido__agregar { min-height: 44px; }
 }
