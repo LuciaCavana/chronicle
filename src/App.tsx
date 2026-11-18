@@ -104,7 +104,7 @@ function AvisoNuevaVersion() {
       maxWidth: 340
     }}>
       <strong>Nueva versión de Chronicle disponible</strong>
-      <p style={{ margin: '8px 0 12px' }}>Guardá tu trabajo antes de actualizar.</p>
+      <p style={{ margin: '8px 0 12px' }}>Guardá tu trabajo antes de actualizar. Si estabas editando un borrador y te olvidás, vas a poder recuperar los cambios al volver a abrirlo.</p>
       <button type="button" onClick={() => window.location.reload()}
         style={{ background: '#b79a5a', color: '#17130e', border: 0, borderRadius: 6, padding: '8px 14px', cursor: 'pointer' }}>
         Actualizar
