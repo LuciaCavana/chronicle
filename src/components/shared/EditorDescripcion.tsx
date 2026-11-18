@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Baseline, Highlighter, Copy, X } from 'lucide-react'
-import '../../styles/EditorDescripcion.css'
+import '../../styles/compartido/EditorDescripcion.css'
 
 const PREDEFINIDOS = ['#FFFFFF', '#E9C46A', '#EF7777', '#7FC9F2', '#9CDBA2', '#C6A1F5', '#F3A86C', '#202020', '#E8DFCF']
 type Props = { value: string; onChange: (value: string) => void }

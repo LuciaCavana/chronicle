@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { Conjuro } from '../../types/conjuro'
-import '../../styles/EspecieForm.css'
+import '../../styles/formularios/EspecieForm.css'
 import { useLanguage } from '../../i18n/useLanguage'
 
 type Props = { initialData?: Conjuro | null; conjuros: Conjuro[]; onSave: (conjuro: Conjuro) => void; onCancel: () => void }

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/useAuth'
-import '../../styles/BackToHome.css'
+import '../../styles/auth/BackToHome.css'
 
 export default function BackToHome() {
   const { session, loading } = useAuth()

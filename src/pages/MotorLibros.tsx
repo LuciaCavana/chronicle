@@ -5,7 +5,7 @@ import {
   enviarLibroMotor, guardarLibroMotor, listarLibrosMotor, resolverLibroMotor, soyAdminMotor,
   type LibroMotor, type Elemento, type Capitulo, type LibroEntrada,
 } from '../services/chronicleLibros'
-import '../styles/MotorLibros.css'
+import '../styles/biblioteca/MotorLibros.css'
 import ClaseForm from '../components/biblioteca/ClaseForm'
 
 const tipos: Elemento['tipo'][] = ['clase','subclase','especie','trasfondo','dote','objeto','conjuro','regla','transformacion','otro']

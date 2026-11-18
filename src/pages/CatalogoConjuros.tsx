@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Search } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
-import '../styles/CatalogoConjuros.css'
+import '../styles/paginas/CatalogoConjuros.css'
 
 type Conjuro = {
   id?: string

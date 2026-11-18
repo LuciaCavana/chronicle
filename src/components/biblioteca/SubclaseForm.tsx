@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Elemento } from '../../services/chronicleLibros'
 import { EditorDescripcion } from '../shared/EditorDescripcion'
 import ConjurosRasgoEditor, { type ConjuroDeRasgo, type ConjuroDisponible } from './ConjurosRasgoEditor'
-import '../../styles/ClaseForm.css'
+import '../../styles/formularios/ClaseForm.css'
 
 type Rasgo = { id: string; nombre: string; descripcion: string; nivel: number; conjurosOtorgados?: ConjuroDeRasgo[] }
 type Recurso = { id: string; nombre: string; descripcion: string; recuperacion: string }

@@ -14,7 +14,7 @@ import {
   Skull,
 } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
-import '../styles/Biblioteca.css'
+import '../styles/biblioteca/Biblioteca.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
 

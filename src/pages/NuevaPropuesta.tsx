@@ -6,7 +6,7 @@ import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
-import '../styles/NuevaPropuesta.css'
+import '../styles/biblioteca/NuevaPropuesta.css'
 import ContenidoLibro from '../components/biblioteca/ContenidoLibro'
 import EspecieForm from '../components/biblioteca/EspecieForm'
 import TrasfondoForm from '../components/biblioteca/TrasfondoForm'

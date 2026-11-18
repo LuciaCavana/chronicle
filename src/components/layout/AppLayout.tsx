@@ -2,7 +2,7 @@
 import { useState, type ReactNode } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
-import '../../styles/AppLayout.css'
+import '../../styles/layout/AppLayout.css'
 
 type AppLayoutProps = {
   children: ReactNode

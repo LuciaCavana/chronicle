@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { agruparConjuros, firmaRegla, nombreRegla, reglaRapida, reglasRapidas, resumenRegla, type Regla } from '../../lib/conjurosRasgo'
-import '../../styles/ConjurosRasgo.css'
+import '../../styles/formularios/ConjurosRasgo.css'
 
 export type ConjuroDisponible = { id: string; nombre: string; nivel: number; libro?: string }
 export type ConjuroDeRasgo = {

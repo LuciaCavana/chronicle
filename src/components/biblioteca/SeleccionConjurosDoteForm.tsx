@@ -1,4 +1,4 @@
-import '../../styles/SeleccionConjurosDoteForm.css'
+import '../../styles/formularios/SeleccionConjurosDoteForm.css'
 import type { SeleccionConjurosDote } from '../../types/trasfondo'
 
 type Props = {

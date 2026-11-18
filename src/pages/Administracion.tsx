@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/useAuth'
-import '../styles/Administracion.css'
+import '../styles/paginas/Administracion.css'
 
 type Rol = 'creator' | 'admin' | 'user'
 type Usuario = {

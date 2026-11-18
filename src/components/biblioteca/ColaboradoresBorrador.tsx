@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import '../../styles/ColaboradoresBorrador.css'
+import '../../styles/biblioteca/ColaboradoresBorrador.css'
 import { useLanguage } from '../../i18n/useLanguage'
 
 type Colaborador = { usuario_id: string; email: string; rol: 'editor' | 'lector' }

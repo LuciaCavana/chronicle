@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'r
 import AppLayout from '../components/layout/AppLayout'
 import { Link } from 'react-router-dom'
 import { Camera, Settings, Trash2 } from 'lucide-react'
-import '../styles/Profile.css'
+import '../styles/paginas/Profile.css'
 import { useAuth } from '../contexts/useAuth'
 import { supabase } from '../lib/supabase'
 import { cambiarAvatar, quitarAvatar, urlAvatar } from '../services/avatar'

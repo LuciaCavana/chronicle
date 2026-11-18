@@ -1,7 +1,7 @@
 
 import { useState } from 'react'
 import { ChevronDown, Plus, X } from 'lucide-react'
-import '../../styles/SelectorTipoCriatura.css'
+import '../../styles/formularios/SelectorTipoCriatura.css'
 
 type Props = {
   value: string[]

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Conjuro } from '../../types/conjuro'
 import type { Criatura, RasgoCriatura, SeccionCriatura } from '../../types/criatura'
-import '../../styles/CriaturaForm.css'
+import '../../styles/formularios/CriaturaForm.css'
 
 type Props = { initialData?: Criatura; criaturas: Criatura[]; conjuros: Conjuro[]; onSave: (criatura: Criatura) => void; onCancel: () => void }
 const atributos = [['fuerza','Fuerza'],['destreza','Destreza'],['constitucion','Constitución'],['inteligencia','Inteligencia'],['sabiduria','Sabiduría'],['carisma','Carisma']] as const

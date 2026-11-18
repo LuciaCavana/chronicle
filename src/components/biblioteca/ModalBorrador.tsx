@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
-import '../../styles/ModalBorrador.css'
+import '../../styles/biblioteca/ModalBorrador.css'
 
 type Props = { titulo: string; onClose: () => void; children: ReactNode }
 export default function ModalBorrador({ titulo, onClose, children }: Props) {

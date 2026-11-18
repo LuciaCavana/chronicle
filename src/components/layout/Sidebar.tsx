@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useAuth } from '../../contexts/useAuth'
 import { NavLink } from 'react-router-dom'
-import '../../styles/Sidebar.css'
+import '../../styles/layout/Sidebar.css'
 import { useLanguage } from '../../i18n/useLanguage'
 import type { TranslationKey } from '../../i18n/translations'
 import {

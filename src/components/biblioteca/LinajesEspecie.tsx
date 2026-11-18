@@ -5,7 +5,7 @@ import type {
   LinajeEspecie,
   BeneficioNivel,
 } from '../../types/especie'
-import '../../styles/LinajesEspecie.css'
+import '../../styles/formularios/LinajesEspecie.css'
 
 type Props = {
   linajes: LinajeEspecie[]

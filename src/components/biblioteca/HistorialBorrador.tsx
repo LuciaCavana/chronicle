@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
-import '../../styles/HistorialBorrador.css'
+import '../../styles/biblioteca/HistorialBorrador.css'
 import { useLanguage } from '../../i18n/useLanguage'
 import type { TranslationKey } from '../../i18n/translations'
 

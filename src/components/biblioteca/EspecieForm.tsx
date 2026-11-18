@@ -14,7 +14,7 @@ import type {
   TamanoEspecie,
   TransformacionEspecie,
 } from '../../types/especie'
-import '../../styles/EspecieForm.css'
+import '../../styles/formularios/EspecieForm.css'
 
 type Props = {
   bookTitle: string

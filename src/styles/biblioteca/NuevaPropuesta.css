@@ -1,0 +1,264 @@
+
+.nueva-propuesta {
+  width: 100%;
+  max-width: 1050px;
+  margin: 0 auto;
+  padding-bottom: 36px;
+}
+
+.nueva-propuesta-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 26px;
+  color: var(--color-acento);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nueva-propuesta-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+  color: var(--color-acento);
+}
+
+.nueva-propuesta-heading h2 {
+  margin: 0 0 6px;
+  color: var(--color-texto);
+  font-size: 23px;
+}
+
+.nueva-propuesta-heading p {
+  margin: 0;
+  color: var(--color-texto-suave);
+  font-size: 14px;
+}
+
+.nueva-propuesta-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 26px;
+  color: var(--color-texto-suave);
+  font-size: 13px;
+}
+
+.nueva-propuesta-steps span {
+  padding: 10px 14px;
+  background: var(--color-fondo-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+}
+
+.nueva-propuesta-steps .nueva-propuesta-step--active {
+  color: var(--color-acento);
+  border-color: var(--color-acento);
+}
+
+.nueva-propuesta-panel {
+  margin-bottom: 22px;
+  padding: 26px;
+  background: var(--color-fondo-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 12px;
+}
+
+.nueva-propuesta-panel h3 {
+  margin: 0 0 22px;
+  color: var(--color-texto);
+  font-size: 18px;
+}
+
+.nueva-propuesta-field {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  margin-bottom: 20px;
+  min-width: 0;
+}
+
+.nueva-propuesta-field label {
+  color: var(--color-texto-etiqueta);
+  font-size: 13px;
+}
+
+.nueva-propuesta-field input,
+.nueva-propuesta-field textarea,
+.nueva-propuesta-field select {
+  width: 100%;
+  padding: 13px 14px;
+  background: var(--color-fondo-campo);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  outline: none;
+  color: var(--color-texto);
+  font: inherit;
+  font-size: 14px;
+}
+
+.nueva-propuesta-field input:focus,
+.nueva-propuesta-field textarea:focus,
+.nueva-propuesta-field select:focus {
+  border-color: var(--color-acento);
+}
+
+.nueva-propuesta-field textarea {
+  resize: vertical;
+}
+
+.nueva-propuesta-fields-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.nueva-propuesta-help {
+  margin: -8px 0 22px;
+  color: var(--color-texto-suave);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.nueva-propuesta-categories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.nueva-propuesta-category {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-fondo-campo);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 8px;
+  color: var(--color-texto);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.nueva-propuesta-category:hover {
+  border-color: var(--color-acento);
+}
+
+.nueva-propuesta-category input {
+  accent-color: var(--color-acento);
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+}
+
+.nueva-propuesta-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 14px;
+  margin-top: 26px;
+}
+
+.nueva-propuesta-cancel {
+  color: var(--color-texto-suave);
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.nueva-propuesta-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--color-acento);
+  border: none;
+  border-radius: 8px;
+  color: var(--color-fondo-campo);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nueva-propuesta-next:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 650px) {
+  .nueva-propuesta-fields-row,
+  .nueva-propuesta-categories {
+    grid-template-columns: 1fr;
+  }
+
+  .nueva-propuesta-panel {
+    padding: 18px;
+  }
+}
+
+button.nueva-propuesta-cancel {
+  background: transparent;
+  border: none;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+button.nueva-propuesta-cancel:hover {
+  color: var(--color-acento);
+}
+
+/* ==========================================================================
+   Checkboxes de todas las categorías del editor de libros.
+   Diseño centralizado: no depender de la casilla nativa del navegador.
+   ========================================================================== */
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-block;
+  vertical-align: middle;
+  flex: 0 0 19px;
+  width: 19px;
+  min-width: 19px;
+  max-width: 19px;
+  height: 19px;
+  min-height: 19px;
+  padding: 0;
+  margin: 0 12px 0 0;
+  border: 2px solid #b8a784;
+  border-radius: 5px;
+  background: var(--color-fondo-campo);
+  background-image: none;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 13px 13px;
+  box-shadow: none;
+  cursor: pointer;
+  transition: border-color .15s ease, background-color .15s ease, box-shadow .15s ease;
+}
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:hover:not(:disabled) {
+  border-color: #f0cc8c;
+  box-shadow: 0 0 0 3px rgba(216,183,123,.12);
+}
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:checked {
+  border-color: var(--color-acento);
+  background-color: var(--color-acento);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='M3 8.1 6.4 11.3 13 4.6' fill='none' stroke='%23171923' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:focus-visible {
+  outline: 2px solid #f0cc8c;
+  outline-offset: 3px;
+}
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+/* Evita una segunda marca cuando algún formulario implementa ::before. */
+.nueva-propuesta .nueva-propuesta-panel input[type="checkbox"]::before {
+  content: none;
+}
+/* Mantener espacio suficiente entre casilla y texto en todos los formularios. */
+.nueva-propuesta label:has(> input[type="checkbox"]) {
+  column-gap: 10px;
+  line-height: 1.5;
+}

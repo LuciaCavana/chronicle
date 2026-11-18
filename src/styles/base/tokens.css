@@ -1,0 +1,67 @@
+/* ==========================================================================
+   Chronicle · Tokens de diseño
+   Única fuente de colores, tipografía, radios y sombras de la app.
+   Regla: en los demás CSS no se escriben colores sueltos; se usa var(--...).
+   Si hace falta un color nuevo, se agrega acá con un nombre que diga para qué
+   sirve (no cómo se ve).
+   ========================================================================== */
+
+:root {
+  /* ---------- Acento (dorado) ---------- */
+  --color-acento: #d8b77b;            /* botones, enlaces, foco, estados activos */
+  --color-acento-claro: #f0d6a3;      /* hover del acento */
+  --color-acento-borde: #786849;      /* borde de botones secundarios */
+  --color-acento-tenue: #b79a5a;      /* acento apagado */
+
+  /* ---------- Texto ---------- */
+  --color-texto: #e8dfcf;             /* texto principal */
+  --color-texto-titulo: #f4e8cf;      /* títulos destacados */
+  --color-texto-etiqueta: #d5cfca;    /* etiquetas de campos */
+  --color-texto-suave: #a4a3b2;       /* ayudas, texto secundario */
+  --color-texto-tenue: #aaa9b6;       /* texto secundario alternativo */
+  --color-texto-sobre-acento: #171923;/* texto encima del dorado */
+
+  /* ---------- Superficies (de más oscura a más clara) ---------- */
+  --color-fondo-app: #10121a;
+  --color-fondo-campo: #171923;       /* inputs, tarjetas internas */
+  --color-fondo-seccion: #1b1d28;
+  --color-fondo-panel: #222431;       /* paneles y modales */
+  --color-fondo-elevado: #242331;     /* chips, recuadros sobre panel */
+  --color-fondo-alterno: #292b39;
+
+  /* ---------- Bordes ---------- */
+  --color-borde: #454354;             /* borde de campos */
+  --color-borde-suave: #343342;       /* borde de paneles */
+
+  /* ---------- Botón secundario ---------- */
+  --color-boton-fondo: #302d29;
+  --color-boton-fondo-hover: #40392e;
+
+  /* ---------- Estados ---------- */
+  --color-peligro: #e5a0a8;
+  --color-peligro-borde: #87505a;
+  --color-peligro-fondo: #34262a;
+  --color-error-texto: #e19a9a;
+  --color-exito: #a6d6b3;
+  --color-exito-claro: #d2f0d9;
+  --color-exito-borde: #50765e;
+  --color-exito-fondo: #26382f;
+
+  /* ---------- Tipografía ---------- */
+  --fuente-serif: Georgia, serif;
+  --fuente-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* ---------- Radios ---------- */
+  --radio-sm: 6px;
+  --radio-md: 8px;
+  --radio-lg: 12px;
+  --radio-xl: 16px;
+  --radio-pildora: 999px;
+
+  /* ---------- Sombras ---------- */
+  --sombra-modal: 0 18px 70px rgba(0, 0, 0, .6);
+  --sombra-flotante: 0 12px 38px rgba(0, 0, 0, .35);
+
+  /* ---------- Foco accesible ---------- */
+  --foco: 2px solid var(--color-acento);
+}

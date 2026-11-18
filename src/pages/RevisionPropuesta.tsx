@@ -8,7 +8,7 @@ import BarraAprobacion from '../components/biblioteca/revision/BarraAprobacion'
 import { useRevisionPropuesta, type FiltroRevision } from '../hooks/useRevisionPropuesta'
 import { aprobarRevision, rechazarRevision, cargarActividadAutor, type ActividadAutor } from '../services/revision'
 import { useLanguage } from '../i18n/useLanguage'
-import '../styles/RevisionCambios.css'
+import '../styles/biblioteca/RevisionCambios.css'
 
 export default function RevisionPropuesta() {
  const { propuestaId } = useParams<{propuestaId:string}>()
