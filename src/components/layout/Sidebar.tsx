@@ -7,6 +7,9 @@ import type { TranslationKey } from '../../i18n/translations'
 import { seccionActual, type SeccionMenu } from '../../lib/navegacion'
 import { usePendientesRevision } from '../../hooks/usePendientesRevision'
 import '../../styles/layout/Sidebar.css'
+import logoMenu36 from '../../assets/logo-menu-36.png'
+import logoMenu72 from '../../assets/logo-menu-72.png'
+import logoMenu108 from '../../assets/logo-menu-108.png'
 
 type Props = { mobileOpen?: boolean; onNavigate?: () => void; onCloseMobile?: () => void }
 
@@ -47,7 +50,7 @@ export default function Sidebar({ mobileOpen = false, onNavigate, onCloseMobile 
       <div className="sidebar-panel">
       <div className="sidebar-cabecera">
         <Link to="/home" onClick={onNavigate} className="sidebar-marca" aria-label={t('sidebar.home.aria')}>
-          <span className="sidebar-monograma" aria-hidden="true">{/* Prueba con el SVG del logo; antes: logo-menu-36/72/108.png con srcSet. */}<img src="/logo-oscuro.svg" alt="" width={36} height={36} /></span>
+          <span className="sidebar-monograma" aria-hidden="true"><img src={logoMenu36} srcSet={`${logoMenu36} 1x, ${logoMenu72} 2x, ${logoMenu108} 3x`} alt="" width={36} height={36} /></span>
           <span className="sidebar-nombre">CHRONICLE</span>
         </Link>
         <button type="button" className="sidebar-cerrar-movil" aria-label={t('nav.closeMenu')} onClick={onCloseMobile}><X size={20} aria-hidden="true"/></button>
