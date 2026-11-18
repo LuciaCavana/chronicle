@@ -5,19 +5,7 @@
   margin: 0 auto;
 }
 
-.libros-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 28px;
-  color: var(--color-acento);
-  text-decoration: none;
-  font-size: 14px;
-}
 
-.libros-back:hover {
-  color: var(--color-acento-claro);
-}
 
 .libros-tabs {
   display: flex;
@@ -471,3 +459,58 @@
   cursor: pointer;
 }
 .libros-toast__close:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+
+/* ==========================================================================
+   Celular
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Pestañas: una sola fila que se desliza de costado, sin cortar los nombres */
+  .libros-tabs {
+    flex-wrap: nowrap;
+    gap: 0;
+    margin: 0 -16px 18px;
+    padding: 0 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .libros-tabs::-webkit-scrollbar { display: none; }
+  .libros-tab { flex: none; min-height: 46px; padding: 0 12px; gap: 7px; font-size: 14px; white-space: nowrap; }
+
+  /* El nombre de la pestaña ya dice dónde estás: queda solo el botón principal */
+  .libros-propuestas-header > div:first-child { display: none; }
+  .libros-propuestas-header { margin-bottom: 14px; }
+  .libros-new-button { width: 100%; min-height: 48px; }
+
+  .libros-search { padding: 0 14px; min-height: 48px; margin-bottom: 16px; }
+  .libros-admin-info--escritorio { display: none; }
+
+  /* Tarjetas */
+  .libros-lista { gap: 10px; margin-top: 12px; }
+  .libros-item { padding: 14px; gap: 12px; }
+  .libros-item-icon { display: none; }
+  .libros-item-info h3 { margin-bottom: 4px; font-size: 17px; line-height: 1.3; }
+  .libros-item-info p { margin-bottom: 10px; font-size: 13.5px; }
+
+  /* Acciones: botones a todo el ancho, en vez de quedar sueltos a la derecha */
+  .libros-admin-actions { width: 100%; margin-left: 0; justify-content: stretch; gap: 8px; }
+  .libros-admin-actions > .libros-admin-button,
+  .libros-admin-actions > details { flex: 1 1 auto; }
+  .libros-admin-actions .libros-admin-button { min-height: 44px; }
+  .libros-admin-actions > .libros-icon-action { flex: none; width: 44px; min-width: 44px; height: 44px; }
+
+  /* Borrador propio: Editar ocupa toda la fila; abajo, Acciones y Borrar */
+  .libros-admin-actions--borrador { display: grid; grid-template-columns: 1fr 1fr; }
+  .libros-admin-actions--borrador .libros-admin-button--editar {
+    grid-column: 1 / -1;
+    order: -1;
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+    color: var(--color-texto-sobre-acento);
+  }
+  .libros-admin-actions--borrador > details > summary { width: 100%; }
+
+  /* Menú de acciones: abre hacia la derecha, dentro de la pantalla */
+  .libros-menu-borrador__opciones { left: 0; right: auto; width: min(300px, calc(100vw - 48px)); }
+  .libros-menu-borrador__opciones .libros-admin-button { min-height: 44px; }
+}

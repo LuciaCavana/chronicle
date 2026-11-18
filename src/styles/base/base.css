@@ -1,4 +1,4 @@
-/* Chronicle · Reglas globales mínimas (reset). Se carga después de tokens.css. */
+/* Chronicle · Reglas globales mínimas. Se carga después de tokens.css. */
 
 * {
   box-sizing: border-box;
@@ -7,9 +7,31 @@
 body {
   margin: 0;
   min-width: 320px;
+  font-family: var(--fuente-sans);
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+/* Títulos con la serifa de Chronicle; el texto de interfaz, sin serifa (más legible en pantallas chicas). */
+h1, h2, h3 {
+  font-family: var(--fuente-serif);
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
+}
+
+/* ==========================================================================
+   Celular
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* Con menos de 16 px, el iPhone hace zoom al tocar un campo. */
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }

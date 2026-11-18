@@ -1,7 +1,7 @@
 import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, BookPlus, ChevronRight } from 'lucide-react'
+import { BookPlus, ChevronRight } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
@@ -38,7 +38,7 @@ import type { Especie } from '../types/especie'
 type TipoPropuesta = 'nuevo' | 'traduccion'
 type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
 
-const pasos = ['1. Información general', '2. Contenido', '3. Revisión']
+const pasos = ['Información general', 'Contenido', 'Revisión']
 
 const categories = [
   { id: 'especies', label: 'Especies' },
@@ -554,6 +554,7 @@ export default function NuevaPropuesta() {
     <AppLayout
       title={modoEdicion ? 'Editar propuesta' : 'Nueva propuesta'}
       subtitle="Proponé un libro para la Biblioteca de Chronicle"
+      volverA={accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'}
     >
       <div className="nueva-propuesta">
         {cargandoLibro && (
@@ -571,11 +572,6 @@ export default function NuevaPropuesta() {
             {errorCarga}
           </p>
         )}
-
-        <Link to={accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'} className="nueva-propuesta-back">
-          <ArrowLeft size={18} />
-          Volver a Libros
-        </Link>
 
         {modoEdicionBorrador && accesoCompartido !== 'propietario' && <p className="nueva-propuesta-help" role="status">Borrador compartido · {accesoCompartido === 'editor' ? 'Permiso de edición' : 'Solo lectura'}</p>}
         {modoEdicionBorrador && pendienteAprobacion && accesoCompartido !== 'lector' ? (
@@ -610,18 +606,20 @@ export default function NuevaPropuesta() {
           </div>
         </div>
 
-        <div className="nueva-propuesta-steps">
+        <ol className="nueva-propuesta-steps" aria-label="Pasos de la propuesta">
           {pasos.map((titulo, index) => (
-            <span
+            <li
               key={titulo}
               className={
-                currentStep === index + 1 ? 'nueva-propuesta-step--active' : ''
+                currentStep === index + 1 ? 'nueva-propuesta-step--active' : currentStep > index + 1 ? 'nueva-propuesta-step--hecho' : ''
               }
+              aria-current={currentStep === index + 1 ? 'step' : undefined}
             >
-              {titulo}
-            </span>
+              <span className="nueva-propuesta-step-numero" aria-hidden="true">{index + 1}</span>
+              <span className="nueva-propuesta-step-titulo">{titulo}</span>
+            </li>
           ))}
-        </div>
+        </ol>
 
         {currentStep === 1 && (
           <>

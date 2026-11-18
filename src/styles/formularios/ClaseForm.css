@@ -300,3 +300,9 @@
   overflow: visible;
 }
 .clase-form__tabla .clase-form__rasgo-etiqueta { max-width: 100%; }
+
+/* Celular: los modales del formulario suben como hoja desde abajo y usan todo el ancho. */
+@media (max-width: 600px) {
+  .clase-form__overlay { place-items: end stretch; padding: 0; }
+  .clase-form__modal, .clase-form__editor-rasgo { width: 100%; max-height: 94dvh; border-radius: 16px 16px 0 0; border-width: 1px 0 0; padding: 18px 16px max(20px, env(safe-area-inset-bottom)); }
+}
