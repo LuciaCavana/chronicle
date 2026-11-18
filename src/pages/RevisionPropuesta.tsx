@@ -5,7 +5,7 @@ import AppLayout from '../components/layout/AppLayout'
 import ListaCambios from '../components/biblioteca/revision/ListaCambios'
 import DetalleCambio from '../components/biblioteca/revision/DetalleCambio'
 import BarraAprobacion from '../components/biblioteca/revision/BarraAprobacion'
-import { useRevisionPropuesta, type FiltroRevision } from '../hooks/useRevisionPropuesta'
+import { esModificacion, useRevisionPropuesta, type FiltroRevision } from '../hooks/useRevisionPropuesta'
 import { aprobarRevision, rechazarRevision, cargarActividadAutor, type ActividadAutor } from '../services/revision'
 import { useLanguage } from '../i18n/useLanguage'
 import '../styles/biblioteca/RevisionCambios.css'
@@ -19,6 +19,7 @@ export default function RevisionPropuesta() {
  const [modo,setModo] = useState<'lado'|'linea'>('lado')
  const [confirmacion,setConfirmacion] = useState<'aprobar'|'rechazar'|null>(null)
  const [motivo,setMotivo] = useState('')
+ const [comentario,setComentario] = useState('')
  const [ocupado,setOcupado] = useState(false)
  const [errorAccion,setErrorAccion] = useState('')
  const [actividadAutor, setActividadAutor] = useState<ActividadAutor | null>(null)
@@ -41,14 +42,17 @@ export default function RevisionPropuesta() {
  const filtros: {id:FiltroRevision;label:string;cantidad:number}[]=[
   {id:'todos',label:t('review.all'),cantidad:total},
   {id:'agregar',label:t('review.type.agregar'),cantidad:revision.cambios.filter(c=>c.accion==='agregar').length},
-  {id:'modificar',label:t('review.type.modificar'),cantidad:revision.cambios.filter(c=>c.accion==='modificar'||c.accion==='modificar_campo').length},
+  {id:'modificar',label:t('review.type.modificar'),cantidad:revision.cambios.filter(esModificacion).length},
   {id:'retirar',label:t('review.type.retirar'),cantidad:revision.cambios.filter(c=>c.accion==='retirar').length},
   {id:'categorias',label:t('review.type.categorias'),cantidad:revision.cambios.filter(c=>c.accion.includes('categoria')).length}
  ]
+ // En correcciones se elige qué cambios se aplican; libros nuevos y traducciones van completos.
+ const permiteParcial = revision.propuesta?.tipo === 'modificacion' || (revision.propuesta?.tipo === 'libro_nuevo' && !!revision.propuesta.revision_resultante_id)
+ const enParte = permiteParcial && revision.decisionesParaEnviar.length > 0
  async function ejecutar(accion:'aprobar'|'rechazar'){
   setOcupado(true);setErrorAccion('')
   try {
-   if(accion==='aprobar') await aprobarRevision(id)
+   if(accion==='aprobar') await aprobarRevision(id, permiteParcial ? revision.decisionesParaEnviar : [], comentario)
    else await rechazarRevision(id,motivo.trim())
    navigate('/administracion/revision')
   } catch(e){setErrorAccion(e instanceof Error?e.message:t('review.error'))}
@@ -75,12 +79,19 @@ export default function RevisionPropuesta() {
    <Link className="rev__boton" to={`/biblioteca/libros/leer-borrador/${id}?origen=revision`}><BookOpen size={17}/>{t('review.openDraft')}</Link></header>
    <div className="rev__comparacion"><span>{t('review.comparing')}</span><strong>{t('review.published')}</strong><span aria-hidden="true">→</span><strong>{t('review.submitted')}</strong><div className="rev__modos"><button type="button" aria-pressed={modo==='lado'} onClick={()=>setModo('lado')}>{t('review.sideBySide')}</button><button type="button" aria-pressed={modo==='linea'} onClick={()=>setModo('linea')}>{t('review.inline')}</button></div></div>
    <div className="rev__filtros">{filtros.map(f=><button type="button" key={f.id} aria-pressed={revision.filtro===f.id} onClick={()=>revision.setFiltro(f.id)}>{f.label} · {f.cantidad}</button>)}<label><input type="checkbox" checked={revision.ocultarRevisados} onChange={e=>revision.setOcultarRevisados(e.target.checked)}/>{t('review.hideReviewed')}</label></div>
-   <div className="rev__columnas"><aside className="rev__panel"><label className="rev__buscador">{t('review.search')}<input type="search" value={revision.busqueda} onChange={e=>revision.setBusqueda(e.target.value)}/></label><ListaCambios grupos={revision.grupos} seleccion={revision.seleccion} revisados={revision.revisados} onSelect={revision.setSeleccion}/></aside>
-   <div className="rev__panel">{revision.actual?<DetalleCambio cambio={revision.actual} modo={modo} nota={revision.notas[revision.seleccion]??''} onNota={nota=>revision.setNotas(n=>({...n,[revision.seleccion]:nota}))} onMarcar={revision.marcar} onAnterior={()=>revision.navegar(-1)} onSiguiente={()=>revision.navegar(1)} indice={revision.seleccion} total={total}/>:<p className="rev__vacio">{t('review.noChanges')}</p>}</div></div>
+   <div className="rev__columnas"><aside className="rev__panel"><label className="rev__buscador">{t('review.search')}<input type="search" value={revision.busqueda} onChange={e=>revision.setBusqueda(e.target.value)}/></label><ListaCambios grupos={revision.grupos} seleccion={revision.seleccion} revisados={revision.revisados} onSelect={revision.setSeleccion} decisiones={permiteParcial?revision.decisiones:undefined}/></aside>
+   <div className="rev__panel">{revision.actual?<DetalleCambio cambio={revision.actual} modo={modo} nota={revision.notas[revision.seleccion]??''} onNota={nota=>revision.setNotas(n=>({...n,[revision.seleccion]:nota}))} onMarcar={revision.marcar} onAnterior={()=>revision.navegar(-1)} onSiguiente={()=>revision.navegar(1)} indice={revision.seleccion} total={total}
+    {...(permiteParcial ? { decision: revision.decisionDe(revision.seleccion), onDecidir: (aplicar:boolean)=>revision.decidir(revision.seleccion,aplicar), onCampo: (campo:string)=>revision.alternarCampo(revision.seleccion,campo) } : {})}/>:<p className="rev__vacio">{t('review.noChanges')}</p>}</div></div>
    {errorAccion&&<p role="alert" className="rev__error">{errorAccion}</p>}
-   <BarraAprobacion total={total} revisados={revisados} notas={revision.totalNotas} ocupado={ocupado} onAprobar={()=>setConfirmacion('aprobar')} onRechazar={()=>{setMotivo(notasMotivo);setConfirmacion('rechazar')}}/>
-   {confirmacion&&<div className="rev__overlay" role="presentation"><section className="rev__dialogo" role="dialog" aria-modal="true" aria-labelledby="rev-dialogo-titulo"><h2 id="rev-dialogo-titulo">{confirmacion==='aprobar'?t('review.approve'):t('review.reject')}</h2>
-    {confirmacion==='aprobar'?<p>{total-revisados>0?`${t('review.unreviewedWarning')} ${total-revisados}`:t('review.approveConfirm')}</p>:<><label htmlFor="rev-motivo">{t('review.reason')}</label><textarea id="rev-motivo" rows={6} maxLength={2000} value={motivo} onChange={e=>setMotivo(e.target.value)}/></>}
+   {!permiteParcial && <p className="rev__secundario rev__nota-completa">{t('review.wholeOnly')}</p>}
+   <BarraAprobacion total={total} revisados={revisados} notas={revision.totalNotas} ocupado={ocupado} resumen={permiteParcial?revision.resumenDecisiones:undefined} onAprobar={()=>{setComentario(notasMotivo);setConfirmacion('aprobar')}} onRechazar={()=>{setMotivo(notasMotivo);setConfirmacion('rechazar')}}/>
+   {confirmacion&&<div className="rev__overlay" role="presentation"><section className="rev__dialogo" role="dialog" aria-modal="true" aria-labelledby="rev-dialogo-titulo"><h2 id="rev-dialogo-titulo">{confirmacion==='aprobar'?(enParte?t('review.approveAccepted'):t('review.approve')):t('review.reject')}</h2>
+    {confirmacion==='aprobar'?<>
+     {enParte&&<p>{t('review.partialConfirm')}</p>}
+     {enParte&&<p className="rev__secundario">{revision.resumenDecisiones.aplicados} {t('review.applied')} · {revision.resumenDecisiones.parciales} {t('review.partialCount')} · {revision.resumenDecisiones.descartados} {t('review.discardedCount')}</p>}
+     <p>{total-revisados>0?`${t('review.unreviewedWarning')} ${total-revisados}`:t('review.approveConfirm')}</p>
+     <label htmlFor="rev-comentario">{t('review.commentForAuthor')}</label><textarea id="rev-comentario" rows={5} maxLength={4000} value={comentario} onChange={e=>setComentario(e.target.value)}/>
+    </>:<><label htmlFor="rev-motivo">{t('review.reason')}</label><textarea id="rev-motivo" rows={6} maxLength={2000} value={motivo} onChange={e=>setMotivo(e.target.value)}/></>}
     <div className="rev__acciones"><button type="button" disabled={ocupado} onClick={()=>setConfirmacion(null)}>{t('review.continue')}</button><button type="button" disabled={ocupado||(confirmacion==='rechazar'&&!motivo.trim())} onClick={()=>void ejecutar(confirmacion)}>{confirmacion==='aprobar'?t('review.approveAnyway'):t('review.confirmReject')}</button></div>
     {errorAccion&&<p role="alert">{errorAccion}</p>}</section></div>}
   </>:null}
