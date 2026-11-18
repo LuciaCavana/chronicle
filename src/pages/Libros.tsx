@@ -30,7 +30,7 @@ import HistorialAprobaciones from '../components/biblioteca/HistorialAprobacione
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
 import { supabase } from '../lib/supabase'
 import { crearPropuestaCorreccion, enviarBorradorAprobacion, retirarDeAprobacion } from '../services/libros'
-import '../styles/Libros.css'
+import '../styles/biblioteca/Libros.css'
 import { useLanguage } from '../i18n/useLanguage'
 import type { TranslationKey } from '../i18n/translations'
 

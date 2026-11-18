@@ -3,8 +3,8 @@ import type { Conjuro } from '../../types/conjuro'
 import SelectorConjuros from './SelectorConjuros'
 import SeleccionConjurosDoteForm from './SeleccionConjurosDoteForm'
 import type { Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
-import '../../styles/EspecieForm.css'
-import '../../styles/DoteForm.css'
+import '../../styles/formularios/EspecieForm.css'
+import '../../styles/formularios/DoteForm.css'
 
 type Props = {
   initialData?: Dote | null

@@ -1,0 +1,219 @@
+
+.linajes-especie {
+  margin: 24px 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--color-borde-suave);
+}
+
+.linajes-especie-heading,
+.linajes-especie-form-heading,
+.linajes-especie-beneficios-heading,
+.linajes-especie-card-heading,
+.linajes-especie-beneficio-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.linajes-especie h4,
+.linajes-especie h5 {
+  margin: 0;
+  color: var(--color-texto);
+}
+
+.linajes-especie-heading p,
+.linajes-especie-empty {
+  color: var(--color-texto-suave);
+  font-size: 13px;
+}
+
+.linajes-especie-add {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid var(--color-acento);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--color-acento);
+  cursor: pointer;
+}
+
+.linajes-especie-form,
+.linajes-especie-card {
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: var(--color-fondo-seccion);
+}
+
+.linajes-especie-form {
+  display: grid;
+  gap: 16px;
+}
+
+.linajes-especie-form label,
+.linajes-especie-beneficio label {
+  display: grid;
+  gap: 7px;
+  color: var(--color-texto-etiqueta);
+  font-size: 13px;
+}
+
+.linajes-especie-form input,
+.linajes-especie-form textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px;
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  background: var(--color-fondo-campo);
+  color: var(--color-texto);
+  font: inherit;
+}
+
+.linajes-especie-beneficio {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #393a49;
+  border-radius: 8px;
+}
+
+.linajes-especie-beneficio-heading input {
+  max-width: 110px;
+}
+
+.linajes-especie-icon,
+.linajes-especie-delete,
+.linajes-especie-card-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-texto-suave);
+  cursor: pointer;
+}
+
+.linajes-especie-delete:hover,
+.linajes-especie-card-actions button:last-child:hover {
+  color: #e58b8b;
+}
+
+.linajes-especie-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.linajes-especie-actions button {
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.linajes-especie-cancel {
+  border: 1px solid var(--color-borde);
+  background: transparent;
+  color: var(--color-texto);
+}
+
+.linajes-especie-save {
+  border: none;
+  background: var(--color-acento);
+  color: var(--color-fondo-campo);
+  font-weight: 600;
+}
+
+.linajes-especie-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.linajes-especie-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.linajes-especie-card > p,
+.linajes-especie-card-beneficios p {
+  color: #c6c1c7;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+.linajes-especie-count {
+  display: inline-block;
+  margin-top: 8px;
+  color: var(--color-acento);
+  font-size: 12px;
+}
+
+.linajes-especie-card-beneficios {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #393a49;
+}
+
+.linajes-especie-card-beneficios strong {
+  color: var(--color-acento);
+}
+
+.linajes-especie-expand {
+  display: block;
+  margin-top: 12px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-acento);
+  cursor: pointer;
+}
+
+
+/* Listas desplegables */
+
+.linajes-especie-form select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 11px 38px 11px 12px;
+
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+
+  background-color: var(--color-fondo-campo);
+  color: var(--color-texto);
+
+  font: inherit;
+  cursor: pointer;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23d8b77b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.linajes-especie-form select:hover {
+  border-color: var(--color-acento);
+}
+
+.linajes-especie-form select:focus {
+  outline: none;
+  border-color: var(--color-acento);
+  box-shadow: 0 0 0 3px rgba(216, 183, 123, 0.15);
+}
+
+.linajes-especie-form select option {
+  background-color: var(--color-fondo-seccion);
+  color: var(--color-texto);
+}

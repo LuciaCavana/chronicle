@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { useAuth } from '../contexts/useAuth'
-import '../styles/Profile.css'
+import '../styles/paginas/Profile.css'
 import { useLanguage } from '../i18n/useLanguage'
 
 export default function Settings() {

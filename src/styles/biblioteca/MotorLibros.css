@@ -1,0 +1,89 @@
+/* Chronicle · Editor de libros. Estética coherente con Libros y NuevaPropuesta. */
+.motor-libros {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 0 48px;
+  display: grid;
+  gap: 24px;
+  color: var(--color-texto);
+}
+.motor-libros, .motor-libros * { box-sizing: border-box; }
+.motor-libros > section {
+  min-width: 0;
+  padding: 26px;
+  background: var(--color-fondo-panel);
+  border: 1px solid var(--color-borde-suave);
+  border-radius: 12px;
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+.motor-libros h2 { margin: 0; font-size: 21px; font-weight: 650; color: #f0e6d6; }
+.motor-libros h3 { margin: 12px 0 0; font-size: 16px; font-weight: 600; color: var(--color-acento); }
+.motor-libros p { margin: 0; line-height: 1.55; color: #b9b7c5; }
+.motor-libros label { display: grid; gap: 8px; color: var(--color-texto-etiqueta); font-size: 14px; }
+.motor-libros input, .motor-libros textarea, .motor-libros select {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 12px 14px;
+  color: var(--color-texto);
+  background: var(--color-fondo-campo);
+  border: 1px solid var(--color-borde);
+  border-radius: 8px;
+  font: inherit;
+  outline: none;
+}
+.motor-libros textarea { resize: vertical; min-height: 90px; line-height: 1.5; }
+.motor-libros :is(input, textarea, select):focus-visible { border-color: var(--color-acento); box-shadow: 0 0 0 2px rgba(216,183,123,.14); }
+.motor-libros :is(input, textarea, select):disabled { opacity: .6; cursor: not-allowed; }
+.motor-libros button {
+  width: fit-content;
+  max-width: 100%;
+  padding: 11px 16px;
+  color: var(--color-fondo-campo);
+  background: var(--color-acento);
+  border: 1px solid var(--color-acento);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, opacity .15s;
+}
+.motor-libros button:hover:not(:disabled) { background: var(--color-acento-claro); border-color: var(--color-acento-claro); }
+.motor-libros button:disabled { opacity: .5; cursor: not-allowed; }
+.motor-libros fieldset {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  padding: 20px;
+  border: 1px solid var(--color-borde);
+  border-radius: 10px;
+  background: var(--color-fondo-seccion);
+}
+.motor-libros fieldset button { background: var(--color-peligro-fondo); border-color: var(--color-peligro-borde); color: var(--color-peligro); }
+.motor-libros fieldset button:hover:not(:disabled) { background: #482c32; border-color: #d47d89; }
+.motor-libros ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.motor-libros li { min-width: 0; }
+.motor-libros li button {
+  width: 100%;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  background: var(--color-fondo-campo);
+  color: var(--color-texto);
+  border-color: var(--color-borde);
+}
+.motor-libros li button:hover:not(:disabled) { background: var(--color-boton-fondo); border-color: var(--color-acento); }
+.motor-libros [role='alert'] { padding: 12px 15px; border-radius: 8px; border: 1px solid var(--color-peligro-borde); background: var(--color-peligro-fondo); color: #ffd1d6 !important; }
+.motor-libros [role='status'] { padding: 12px 15px; border-radius: 8px; border: 1px solid var(--color-exito-borde); background: var(--color-exito-fondo); color: var(--color-exito-claro); }
+.motor-libros section > div:has(> textarea), .motor-libros section > div:has(> label > textarea) { display: grid; gap: 12px; }
+@media (max-width: 650px) {
+  .motor-libros { gap: 16px; padding-bottom: 24px; }
+  .motor-libros > section { padding: 18px; }
+  .motor-libros fieldset { padding: 14px; }
+  .motor-libros button { width: 100%; }
+}

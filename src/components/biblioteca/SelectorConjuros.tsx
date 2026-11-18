@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Plus, Search, X } from 'lucide-react'
 import type { Conjuro } from '../../types/conjuro'
-import '../../styles/SelectorConjuros.css'
+import '../../styles/formularios/SelectorConjuros.css'
 
 type Props = {
   abierto: boolean

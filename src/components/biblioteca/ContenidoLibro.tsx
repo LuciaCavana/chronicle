@@ -13,7 +13,7 @@ import {
   Pencil,
   Trash2,
 } from 'lucide-react'
-import '../../styles/ContenidoLibro.css'
+import '../../styles/biblioteca/ContenidoLibro.css'
 
 type Category = {
   id: string

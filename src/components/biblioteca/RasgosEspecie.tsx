@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
 import type { RasgoEspecie } from '../../types/especie'
-import '../../styles/RasgosEspecie.css'
+import '../../styles/formularios/RasgosEspecie.css'
 import SelectorConjuros from './SelectorConjuros'
 import type { Conjuro, ConjuroOtorgado } from '../../types/conjuro'
 

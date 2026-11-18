@@ -1,6 +1,6 @@
 
 import type { ReactNode } from 'react'
-import '../../styles/auth.css'
+import '../../styles/auth/auth.css'
 
 type AuthLayoutProps = {
   children: ReactNode

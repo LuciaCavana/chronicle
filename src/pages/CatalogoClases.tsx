@@ -3,8 +3,8 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, ArrowUp, BookOpen, Search } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
-import '../styles/CatalogoConjuros.css'
-import './CatalogoClases.css'
+import '../styles/paginas/CatalogoConjuros.css'
+import '../styles/paginas/CatalogoClases.css'
 
 type Registro = Record<string, unknown>
 type Entrada = { clave: string; elemento: Registro; subclases: Registro[]; libroId: string; libro: string; codigo: string }

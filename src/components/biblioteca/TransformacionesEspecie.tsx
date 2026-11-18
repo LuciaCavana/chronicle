@@ -9,7 +9,7 @@ import type {
   TipoUsosTransformacion,
   TransformacionEspecie,
 } from '../../types/especie'
-import '../../styles/LinajesEspecie.css'
+import '../../styles/formularios/LinajesEspecie.css'
 
 type Props = {
   transformaciones: TransformacionEspecie[]

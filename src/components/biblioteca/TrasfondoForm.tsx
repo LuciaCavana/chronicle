@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Dote, OpcionEquipoInicial, Trasfondo } from '../../types/trasfondo'
 import type { Elemento } from '../../services/chronicleLibros'
-import '../../styles/TrasfondoForm.css'
+import '../../styles/formularios/TrasfondoForm.css'
 
 type Props = {
   initialData?: Trasfondo

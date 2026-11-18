@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/useAuth'
 import { authService } from '../../services/authService'
 import { supabase } from '../../lib/supabase'
 import { EVENTO_AVATAR, urlAvatar, type AvatarPerfil } from '../../services/avatar'
-import '../../styles/Header.css'
+import '../../styles/layout/Header.css'
 import { useLanguage } from '../../i18n/useLanguage'
 
 type HeaderProps = {

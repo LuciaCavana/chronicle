@@ -3,7 +3,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
-import '../styles/LectorLibro.css'
+import '../styles/biblioteca/LectorLibro.css'
 
 type Registro = Record<string, unknown>
 type Version = {
