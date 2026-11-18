@@ -1,25 +1,35 @@
 /* ==========================================================================
    Menú lateral
-   Dos modos en escritorio: fijado (abierto, 248 px) y riel (solo íconos, 72 px).
-   En el riel, los nombres y los subítems aparecen flotando al pasar el mouse
-   o al llegar con el teclado, sin empujar el contenido.
-   En celular (≤ 768 px) es un cajón que entra desde la izquierda.
+   Escritorio: ocupa un riel de 72 px con íconos. Al pasar el mouse (o al
+   llegar con el teclado) se despliega a 248 px flotando sobre la página,
+   sin empujar el contenido, y se vuelve a ocultar al salir.
+   Celular (≤ 768 px): cajón que entra desde la izquierda.
    ========================================================================== */
 
 .sidebar {
-  width: 248px;
-  min-width: 248px;
+  --sidebar-riel: 72px;
+  --sidebar-abierto: 248px;
+  width: var(--sidebar-riel);
+  min-width: var(--sidebar-riel);
   height: 100vh;
   height: 100dvh;
-  display: flex;
-  flex-direction: column;
-  background: var(--color-fondo-navegacion);
-  border-right: 1px solid var(--color-borde-navegacion);
-  color: var(--color-texto);
-  font-family: var(--fuente-sans);
   position: relative;
   z-index: 30;
-  transition: width .2s ease, min-width .2s ease;
+  font-family: var(--fuente-sans);
+  color: var(--color-texto);
+}
+
+.sidebar-panel {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-riel);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--color-fondo-navegacion);
+  border-right: 1px solid var(--color-borde-navegacion);
+  /* Se cierra con una pequeña demora para que no parpadee al rozar el borde */
+  transition: width .18s ease .12s, box-shadow .18s ease .12s;
 }
 
 /* ---------- Marca ---------- */
@@ -35,34 +45,34 @@
 .sidebar-marca { display: flex; align-items: center; gap: 10px; min-width: 0; text-decoration: none; border-radius: var(--radio-md); }
 .sidebar-marca:focus-visible { outline: var(--foco); outline-offset: 3px; }
 .sidebar-monograma {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: none;
   display: grid;
   place-items: center;
-  border-radius: var(--radio-md);
+  border-radius: 9px;
   background: var(--color-fondo-avatar);
   border: 1px solid var(--color-acento-borde);
   color: var(--color-acento);
   font-family: var(--fuente-serif);
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
 }
 .sidebar-nombre { font-family: var(--fuente-serif); font-size: 16px; letter-spacing: .16em; color: var(--color-texto); white-space: nowrap; }
 .sidebar-cerrar-movil { display: none; }
 
 /* ---------- Navegación ---------- */
-.sidebar-nav { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; overflow-y: auto; }
+.sidebar-nav { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 2px; padding: 10px; overflow-x: hidden; overflow-y: auto; }
 .sidebar-grupo { padding: 14px 12px 6px; font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--color-texto-apagado); white-space: nowrap; }
 
 .sidebar-item {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 42px;
-  padding: 0 12px;
-  border-radius: var(--radio-md);
+  gap: 14px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 10px;
   color: var(--color-texto-navegacion);
   font-size: 14px;
   text-decoration: none;
@@ -81,8 +91,8 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
   content: '';
   position: absolute;
   left: -10px;
-  top: 9px;
-  bottom: 9px;
+  top: 10px;
+  bottom: 10px;
   width: 3px;
   border-radius: 0 3px 3px 0;
   background: var(--color-acento);
@@ -107,14 +117,14 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
 }
 
 /* Subítems de Biblioteca */
-.sidebar-bloque { position: relative; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-bloque { display: flex; flex-direction: column; gap: 2px; }
 .sidebar-subitems { display: flex; flex-direction: column; gap: 2px; }
-.sidebar-subitems-titulo { display: none; }
 .sidebar-subitem {
+  position: relative;
   display: flex;
   align-items: center;
   min-height: 36px;
-  padding: 0 12px 0 44px;
+  padding: 0 12px 0 48px;
   border-radius: var(--radio-md);
   color: var(--color-texto-navegacion);
   font-size: 13.5px;
@@ -123,116 +133,53 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
 }
 .sidebar-subitem:hover { background: var(--color-fondo-panel); color: var(--color-texto); }
 .sidebar-subitem:focus-visible { outline: var(--foco); outline-offset: -2px; }
-.sidebar-subitem--activo { position: relative; background: var(--color-fondo-subactivo); color: var(--color-texto); }
+.sidebar-subitem--activo { background: var(--color-fondo-subactivo); color: var(--color-texto); }
 .sidebar-subitem--activo::before {
   content: '';
   position: absolute;
-  left: 28px;
+  left: 32px;
   width: 6px;
   height: 6px;
   border-radius: var(--radio-pildora);
   background: var(--color-acento);
 }
 
-/* Nombre flotante: solo se usa en el riel */
-.sidebar-flotante { display: none; }
-
-/* ---------- Pie ---------- */
-.sidebar-pie { flex: none; padding: 12px 10px; border-top: 1px solid var(--color-separador-navegacion); }
-.sidebar-fijar {
-  width: 100%;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 12px;
-  background: transparent;
-  border: 1px solid var(--color-borde-navegacion);
-  border-radius: 10px;
-  color: var(--color-texto-suave);
-  font: inherit;
-  font-size: 13.5px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.sidebar-fijar:hover { color: var(--color-texto); border-color: var(--color-acento-borde); }
-.sidebar-fijar:focus-visible { outline: var(--foco); outline-offset: 2px; }
-
 /* ==========================================================================
-   Riel (menú contraído en escritorio)
+   Escritorio: riel cerrado / panel abierto
    ========================================================================== */
 @media (min-width: 769px) {
-  .sidebar--riel { width: 72px; min-width: 72px; }
-  .sidebar--riel .sidebar-cabecera { justify-content: center; padding: 0; }
-  .sidebar--riel .sidebar-nombre,
-  .sidebar--riel .sidebar-texto,
-  .sidebar--riel .sidebar-pronto,
-  .sidebar--riel .sidebar-grupo { display: none; }
-  .sidebar--riel .sidebar-monograma { width: 36px; height: 36px; font-size: 19px; }
-  .sidebar--riel .sidebar-nav { align-items: center; padding: 10px 0; overflow: visible; }
-  .sidebar--riel .sidebar-nav > .sidebar-grupo { display: block; width: 28px; height: 1px; padding: 0; margin: 6px 0; background: var(--color-borde-navegacion); font-size: 0; }
-  .sidebar--riel .sidebar-item { width: 48px; min-height: 44px; padding: 0; justify-content: center; border-radius: 10px; }
-  .sidebar--riel .sidebar-item--activo::before { left: -12px; top: 10px; bottom: 10px; }
-  .sidebar--riel .sidebar-insignia {
+  /* Abierto: al pasar el mouse o al navegar con el teclado dentro del menú */
+  .sidebar:hover .sidebar-panel,
+  .sidebar:has(:focus-visible) .sidebar-panel {
+    width: var(--sidebar-abierto);
+    box-shadow: 16px 0 40px rgba(0, 0, 0, .45);
+    transition-delay: .05s;
+  }
+
+  /* Cerrado: solo íconos */
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-cabecera { padding: 0 17px; }
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-nombre,
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-texto,
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-pronto,
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-subitems { display: none; }
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-grupo {
+    width: 28px;
+    height: 1px;
+    padding: 0;
+    margin: 8px 12px;
+    overflow: hidden;
+    background: var(--color-borde-navegacion);
+    color: transparent;
+  }
+  .sidebar:not(:hover):not(:has(:focus-visible)) .sidebar-insignia {
     position: absolute;
     top: 5px;
-    right: 5px;
+    left: 28px;
     min-width: 16px;
     height: 16px;
     padding: 0 4px;
     font-size: 10px;
   }
-  .sidebar--riel .sidebar-pie { display: grid; place-items: center; }
-  .sidebar--riel .sidebar-fijar { width: 40px; padding: 0; justify-content: center; }
-
-  /* Nombre flotante al pasar el mouse o con el teclado */
-  .sidebar--riel .sidebar-flotante {
-    position: absolute;
-    left: calc(100% + 12px);
-    top: 50%;
-    transform: translateY(-50%);
-    padding: 7px 11px;
-    background: var(--color-texto);
-    color: var(--color-texto-sobre-acento);
-    border-radius: 7px;
-    font-size: 13px;
-    font-weight: 600;
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 40;
-  }
-  .sidebar--riel .sidebar-item:hover .sidebar-flotante,
-  .sidebar--riel .sidebar-item:focus-visible .sidebar-flotante { display: block; }
-
-  /* Subítems de Biblioteca como panel flotante */
-  .sidebar--riel .sidebar-bloque { align-items: center; }
-  .sidebar--riel .sidebar-subitems {
-    display: none;
-    position: absolute;
-    left: calc(100% + 8px);
-    top: -8px;
-    width: 210px;
-    padding: 8px;
-    box-sizing: border-box;
-    background: var(--color-fondo-menu);
-    border: 1px solid var(--color-borde-suave);
-    border-radius: var(--radio-lg);
-    box-shadow: 0 12px 38px rgba(0, 0, 0, .45);
-    z-index: 40;
-  }
-  /* Puente invisible para que el panel no se cierre al mover el mouse hacia él */
-  .sidebar--riel .sidebar-subitems::before { content: ''; position: absolute; left: -12px; top: 0; bottom: 0; width: 12px; }
-  .sidebar--riel .sidebar-bloque:hover .sidebar-subitems,
-  .sidebar--riel .sidebar-bloque:focus-within .sidebar-subitems { display: flex; }
-  .sidebar--riel .sidebar-subitems-titulo { display: block; padding: 6px 10px 8px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-texto-apagado); }
-  .sidebar--riel .sidebar-subitem { padding: 0 12px; min-height: 40px; font-size: 14px; color: var(--color-texto); }
-  .sidebar--riel .sidebar-subitem--activo { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
-  .sidebar--riel .sidebar-subitem--activo::before { display: none; }
-}
-
-/* Tablets táctiles: sin mouse no hay flotantes, el riel queda como accesos directos */
-@media (hover: none) and (min-width: 769px) {
-  .sidebar--riel .sidebar-bloque:hover .sidebar-subitems { display: none; }
 }
 
 /* ==========================================================================
@@ -250,6 +197,7 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
     box-shadow: 16px 0 40px rgba(0, 0, 0, .45);
   }
   .sidebar--movil-abierto { transform: translateX(0); }
+  .sidebar-panel { position: static; width: 100%; height: 100%; transition: none; }
   .sidebar-cabecera { height: 60px; padding: 0 8px 0 16px; }
   .sidebar-cerrar-movil {
     display: grid;
@@ -265,9 +213,8 @@ a.sidebar-item--activo:hover { background: var(--color-fondo-activo); color: var
   .sidebar-cerrar-movil:focus-visible { outline: var(--foco); }
   .sidebar-item { min-height: 46px; font-size: 15px; }
   .sidebar-subitem { min-height: 42px; font-size: 14.5px; }
-  .sidebar-pie { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .sidebar, .sidebar-item { transition: none; }
+  .sidebar, .sidebar-panel, .sidebar-item { transition: none; }
 }
