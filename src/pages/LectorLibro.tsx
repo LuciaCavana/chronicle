@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
+import { useParams, useSearchParams } from 'react-router-dom'
+import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import '../styles/biblioteca/LectorLibro.css'
@@ -307,9 +307,9 @@ export default function LectorLibro() {
     {id:'caracteristicas',titulo:'Características y reglas',elementos:lista(extras.caracteristicas)}
   ].filter(seccion => categoriasActivas.includes(seccion.id)) : []
   const categorias=Array.isArray(version?.categorias) ? version.categorias.map(c=>typeof c==='string'?c:esObjeto(c)?texto(c.label)||texto(c.nombre)||texto(c.id):'').filter(Boolean) : []
-  return <AppLayout title="Biblioteca" subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"}>
+  const textoVolver = desdeRevision ? 'Revisión' : desdeAdministracion ? 'Revisión de libros' : desdeCompartidos ? 'Compartidos conmigo' : esBorrador ? 'Mis propuestas' : 'Libros y propuestas'
+  return <AppLayout title={version?.titulo || 'Biblioteca'} subtitle={esBorrador ? "Vista previa del borrador" : "Lectura de libros publicados"} migaAnterior={{ texto: textoVolver, ruta: destinoVolver }}>
     <main className="lector-libro">
-      <Link className="lector-libro__volver" to={destinoVolver}><ArrowLeft size={17}/> {desdeRevision ? "Volver a la revisión" : desdeAdministracion ? "Volver a Administración" : desdeCompartidos ? "Volver a compartidos" : esBorrador ? "Volver a los borradores" : "Volver al catálogo"}</Link>
       {cargando ? <div className="lector-libro__estado">Abriendo libro...</div>
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>

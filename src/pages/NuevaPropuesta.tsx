@@ -1,7 +1,7 @@
 import { crearMaestrias, crearPropiedadesArma, crearMonedas, crearReglasArmas, type CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { BookPlus, ChevronRight } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
+import { BookPlus, ChevronLeft, ChevronRight, LogOut, X } from 'lucide-react'
 
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
@@ -35,6 +35,7 @@ import {
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
 import { categoriasConObjetos, sumarObjetosDeClases } from '../lib/objetosDeClases'
+import ModalBorrador from '../components/biblioteca/ModalBorrador'
 
 type TipoPropuesta = 'nuevo' | 'traduccion'
 type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
@@ -548,6 +549,52 @@ export default function NuevaPropuesta() {
     }
   }
 
+  // ---------- Barra fija del editor ----------
+  const editandoElemento = editingCaracteristicaId !== null || showEspecieForm || showConjuroForm || showDoteForm ||
+    showTrasfondoForm || showCriaturaForm || editingClassId !== null || editingSubclassId !== null || editingObjectId !== null
+  // Estos formularios se guardan con su propio botón; volver sin guardar descarta lo cargado en el formulario.
+  const elementoConFormulario = showEspecieForm || showConjuroForm || showDoteForm || showTrasfondoForm || showCriaturaForm
+  const nombreDe = (lista: { id: string; nombre: string }[], id: string | null) => (id ? lista.find(x => x.id === id)?.nombre?.trim() : '') || ''
+  const elementoEnEdicion: { tipo: string; nombre: string } | null =
+    editingClassId !== null ? { tipo: 'Clase', nombre: nombreDe(clases, editingClassId) } :
+    editingSubclassId !== null ? { tipo: 'Subclase', nombre: nombreDe(subclases, editingSubclassId) } :
+    editingObjectId !== null ? { tipo: 'Objeto', nombre: nombreDe(objetos, editingObjectId) } :
+    editingCaracteristicaId !== null ? { tipo: 'Característica', nombre: nombreDe(caracteristicas, editingCaracteristicaId) } :
+    showEspecieForm ? { tipo: 'Especie', nombre: nombreDe(especies, editingSpeciesId) } :
+    showConjuroForm ? { tipo: 'Conjuro', nombre: nombreDe(conjuros, editingConjuroId) } :
+    showDoteForm ? { tipo: 'Dote', nombre: nombreDe(dotes, editingDoteId) } :
+    showTrasfondoForm ? { tipo: 'Trasfondo', nombre: nombreDe(trasfondos, editingTrasfondoId) } :
+    showCriaturaForm ? { tipo: 'Criatura', nombre: nombreDe(criaturas, editingCriaturaId) } : null
+
+  function cerrarElemento() {
+    setErrorGuardado('')
+    setEditingCaracteristicaId(null)
+    setEditingObjectId(null)
+    setEditingSubclassId(null)
+    setEditingClassId(null)
+    setShowCriaturaForm(false); setEditingCriaturaId(null)
+    setShowTrasfondoForm(false); setEditingTrasfondoId(null)
+    setShowDoteForm(false); setEditingDoteId(null)
+    setShowConjuroForm(false); setEditingConjuroId(null)
+    cerrarFormularioEspecie()
+    document.querySelector<HTMLElement>('.app-layout-content')?.scrollTo({ top: 0 })
+  }
+
+  // Cambios sin guardar: se compara el contenido actual con el que había al abrir el editor.
+  const instantanea = () => JSON.stringify([title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
+    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas])
+  const instantaneaInicial = useRef<string | null>(null)
+  useEffect(() => {
+    if (!cargandoLibro && instantaneaInicial.current === null) instantaneaInicial.current = instantanea()
+  })
+  const [confirmandoSalida, setConfirmandoSalida] = useState(false)
+  const destinoSalida = accesoCompartido === 'propietario' ? '/biblioteca/libros?tab=propuestas' : '/biblioteca/libros?tab=compartidos'
+  function pedirSalida() {
+    const sinCambios = instantaneaInicial.current === null || instantaneaInicial.current === instantanea()
+    if (sinCambios || accesoCompartido === 'lector') navigate(destinoSalida)
+    else setConfirmandoSalida(true)
+  }
+
   return (
     <AppLayout
       title={modoEdicion ? 'Editar propuesta' : 'Nueva propuesta'}
@@ -604,20 +651,38 @@ export default function NuevaPropuesta() {
           </div>
         </div>
 
-        <ol className="nueva-propuesta-steps" aria-label="Pasos de la propuesta">
-          {pasos.map((titulo, index) => (
-            <li
-              key={titulo}
-              className={
-                currentStep === index + 1 ? 'nueva-propuesta-step--active' : currentStep > index + 1 ? 'nueva-propuesta-step--hecho' : ''
-              }
-              aria-current={currentStep === index + 1 ? 'step' : undefined}
-            >
-              <span className="nueva-propuesta-step-numero" aria-hidden="true">{index + 1}</span>
-              <span className="nueva-propuesta-step-titulo">{titulo}</span>
-            </li>
-          ))}
-        </ol>
+        <div className="nueva-propuesta-barra">
+          {editandoElemento ? (
+            <div className="nueva-propuesta-barra-elemento">
+              <button type="button" className="nueva-propuesta-barra-volver" onClick={cerrarElemento}>
+                {elementoConFormulario ? <X size={18} aria-hidden="true" /> : <ChevronLeft size={18} aria-hidden="true" />}
+                {elementoConFormulario ? 'Cancelar' : 'Volver a categorías'}
+              </button>
+              {elementoEnEdicion && <span className="nueva-propuesta-barra-titulo">
+                <span>{elementoEnEdicion.tipo}</span>
+                <strong>{elementoEnEdicion.nombre || 'Nuevo'}</strong>
+              </span>}
+            </div>
+          ) : (
+            <ol className="nueva-propuesta-steps" aria-label="Pasos de la propuesta">
+              {pasos.map((titulo, index) => (
+                <li
+                  key={titulo}
+                  className={
+                    currentStep === index + 1 ? 'nueva-propuesta-step--active' : currentStep > index + 1 ? 'nueva-propuesta-step--hecho' : ''
+                  }
+                  aria-current={currentStep === index + 1 ? 'step' : undefined}
+                >
+                  <span className="nueva-propuesta-step-numero" aria-hidden="true">{index + 1}</span>
+                  <span className="nueva-propuesta-step-titulo">{titulo}</span>
+                </li>
+              ))}
+            </ol>
+          )}
+          <button type="button" className="nueva-propuesta-barra-salir" onClick={pedirSalida} aria-label="Salir del editor" title="Salir del editor">
+            <LogOut size={18} aria-hidden="true" /><span>Salir</span>
+          </button>
+        </div>
 
         {currentStep === 1 && (
           <>
@@ -931,33 +996,18 @@ export default function NuevaPropuesta() {
           </p>
         )}
 
-        <div className="nueva-propuesta-actions">
+        {!editandoElemento && <div className="nueva-propuesta-actions">
           {currentStep === 1 ? (
-            <Link to="/biblioteca/libros?tab=propuestas" className="nueva-propuesta-cancel">
+            <button type="button" className="nueva-propuesta-cancel" onClick={pedirSalida}>
               Cancelar
-            </Link>
+            </button>
           ) : (
             <button
               type="button"
               className="nueva-propuesta-cancel"
               onClick={() => {
                 setErrorGuardado('')
-                if (currentStep === 2 && editingSubclassId !== null) { setEditingSubclassId(null)
-                } else if (currentStep === 2 && editingClassId !== null) {
-                  setEditingClassId(null)
-                } else if (currentStep === 2 && showCriaturaForm) {
-                  setShowCriaturaForm(false); setEditingCriaturaId(null)
-                } else if (currentStep === 2 && showTrasfondoForm) {
-                  setShowTrasfondoForm(false); setEditingTrasfondoId(null)
-                } else if (currentStep === 2 && showDoteForm) {
-                  setShowDoteForm(false); setEditingDoteId(null)
-                } else if (currentStep === 2 && showConjuroForm) {
-                  setShowConjuroForm(false); setEditingConjuroId(null)
-                } else if (currentStep === 2 && showEspecieForm) {
-                  cerrarFormularioEspecie()
-                } else {
-                  setCurrentStep((paso) => Math.max(1, paso - 1))
-                }
+                setCurrentStep((paso) => Math.max(1, paso - 1))
               }}
             >
               Anterior
@@ -1021,7 +1071,18 @@ export default function NuevaPropuesta() {
                   : 'Guardar propuesta'}
             </button>
           )}
-        </div>
+        </div>}
+
+        {confirmandoSalida && <ModalBorrador titulo="Salir del editor" onClose={() => setConfirmandoSalida(false)}>
+          <div className="nueva-propuesta-salida">
+            <h3>¿Salir sin guardar?</h3>
+            <p>Hay cambios en esta propuesta que todavía no guardaste. Si salís ahora, se pierden.</p>
+            <div className="nueva-propuesta-salida-acciones">
+              <button type="button" className="nueva-propuesta-cancel" onClick={() => setConfirmandoSalida(false)}>Seguir editando</button>
+              <button type="button" className="nueva-propuesta-salida-confirmar" onClick={() => navigate(destinoSalida)}>Salir sin guardar</button>
+            </div>
+          </div>
+        </ModalBorrador>}
         </>}
       </div>
     </AppLayout>

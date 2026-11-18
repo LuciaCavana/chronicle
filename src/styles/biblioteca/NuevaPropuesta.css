@@ -289,6 +289,13 @@ button.nueva-propuesta-cancel:hover {
    ========================================================================== */
 @media (max-width: 768px) {
   .nueva-propuesta { padding-bottom: 24px; }
+  .nueva-propuesta-barra { margin-bottom: 14px; padding-top: 8px; padding-bottom: 8px; gap: 8px; }
+  .nueva-propuesta-barra .nueva-propuesta-steps { flex: 1; }
+  .nueva-propuesta-barra .nueva-propuesta-steps li { min-height: 52px; }
+  .nueva-propuesta-barra-salir { width: 44px; padding: 0; justify-content: center; }
+  .nueva-propuesta-barra-salir span { display: none; }
+  .nueva-propuesta-barra-volver { padding: 0 10px; }
+  .nueva-propuesta-barra-titulo span { display: none; }
   /* El título ya está en la cabecera */
   .nueva-propuesta-heading { display: none; }
 
@@ -314,3 +321,70 @@ button.nueva-propuesta-cancel:hover {
   .nueva-propuesta-panel { margin-bottom: 14px; padding: 16px 14px; border-radius: 12px; }
   .nueva-propuesta-panel h3 { margin-bottom: 16px; font-size: 17px; }
 }
+
+/* ==========================================================================
+   Barra fija del editor: pasos o elemento en edición, y salida.
+   Queda pegada arriba del área con scroll para no tener que bajar a buscar
+   "Volver a categorías", "Cancelar" o la salida del editor.
+   ========================================================================== */
+.nueva-propuesta-barra {
+  position: sticky;
+  top: calc(-1 * var(--relleno-contenido, 28px));
+  z-index: 15;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 calc(-1 * var(--relleno-contenido, 28px)) 22px;
+  padding: 12px var(--relleno-contenido, 28px);
+  background: var(--color-fondo-app);
+  border-bottom: 1px solid var(--color-borde-suave);
+}
+.nueva-propuesta-barra .nueva-propuesta-steps { margin: 0; flex: 1; min-width: 0; }
+
+.nueva-propuesta-barra-elemento { flex: 1; min-width: 0; display: flex; align-items: center; gap: 14px; }
+.nueva-propuesta-barra-volver,
+.nueva-propuesta-barra-salir {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 14px;
+  background: var(--color-boton-fondo);
+  border: 1px solid var(--color-acento-borde);
+  border-radius: var(--radio-md);
+  color: var(--color-acento);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.nueva-propuesta-barra-volver:hover,
+.nueva-propuesta-barra-salir:hover { background: var(--color-boton-fondo-hover); border-color: var(--color-acento); }
+.nueva-propuesta-barra-volver:focus-visible,
+.nueva-propuesta-barra-salir:focus-visible { outline: var(--foco); outline-offset: 2px; }
+.nueva-propuesta-barra-salir { margin-left: auto; background: transparent; border-color: var(--color-borde); color: var(--color-texto-suave); font-weight: 400; }
+.nueva-propuesta-barra-salir:hover { color: var(--color-texto); background: var(--color-fondo-panel); border-color: var(--color-borde); }
+
+.nueva-propuesta-barra-titulo { min-width: 0; display: flex; align-items: baseline; gap: 8px; }
+.nueva-propuesta-barra-titulo span { flex: none; font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--color-texto-apagado); }
+.nueva-propuesta-barra-titulo strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; color: var(--color-texto); }
+
+/* Confirmación de salida */
+.nueva-propuesta-salida { display: grid; gap: 12px; }
+.nueva-propuesta-salida h3 { margin: 0; font-size: 19px; font-weight: 400; color: var(--color-texto-titulo); }
+.nueva-propuesta-salida p { margin: 0; font-size: 14px; line-height: 1.55; color: var(--color-texto-etiqueta); }
+.nueva-propuesta-salida-acciones { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 14px; margin-top: 6px; }
+.nueva-propuesta-salida-confirmar {
+  min-height: 42px;
+  padding: 0 16px;
+  background: var(--color-peligro);
+  border: 1px solid var(--color-peligro);
+  border-radius: var(--radio-md);
+  color: var(--color-texto-sobre-acento);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.nueva-propuesta-salida-confirmar:hover { background: var(--color-peligro-claro); }

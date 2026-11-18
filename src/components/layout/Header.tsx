@@ -12,10 +12,11 @@ type HeaderProps = {
   title: string
   subtitle?: string
   volverA?: string
+  migaAnterior?: { texto: string; ruta: string }
   onOpenMenu?: () => void
 }
 
-export default function Header({ title, subtitle, volverA, onOpenMenu }: HeaderProps) {
+export default function Header({ title, subtitle, volverA, migaAnterior, onOpenMenu }: HeaderProps) {
   const { session, role } = useAuth()
   const { t, language, setLanguage } = useLanguage()
   const navigate = useNavigate()
@@ -34,7 +35,8 @@ export default function Header({ title, subtitle, volverA, onOpenMenu }: HeaderP
   const etiquetaRol = role === 'admin' ? t('role.admin') : role === 'creator' ? t('role.creator') : ''
   const migas = migasDeRuta(pathname, search)
   const anterior = migas.length > 1 ? migas[migas.length - 2] : null
-  const rutaAnterior = volverA ?? anterior?.ruta
+  const rutaAnterior = migaAnterior?.ruta ?? volverA ?? anterior?.ruta
+  const textoAnterior = migaAnterior?.texto ?? (anterior ? t(anterior.etiqueta) : '')
 
   useEffect(() => {
     if (!menuOpen) return
@@ -80,12 +82,14 @@ export default function Header({ title, subtitle, volverA, onOpenMenu }: HeaderP
               const ultima = i === migas.length - 1
               return <li key={`${miga.etiqueta}-${i}`}>
                 {i > 0 && <ChevronRight size={13} aria-hidden="true" />}
-                {ultima || !miga.ruta ? <span aria-current={ultima ? 'page' : undefined}>{t(miga.etiqueta)}</span> : <Link to={i === migas.length - 2 && volverA ? volverA : miga.ruta}>{t(miga.etiqueta)}</Link>}
+                {i === migas.length - 2 && migaAnterior ? <Link to={migaAnterior.ruta}>{migaAnterior.texto}</Link>
+                  : ultima || !miga.ruta ? <span aria-current={ultima ? 'page' : undefined}>{t(miga.etiqueta)}</span>
+                  : <Link to={i === migas.length - 2 && volverA ? volverA : miga.ruta}>{t(miga.etiqueta)}</Link>}
               </li>
             })}
           </ol>
         </nav>}
-        {anterior && rutaAnterior && <Link className="app-header-volver" to={rutaAnterior} aria-label={`${t('nav.back')} ${t(anterior.etiqueta)}`}><ChevronLeft size={14} aria-hidden="true" />{t(anterior.etiqueta)}</Link>}
+        {anterior && rutaAnterior && <Link className="app-header-volver" to={rutaAnterior} aria-label={`${t('nav.back')} ${textoAnterior}`}><ChevronLeft size={14} aria-hidden="true" />{textoAnterior}</Link>}
         <h1>{title}</h1>
         {migas.length <= 1 && subtitle && <p>{subtitle}</p>}
       </div>
