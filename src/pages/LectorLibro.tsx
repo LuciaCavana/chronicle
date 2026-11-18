@@ -5,9 +5,7 @@ import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { calcularFormula } from '../lib/formulasProgresion'
 import '../styles/biblioteca/LectorLibro.css'
-import logoPortada64 from '../assets/logo-portada-64.png'
-import logoPortada128 from '../assets/logo-portada-128.png'
-import logoPortada192 from '../assets/logo-portada-192.png'
+import logoOscuro from '../assets/logo-oscuro.svg'
 
 type Registro = Record<string, unknown>
 type Version = {
@@ -355,7 +353,7 @@ export default function LectorLibro() {
       : error ? <div className="lector-libro__estado" role="alert">{error}</div>
       : libro && version ? <>
         <header className="lector-libro__portada">
-          <img className="lector-libro__sello" src={logoPortada64} srcSet={`${logoPortada64} 1x, ${logoPortada128} 2x, ${logoPortada192} 3x`} alt="" width={64} height={64}/>
+          <img className="lector-libro__sello" src={logoOscuro} alt="" width={64} height={64}/>
           <span className={`lector-libro__sobre${esBorrador ? ' lector-libro__sobre--borrador' : ''}`}>{esBorrador ? 'Vista previa · borrador sin publicar' : 'Biblioteca de Chronicle'}</span>
           <h1>{version.titulo || 'Libro sin título'}</h1>
           <p className="lector-libro__subtitulo">{libro.editorial || 'Una obra de la comunidad'}</p>
