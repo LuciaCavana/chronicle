@@ -119,7 +119,7 @@ export default function Libros() {
     setError('')
     try {
       const propuestaId = await crearPropuestaCorreccion(libroId, versionId)
-      navigate(`/biblioteca/libros/editar-borrador/${propuestaId}`)
+      navigate(`/biblioteca/libros/editar-borrador/${propuestaId}?origen=${activeTab}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear la copia editable.')
     } finally {
@@ -518,7 +518,7 @@ async function borrarPropuesta(
             </div>
 
             <Link
-              to="/biblioteca/libros/nueva-propuesta"
+              to="/biblioteca/libros/nueva-propuesta?origen=propuestas"
               className="libros-new-button"
             >
               <Plus size={18} />
@@ -697,7 +697,7 @@ async function borrarPropuesta(
                           <Link to={`/biblioteca/libros/leer-borrador/${propuesta.id}?origen=propuestas`} className="libros-admin-button"><BookOpen size={16}/> Lectura del libro</Link>
                         </div>
                       </details>
-                      <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}`} className="libros-admin-button libros-admin-button--editar" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
+                      <Link to={`/biblioteca/libros/editar-borrador/${propuesta.id}?origen=propuestas`} className="libros-admin-button libros-admin-button--editar" title="Editar borrador"><Pencil size={16}/> Editar borrador</Link>
                       <button type="button" className="libros-admin-button libros-admin-button--delete" disabled={actualizandoId !== null || propuesta.pendiente_aprobacion} title={propuesta.pendiente_aprobacion ? 'Primero sacá la propuesta de aprobación' : 'Borrar borrador'} onClick={() => setPropuestaParaBorrar({id:propuesta.id,origen:'nueva'})}><Trash2 size={16}/> Borrar borrador</button>
                     </div>
                   )}
@@ -713,7 +713,7 @@ async function borrarPropuesta(
               .map(p=><article className="libros-item" key={p.id}>
                 <div className="libros-item-icon"><FileText size={24}/></div>
                 <div className="libros-item-info"><h3>{p.titulo || t('books.untitled')}</h3><p>{p.metadatos_libro?.editorial || t('books.noPublisher')}</p><div className="libros-item-details"><span>{p.idioma.toUpperCase()}</span><span>{p.rolColaborador === 'editor' ? t('books.editorRole') : t('books.readerRole')}</span><span>{p.pendiente_aprobacion ? t('books.pending') : t('books.sharedDraft')}</span></div></div>
-                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}?origen=compartidos`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
+                <div className="libros-admin-actions"><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/leer-borrador/${p.id}?origen=compartidos`} title={t('books.read')} aria-label={t('books.read')}><BookOpen size={18} aria-hidden="true" /></Link><Link className="libros-admin-button libros-icon-action" to={`/biblioteca/libros/editar-borrador/${p.id}?origen=compartidos`} title={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')} aria-label={p.rolColaborador === 'editor' ? t('books.edit') : t('books.viewDraft')}>{p.rolColaborador === 'editor' ? <Pencil size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}</Link><button type="button" className="libros-admin-button libros-icon-action" title={t('books.history')} aria-label={t('books.history')} aria-expanded={historialId === p.id} onClick={() => setHistorialId(actual => actual === p.id ? null : p.id)}><History size={18} aria-hidden="true" /></button></div>
                 {historialId === p.id && <ModalBorrador titulo={t('books.versionHistory')} onClose={() => setHistorialId(null)}><HistorialBorrador propuestaId={p.id} puedeRestaurar={p.rolColaborador === 'editor' && !p.pendiente_aprobacion} onClose={() => setHistorialId(null)} onRestaurado={() => void cargarLibros()} /></ModalBorrador>}
               </article>)}
 
@@ -774,7 +774,7 @@ async function borrarPropuesta(
                   libro.creado_por === userId && (
                     <div className="libros-admin-actions">
                       <Link
-                        to={`/biblioteca/libros/editar-propuesta/${libro.id}`}
+                        to={`/biblioteca/libros/editar-propuesta/${libro.id}?origen=propuestas`}
                         className="libros-admin-button"
                       >
                         <Pencil size={16} />
