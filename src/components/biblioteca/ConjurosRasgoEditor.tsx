@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { agruparConjuros, firmaRegla, nombreRegla, reglaRapida, reglasRapidas, resumenRegla, textoLibro, type Regla } from '../../lib/conjurosRasgo'
+import { agruparConjuros, firmaRegla, nombreRegla, reglaRapida, reglasRapidas, resumenRegla, type Regla } from '../../lib/conjurosRasgo'
 import '../../styles/ConjurosRasgo.css'
 
 export type ConjuroDisponible = { id: string; nombre: string; nivel: number; libro?: string }
@@ -69,7 +69,7 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange, n
     setVista('lista')
   }
   const actualizarRegla = (cambios: Partial<Regla>) => setRegla(actual => limpiar({ ...actual, ...cambios }))
-  const titulo = vista === 'lista' ? 'Conjuros que otorga' : vista === 'otorgar' ? 'Otorgar conjuros' : 'Regla personalizada'
+  const titulo = vista === 'lista' ? 'Conjuros' : vista === 'otorgar' ? 'Otorgar conjuros' : 'Regla personalizada'
   return <section className="conjuros-rasgo" aria-label="Conjuros que otorga la característica">
     <header className="conjuros-rasgo__encabezado">
       <h4>{titulo}</h4>
@@ -78,7 +78,6 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange, n
         : <button type="button" className="conjuros-rasgo__boton" onClick={() => setVista(vista === 'personalizada' ? origen : 'lista')}>Volver</button>}
     </header>
     {vista === 'lista' && <>
-      {!grupos.length && <p className="conjuros-rasgo__vacio">Esta característica todavía no otorga conjuros.</p>}
       {grupos.map(g => <article className="conjuros-rasgo__grupo" key={g.firma}>
         <div className="conjuros-rasgo__grupo-cabecera">
           <div className="conjuros-rasgo__grupo-titulo"><strong>{nombreRegla(g.regla)}</strong><span>{resumenRegla(g.regla)}</span></div>
@@ -97,7 +96,6 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange, n
         </ul>
       </article>)}
       <div><button type="button" className="conjuros-rasgo__boton--primario" onClick={() => abrirOtorgar()}>+ Otorgar conjuros{grupos.length ? ' con otra regla' : ''}</button></div>
-      <div className="conjuros-rasgo__previa"><span className="conjuros-rasgo__previa-etiqueta">Así se lee en el libro</span><p>{textoLibro(grupos, disponibles, nivel)}</p></div>
     </>}
     {vista === 'otorgar' && <div className="conjuros-rasgo__panel">
       <fieldset className="conjuros-rasgo__paso">
@@ -158,6 +156,5 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange, n
       {reglaRapida(regla) && <div className="conjuros-rasgo__aviso">Esta combinación coincide con «{nombreRegla(regla)}». Se va a agrupar con ella.</div>}
       <div className="conjuros-rasgo__pie"><button type="button" className="conjuros-rasgo__boton" onClick={() => setVista(origen)}>Cancelar</button><button type="button" className="conjuros-rasgo__boton--primario" onClick={confirmarRegla}>Usar esta regla</button></div>
     </div>}
-    <p className="conjuros-rasgo__vacio">Otorgar un conjuro no concede espacios de conjuro.</p>
   </section>
 }
