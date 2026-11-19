@@ -14,6 +14,11 @@
   font-family: var(--fuente-sans);
 }
 .revimp:focus { outline: none; }
+/* Casillas y opciones de tamaño normal, pase lo que pase alrededor. */
+.revimp input[type="checkbox"], .revimp input[type="radio"] {
+  appearance: auto; flex: 0 0 auto; width: 16px; height: 16px; min-width: 0; min-height: 0; max-width: none;
+  margin: 0; padding: 0; border: 0; background: none; box-shadow: none; accent-color: var(--color-acento); cursor: pointer;
+}
 .revimp :focus-visible { outline: var(--foco); outline-offset: 2px; }
 
 /* ---------- Cabecera ---------- */
@@ -88,14 +93,16 @@
   padding: 12px 10px; box-sizing: border-box;
   background: var(--color-fondo-seccion); border-right: 1px solid var(--color-borde-suave);
 }
-.revimp__filtros { display: flex; gap: 6px; }
+.revimp__filtros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .revimp__filtros button {
-  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 38px; padding: 0 6px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-width: 0; min-height: 48px; padding: 4px 4px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   background: transparent; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md);
   font: inherit; font-size: 12.5px; color: var(--color-texto-suave); cursor: pointer;
 }
 .revimp__filtros button[aria-pressed="true"] { background: var(--color-fondo-activo); border-color: var(--color-acento-borde); color: var(--color-acento-claro); }
-.revimp__cuenta { min-width: 20px; padding: 0 5px; box-sizing: border-box; border-radius: var(--radio-pildora); background: var(--color-fondo-alterno); font-size: 11.5px; color: var(--color-texto-suave); }
+.revimp__cuenta { font-size: 12px; font-weight: 600; color: var(--color-texto-suave); }
+.revimp__filtros button[aria-pressed="true"] .revimp__cuenta { color: var(--color-acento-claro); }
 .revimp__progreso { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px 6px; }
 .revimp__progreso > div { display: flex; justify-content: space-between; font-size: 13px; color: var(--color-texto-suave); }
 .revimp__progreso > div span:first-child { color: var(--color-texto); }
@@ -107,7 +114,7 @@
 .revimp__lista ul { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
 .revimp__grupo {
   display: flex; justify-content: space-between; margin: 0; padding: 12px 8px 6px;
-  font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-texto-apagado);
+  font-family: var(--fuente-sans); font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--color-texto-apagado);
 }
 .revimp__grupo span:last-child { font-weight: 400; letter-spacing: 0; color: var(--color-texto-suave); }
 .revimp__item {
@@ -135,9 +142,9 @@
   padding: 8px 14px; border-bottom: 1px solid var(--color-borde-suave); background: var(--color-fondo-app);
 }
 .revimp__visor-grupo { display: flex; align-items: center; gap: 6px; }
-.revimp__visor-pagina { padding: 0 6px; font-size: 13.5px; }
-.revimp__zoom { min-width: 48px; text-align: center; font-size: 13px; color: var(--color-texto-suave); }
-.revimp__marcar { display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 8px; font-size: 13px; color: var(--color-texto-suave); cursor: pointer; }
+.revimp__visor-pagina { padding: 0 6px; font-size: 13.5px; white-space: nowrap; }
+.revimp__zoom { white-space: nowrap; min-width: 48px; text-align: center; font-size: 13px; color: var(--color-texto-suave); }
+.revimp__marcar { white-space: nowrap; display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 8px; font-size: 13px; color: var(--color-texto-suave); cursor: pointer; }
 .revimp__marcar input, .revimp__incluir input, .revimp__opcion input, .revimp__diferencia input { width: 16px; height: 16px; accent-color: var(--color-acento); }
 .revimp__otras { margin: 0; padding: 6px 14px; font-size: 12.5px; color: var(--color-texto-suave); background: var(--color-fondo-app); border-bottom: 1px solid var(--color-borde-suave); }
 .revimp__visor-area { flex: 1; min-height: 0; overflow: auto; padding: 20px 16px 32px; }
@@ -214,8 +221,14 @@ button.revimp__marca:hover { border-width: 3px; }
 .revimp__bloque-info b { color: var(--color-texto); font-weight: 600; }
 .revimp__diferencia { display: flex; flex-direction: column; gap: 4px; margin: 0; padding: 0; border: 0; }
 .revimp__diferencia legend { padding: 0 0 4px; font-size: 13px; color: var(--color-texto); }
-.revimp__diferencia label { display: flex; align-items: flex-start; gap: 8px; min-height: 32px; font-size: 13px; line-height: 1.4; color: var(--color-texto-suave); }
-.revimp__diferencia label span { color: var(--color-texto); }
+.revimp__diferencia label {
+  display: grid; grid-template-columns: 16px minmax(0, 1fr); align-items: center; gap: 4px 10px;
+  padding: 8px 10px; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); cursor: pointer;
+  font-size: 13px; line-height: 1.45; color: var(--color-texto-suave);
+}
+.revimp__diferencia label b { font-weight: 600; color: var(--color-texto-etiqueta); }
+.revimp__diferencia label span { grid-column: 2; color: var(--color-texto); overflow-wrap: anywhere; }
+.revimp__diferencia label.revimp__elegida { border-color: var(--color-acento); background: var(--color-fondo-activo); }
 .revimp__decision { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; border: 0; }
 .revimp__decision legend { padding: 0 0 8px; font-size: 13px; color: var(--color-texto-etiqueta); }
 .revimp__opcion {

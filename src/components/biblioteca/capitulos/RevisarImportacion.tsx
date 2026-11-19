@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   AlertTriangle, BookOpen, Check, ChevronLeft, ChevronRight, Circle, Crosshair, FileText, Keyboard, Merge, Minus, Plus, Scissors, Trash2,
 } from 'lucide-react'
@@ -88,9 +89,10 @@ export default function RevisarImportacion(props: Props) {
     const lista: Item[] = []
     for (const p of propuestas) {
       const f = p.ficha
-      const problema = f.dudas.length > 0 || p.estado === 'diferencias'
+      // Dudoso: el motor no está seguro, o el libro dice algo distinto de la ficha que ya tenés.
+      const problema = f.dudas.length > 0 || p.diferencias.length > 0
       const pag = primeraPagina(zonasFicha(f))
-      const motivo = f.dudas[0] ? motivoCorto(f.dudas[0]) : p.estado === 'diferencias' ? `${p.diferencias.length} diferencias con lo cargado` : ESTADOS[p.estado]
+      const motivo = f.dudas[0] ? motivoCorto(f.dudas[0]) : p.diferencias.length ? `${p.diferencias.length === 1 ? '1 diferencia' : `${p.diferencias.length} diferencias`} con lo cargado` : ESTADOS[p.estado]
       const detalle = `${Number.isFinite(pag) ? `Pág. ${pag} · ` : ''}${motivo}`
       lista.push({ clave: `ficha:${f.id}`, sel: { tipo: 'ficha', id: f.id }, nombre: nombreVisible(f, eleccion.ajustes[f.id]?.nombre), detalle, problema, grupo: f.categoria })
     }
@@ -235,7 +237,8 @@ export default function RevisarImportacion(props: Props) {
   const sinRevisar = problemas.filter(i => !revisados.has(i.clave))
 
   const nombreArchivo = props.archivo.replace(/\.pdf$/i, '')
-  return <div ref={raiz} className="revimp" role="dialog" aria-modal="true" aria-labelledby="revimp-titulo" tabIndex={-1} onKeyDown={teclas}>
+  // Se dibuja directamente en <body>: así no hereda los estilos de botones y campos del editor.
+  return createPortal(<div ref={raiz} className="revimp" role="dialog" aria-modal="true" aria-labelledby="revimp-titulo" tabIndex={-1} onKeyDown={teclas}>
     <header className="revimp__cabecera">
       <div className="revimp__titulo">
         <span className="revimp__antetitulo">Importar desde PDF</span>
@@ -276,7 +279,7 @@ export default function RevisarImportacion(props: Props) {
         </div>
       </section>
     </div>}
-  </div>
+  </div>, document.body)
 
   // ===================================================================================
   // Las partes de la pantalla se arman con funciones (no componentes) para que escribir en un
@@ -343,7 +346,7 @@ export default function RevisarImportacion(props: Props) {
     return <div className="revimp__contenido">
       <div className="revimp__chips">
         <span className="revimp__chip revimp__chip--oro"><FileText size={13} aria-hidden="true" />{UNA[f.categoria]}</span>
-        <span className="revimp__chip">{ESTADOS[p.estado]}</span>
+        <span className="revimp__chip">{p.diferencias.length ? ESTADOS.diferencias : ESTADOS[p.estado]}</span>
         {f.dudas.length > 0 && <span className="revimp__chip revimp__chip--alerta"><AlertTriangle size={13} aria-hidden="true" />{f.dudas.length === 1 ? '1 problema' : `${f.dudas.length} problemas`}</span>}
       </div>
       <div className="revimp__campo">
@@ -375,8 +378,8 @@ export default function RevisarImportacion(props: Props) {
           const delLibro = eleccion.delLibro[id]?.has(d.ruta) ?? false
           return <fieldset key={d.ruta} className="revimp__diferencia">
             <legend>{d.etiqueta}</legend>
-            <label><input type="radio" name={`${id}-${d.ruta}`} checked={!delLibro} onChange={() => elegirDiferencia(id, d.ruta, false)} />Dejar lo cargado: <span>{mostrarValor(d.actual)}</span></label>
-            <label><input type="radio" name={`${id}-${d.ruta}`} checked={delLibro} onChange={() => elegirDiferencia(id, d.ruta, true)} />Usar el libro: <span>{mostrarValor(d.libro)}</span></label>
+            <label className={!delLibro ? 'revimp__elegida' : undefined}><input type="radio" name={`${id}-${d.ruta}`} checked={!delLibro} onChange={() => elegirDiferencia(id, d.ruta, false)} /><b>Dejar lo cargado</b><span>{mostrarValor(d.actual)}</span></label>
+            <label className={delLibro ? 'revimp__elegida' : undefined}><input type="radio" name={`${id}-${d.ruta}`} checked={delLibro} onChange={() => elegirDiferencia(id, d.ruta, true)} /><b>Usar el libro</b><span>{mostrarValor(d.libro)}</span></label>
           </fieldset>
         })}
       </div>}
