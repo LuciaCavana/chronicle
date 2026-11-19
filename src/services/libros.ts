@@ -257,7 +257,9 @@ export async function obtenerPropuestaParaEditar(
       contenido,
       metadatos_libro,
       row_version,
-      pendiente_aprobacion
+      pendiente_aprobacion,
+      libro_original_id,
+      revision_resultante_id
     `)
     .eq('id', propuestaId)
     .eq('estado', 'borrador')
@@ -385,4 +387,13 @@ export async function crearPropuestaCorreccion(libroId: string, versionId: strin
   if (error) throw error
   if (typeof data !== 'string') throw new Error('No se pudo crear la propuesta de corrección.')
   return data
+}
+
+/** Libro publicado en el que se basa un libro nuevo (null para quitarlo). */
+export async function vincularLibroOriginal(propuestaId: string, libroId: string | null) {
+  const { error } = await supabase.rpc('chronicle_vincular_libro_original', {
+    p_propuesta_id: propuestaId,
+    p_libro_id: libroId,
+  })
+  if (error) throw error
 }

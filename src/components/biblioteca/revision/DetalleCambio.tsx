@@ -22,6 +22,6 @@ export default function DetalleCambio({cambio,modo,nota,onNota,onMarcar,onAnteri
  tipo==='agregar'?<div className="rev-detalle__ficha"><h3>{t('review.after')}</h3><TablaDiferencias antes={null} despues={cambio.despues} modo={modo}/></div>:
  tipo==='retirar'?<div className="rev-detalle__ficha"><h3>{t('review.before')}</h3><p>{t('review.removalWarning')}</p><TablaDiferencias antes={cambio.antes} despues={null} modo={modo}/></div>:
  <TablaDiferencias antes={cambio.antes} despues={cambio.despues} campo={cambio.accion==='modificar_campo'?cambio.elemento_id??undefined:undefined} modo={modo}/>}
- <div className="rev-detalle__nota"><label htmlFor="nota-revision">{t('review.note')}</label><textarea id="nota-revision" value={nota} onChange={e=>onNota(e.target.value)} rows={3} maxLength={1500}/><button type="button" className="rev__boton rev__boton--positivo" onClick={onMarcar}>{t('review.markNext')}</button></div>
+ <div className="rev-detalle__nota"><label htmlFor="nota-revision">{t('review.note')}</label><textarea id="nota-revision" value={nota} onChange={e=>onNota(e.target.value)} rows={3} maxLength={1500}/><button type="button" className="rev__boton rev__boton--primario" onClick={onMarcar}>{t('review.markNext')}</button></div>
  </section>
 }

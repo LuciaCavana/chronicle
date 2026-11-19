@@ -37,7 +37,10 @@ import {
   guardarElementosCompartidos,
   retirarDeAprobacion,
   enviarBorradorAprobacion,
+  vincularLibroOriginal,
+  crearPropuestaCorreccion,
 } from '../services/libros'
+import BasadoEnLibro from '../components/biblioteca/BasadoEnLibro'
 
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
@@ -104,6 +107,11 @@ export default function NuevaPropuesta() {
   // Tipo de propuesta
   const [tipoPropuesta, setTipoPropuesta] = useState<TipoPropuesta>('nuevo')
   const [libroOriginalId, setLibroOriginalId] = useState('')
+  // Libro nuevo: libro publicado en el que se basa (opcional), para que el administrador lo compare.
+  const [basadoEn, setBasadoEn] = useState('')
+  const basadoEnGuardado = useRef('')
+  const [puedeBasarse, setPuedeBasarse] = useState(true)
+  const [abriendoCorreccion, setAbriendoCorreccion] = useState(false)
   const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
   const [errorVersiones, setErrorVersiones] = useState('')
 
@@ -332,6 +340,10 @@ export default function NuevaPropuesta() {
       setRowVersion(propuesta.row_version)
       setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
+      // Solo un libro nuevo que todavía no se publicó puede indicar un libro original.
+      setPuedeBasarse(propuesta.tipo === 'libro_nuevo' && !propuesta.revision_resultante_id)
+      setBasadoEn(propuesta.libro_original_id ?? '')
+      basadoEnGuardado.current = propuesta.libro_original_id ?? ''
 
       return
     }
@@ -371,6 +383,7 @@ export default function NuevaPropuesta() {
         setObjetos(objetosVersion)
         setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
+        setPuedeBasarse(false)
       } catch (error) {
         if (cancelado) return
 
@@ -567,6 +580,10 @@ export default function NuevaPropuesta() {
         if (tipoPropuesta === 'traduccion' && !origen) throw new Error('Seleccioná una versión publicada como origen.')
         idGuardado = await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
+      if (idGuardado && puedeBasarse && tipoPropuesta === 'nuevo' && basadoEn !== basadoEnGuardado.current) {
+        await vincularLibroOriginal(idGuardado, basadoEn || null)
+        basadoEnGuardado.current = basadoEn
+      }
       instantaneaInicial.current = instantanea()
       // Ya está en el servidor: la copia local deja de hacer falta.
       respaldoLocal.descartar()
@@ -720,7 +737,7 @@ export default function NuevaPropuesta() {
 
   // Cambios sin guardar: se compara el contenido actual con el que había al abrir el editor.
   const instantanea = () => JSON.stringify([title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
-    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas])
+    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas, basadoEn])
   const instantaneaInicial = useRef<string | null>(null)
   useEffect(() => {
     if (!cargandoLibro && instantaneaInicial.current === null) instantaneaInicial.current = instantanea()
@@ -749,7 +766,7 @@ export default function NuevaPropuesta() {
   const datosRespaldo = {
     title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
     especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas,
-    tipoPropuesta, libroOriginalId, formulario: formularioEnCurso,
+    tipoPropuesta, libroOriginalId, basadoEn, formulario: formularioEnCurso,
   }
   const respaldoLocal = useRespaldoBorrador({
     clave: claveRespaldo,
@@ -783,6 +800,7 @@ export default function NuevaPropuesta() {
     setCriaturas(d.criaturas); setClases(d.clases); setSubclases(d.subclases); setObjetos(d.objetos)
     setCaracteristicas(d.caracteristicas)
     if (!modoEdicion) { setTipoPropuesta(d.tipoPropuesta); setLibroOriginalId(d.libroOriginalId) }
+    if (puedeBasarse && typeof d.basadoEn === 'string') setBasadoEn(d.basadoEn)
     setMensajeGuardado('')
     // Reabre el formulario que estaba a medio escribir, con lo que tenía.
     const f = d.formulario
@@ -1049,6 +1067,29 @@ export default function NuevaPropuesta() {
                   placeholder="Ej. PHB'24"
                 />
               </div>
+
+              {puedeBasarse && tipoPropuesta === 'nuevo' && (
+                <BasadoEnLibro
+                  titulo={title}
+                  codigo={bookCode}
+                  libros={versionesPublicadas.map(v => ({ libroId: v.libroId, versionId: v.id, titulo: v.titulo, codigo: v.codigo, idioma: v.idioma }))}
+                  valor={basadoEn}
+                  onChange={setBasadoEn}
+                  deshabilitado={!puedeEditar}
+                  corrigiendo={abriendoCorreccion}
+                  // Recién empezado (sin contenido): conviene corregir el libro publicado en vez de duplicarlo.
+                  onCorregir={!modoEdicion && secciones.every(seccion => seccion.elementos.length === 0) ? async libro => {
+                    setAbriendoCorreccion(true); setErrorGuardado('')
+                    try {
+                      const nueva = await crearPropuestaCorreccion(libro.libroId, libro.versionId)
+                      respaldoLocal.descartar()
+                      navigate(`/biblioteca/libros/editar-borrador/${nueva}${origenEditor ? `?origen=${origenEditor}` : ''}`)
+                    } catch (error) {
+                      setErrorGuardado(error instanceof Error ? error.message : 'No se pudo abrir la corrección.')
+                    } finally { setAbriendoCorreccion(false) }
+                  } : undefined}
+                />
+              )}
 
               <div className="nueva-propuesta-fields-row">
                 <div className="nueva-propuesta-field">

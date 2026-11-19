@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { agruparCambios, camposModificados, type Cambio } from '../lib/diferencias'
-import { cargarRevision, type EnvioRevision, type PropuestaRevision } from '../services/revision'
+import { cargarRevision, type BaseRevision, type EnvioRevision, type LibroParecido, type PropuestaRevision } from '../services/revision'
 
 export type FiltroRevision = 'todos' | 'agregar' | 'modificar' | 'retirar' | 'categorias'
 /** Qué se hace con un cambio al aprobar: aplicarlo, descartarlo o aplicar solo algunos campos. */
@@ -21,15 +21,23 @@ export function useRevisionPropuesta(id: string) {
  const [revisados, setRevisados] = useState<Set<number>>(() => new Set())
  const [notas, setNotas] = useState<Record<number, string>>({})
  const [decisiones, setDecisiones] = useState<Record<number, Decision>>({})
+ const [base, setBase] = useState<BaseRevision | null>(null)
+ const [parecidos, setParecidos] = useState<LibroParecido[]>([])
+ // Cambia al convertir la propuesta (libro nuevo ↔ corrección) para volver a cargarla.
+ const [carga, setCarga] = useState(0)
  useEffect(() => {
   let vigente = true
   void cargarRevision(id).then(datos => {
    if (!vigente) return
    setPropuesta(datos.propuesta); setEnvio(datos.envio); setCambios(datos.cambios)
+   setBase(datos.base); setParecidos(datos.parecidos)
+   // Los cambios se recalcularon: lo decidido antes ya no corresponde.
+   setSeleccion(0); setRevisados(new Set()); setNotas({}); setDecisiones({})
   }).catch(e => { if (vigente) setError(e instanceof Error ? e.message : 'Error al cargar revisión') })
    .finally(() => { if (vigente) setCargando(false) })
   return () => { vigente = false }
- }, [id])
+ }, [id, carga])
+ const recargar = () => setCarga(n => n + 1)
  const filtrados = useMemo(() => cambios.map((cambio, indice) => ({ cambio, indice })).filter(({cambio, indice}) => {
   if (ocultarRevisados && revisados.has(indice)) return false
   const categoria = cambio.accion === 'activar_categoria' || cambio.accion === 'desactivar_categoria'
@@ -84,6 +92,6 @@ export function useRevisionPropuesta(id: string) {
   .filter(([, d]) => d.decision !== 'aceptar')
   .map(([i, d]) => d.decision === 'parcial' ? { i: Number(i), decision: d.decision, campos: d.campos ?? [] } : { i: Number(i), decision: d.decision })
 
- return { propuesta, envio, cambios, cargando, error, filtro, setFiltro, busqueda, setBusqueda, ocultarRevisados, setOcultarRevisados, seleccion, setSeleccion, revisados, notas, setNotas, filtrados, grupos, actual, navegar, marcar, totalNotas,
+ return { propuesta, envio, cambios, base, parecidos, recargar, cargando, error, filtro, setFiltro, busqueda, setBusqueda, ocultarRevisados, setOcultarRevisados, seleccion, setSeleccion, revisados, notas, setNotas, filtrados, grupos, actual, navegar, marcar, totalNotas,
   decisiones, decisionDe, decidir, alternarCampo, resumenDecisiones, decisionesParaEnviar }
 }
