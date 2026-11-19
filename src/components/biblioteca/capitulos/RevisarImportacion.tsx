@@ -421,6 +421,21 @@ export default function RevisarImportacion(props: Props) {
       setAreasExtra(a => ({ ...a, ...Object.fromEntries(nuevos.slice(1).map(x => [x.id, zonas(b.id)])) }))
       conBloques(c.id, bs => bs.flatMap(x => (x.id === b.id ? nuevos : [x])))
     }
+    // Un título pegado al párrafo: lo seleccionado pasa a ser título y el resto queda antes y después.
+    const separarSeleccion = (b: Bloque, texto: string, inicio: number, fin: number, tipo: 'titulo' | 'subtitulo') => {
+      const elegido = texto.slice(inicio, fin).trim()
+      if (!elegido) return
+      const antes = texto.slice(0, inicio).trim()
+      const despues = texto.slice(fin).replace(/^[.:]\s*/, '').trim()
+      const nuevos: Bloque[] = []
+      if (antes) nuevos.push({ id: b.id, tipo: 'parrafo', texto: antes })
+      const tituloB: Bloque = { id: antes ? nuevoId() : b.id, tipo, texto: elegido.replace(/[.:]$/, '') }
+      nuevos.push(tituloB)
+      if (despues) nuevos.push({ id: nuevoId(), tipo: 'parrafo', texto: despues })
+      setAreasExtra(a => ({ ...a, ...Object.fromEntries(nuevos.filter(x => x.id !== b.id).map(x => [x.id, zonas(b.id)])) }))
+      conBloques(c.id, bs => bs.flatMap(x => (x.id === b.id ? nuevos : [x])))
+      setBloqueSel(tituloB.id)
+    }
     const editarTexto = (b: Bloque, texto: string) => conBloques(c.id, bs => bs.map(x => (x.id === b.id && 'texto' in x ? { ...x, texto } as Bloque : x)))
     const quitar = (b: Bloque) => conBloques(c.id, bs => bs.filter(x => x.id !== b.id))
     return <div className="revimp__contenido">
@@ -444,7 +459,7 @@ export default function RevisarImportacion(props: Props) {
       </label>
       {sinEncontrar.length > 0 && <div className="revimp__bloque-info revimp__bloque-info--alerta">
         <h4><AlertTriangle size={14} aria-hidden="true" />Secciones del índice que no se encontraron como títulos</h4>
-        <p>{sinEncontrar.join(' · ')}. Pueden haber quedado dentro de un párrafo: buscalas y cambiá ese bloque a «Título» o «Subtítulo».</p>
+        <p>{sinEncontrar.join(' · ')}. Pueden haber quedado dentro de un párrafo: buscá el texto, seleccioná el título y tocá «Hacer título».</p>
       </div>}
       <ol className="revimp__bloques">
         {c.bloques.map((b, i) => {
@@ -469,7 +484,8 @@ export default function RevisarImportacion(props: Props) {
               <button type="button" className="revimp__icono" aria-label={`Ver el bloque ${i + 1} en la página`} onClick={() => { elegirBloque(b.id); setVistaMovil('pagina') }}><Crosshair size={16} aria-hidden="true" /></button>
             </div>
             {'texto' in b && b.tipo !== 'recuadro' && b.tipo !== 'carta'
-              ? <TextoEditable key={`${b.id}:${b.texto.length}`} valor={b.tipo === 'termino' ? b.texto : b.texto} etiqueta={`Texto del bloque ${i + 1}`} filas={b.tipo === 'titulo' || b.tipo === 'subtitulo' ? 1 : 4} onCambiar={t => editarTexto(b, t)} onFoco={() => elegirBloque(b.id)} prefijo={b.tipo === 'termino' ? b.termino : ''} />
+              ? <TextoEditable key={`${b.id}:${b.texto.length}`} valor={b.tipo === 'termino' ? b.texto : b.texto} etiqueta={`Texto del bloque ${i + 1}`} filas={b.tipo === 'titulo' || b.tipo === 'subtitulo' ? 1 : 4} onCambiar={t => editarTexto(b, t)} onFoco={() => elegirBloque(b.id)} prefijo={b.tipo === 'termino' ? b.termino : ''}
+                  onSeparar={b.tipo === 'parrafo' ? (t, ini, fin, tipo) => separarSeleccion(b, t, ini, fin, tipo) : undefined} />
               : <p className="revimp__bloque-texto">{textoBloque(b).replace(/\*\*|_/g, '').slice(0, 600)}</p>}
             {dudas.map(d => <p key={d} className="revimp__nota revimp__nota--alerta"><AlertTriangle size={14} aria-hidden="true" />{d}</p>)}
             <div className="revimp__bloque-acciones">
@@ -571,13 +587,39 @@ function CampoEditable({ ficha, campo, onCambiar, onMirar }: { ficha: FichaDetec
   </div>
 }
 
-/** Texto de un bloque del capítulo: se guarda al salir del campo. */
-function TextoEditable({ valor, etiqueta, filas, prefijo, onCambiar, onFoco }: { valor: string; etiqueta: string; filas: number; prefijo: string; onCambiar: (t: string) => void; onFoco: () => void }) {
+/**
+ * Texto de un bloque del capítulo: se guarda al salir del campo. En un párrafo, lo que se
+ * selecciona se puede convertir en título o subtítulo (para títulos que quedaron pegados al texto).
+ */
+function TextoEditable({ valor, etiqueta, filas, prefijo, onCambiar, onFoco, onSeparar }: {
+  valor: string; etiqueta: string; filas: number; prefijo: string; onCambiar: (t: string) => void; onFoco: () => void
+  onSeparar?: (texto: string, inicio: number, fin: number, tipo: 'titulo' | 'subtitulo') => void
+}) {
   const [texto, setTexto] = useState(valor)
+  const [seleccion, setSeleccion] = useState<[number, number] | null>(null)
+  const area = useRef<HTMLTextAreaElement>(null)
+  const leerSeleccion = () => {
+    const el = area.current
+    if (!el) return
+    const [ini, fin] = [el.selectionStart, el.selectionEnd]
+    setSeleccion(fin > ini && texto.slice(ini, fin).trim() ? [ini, fin] : null)
+  }
+  const separar = (tipo: 'titulo' | 'subtitulo') => { if (seleccion && onSeparar) onSeparar(texto, seleccion[0], seleccion[1], tipo) }
   return <div className="revimp__texto-bloque">
     {prefijo && <span className="revimp__prefijo">{prefijo.replace(/\*\*/g, '')}</span>}
-    <textarea aria-label={etiqueta} rows={filas === 1 ? 1 : Math.min(10, Math.max(filas, Math.ceil(texto.length / 70)))} value={texto}
-      onFocus={onFoco} onChange={e => setTexto(e.target.value)} onBlur={() => { if (texto !== valor) onCambiar(texto) }} />
+    <textarea ref={area} aria-label={etiqueta} rows={filas === 1 ? 1 : Math.min(10, Math.max(filas, Math.ceil(texto.length / 70)))} value={texto}
+      onFocus={onFoco} onChange={e => setTexto(e.target.value)} onSelect={leerSeleccion} onKeyUp={leerSeleccion} onMouseUp={leerSeleccion}
+      onBlur={() => { if (texto !== valor) onCambiar(texto) }} />
+    {onSeparar && <div className="revimp__seleccion" aria-live="polite">
+      {seleccion
+        ? <>
+            <span>«{texto.slice(seleccion[0], seleccion[1]).trim().slice(0, 40)}{seleccion[1] - seleccion[0] > 40 ? '…' : ''}» →</span>
+            {/* onMouseDown evita que el clic saque la selección del texto antes de usarla. */}
+            <button type="button" className="revimp__boton revimp__boton--chico" onMouseDown={e => e.preventDefault()} onClick={() => separar('titulo')}>Hacer título</button>
+            <button type="button" className="revimp__boton revimp__boton--chico" onMouseDown={e => e.preventDefault()} onClick={() => separar('subtitulo')}>Hacer subtítulo</button>
+          </>
+        : <span className="revimp__ayuda">¿Un título quedó pegado al texto? Seleccionalo para separarlo.</span>}
+    </div>}
   </div>
 }
 

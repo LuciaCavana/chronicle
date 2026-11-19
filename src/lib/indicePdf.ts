@@ -1,6 +1,6 @@
 import type { Fragmento, PaginaPdf } from './analizarPdf'
 import { comoOracion } from './pegarDesdeLibro'
-import type { Bloque, Capitulo } from '../types/capitulo'
+import { nuevoId, type Bloque, type Capitulo } from '../types/capitulo'
 
 /**
  * El índice del libro: qué capítulos y secciones tiene y en qué página empieza cada uno.
@@ -207,8 +207,16 @@ export function ajustarConIndice(leidos: Capitulo[], entrada: CapituloIndice): {
       encontradas.add(mejor)
     }
   }
+  // Una sección que no apareció como título puede haber quedado pegada al comienzo de un
+  // párrafo («Tiradas de salvación Una tirada de salvación…»): se separa y pasa a ser título.
+  let conSecciones = bloques
+  entrada.secciones.forEach((s, i) => {
+    if (encontradas.has(i)) return
+    const separado = separarTitulo(conSecciones, s.texto, s.nivel === 2 ? 'subtitulo' : 'titulo')
+    if (separado) { conSecciones = separado; encontradas.add(i) }
+  })
   // El título del capítulo leído en la página no debe repetirse como bloque.
-  const sinTituloRepetido = bloques.filter(b => !((b.tipo === 'titulo' || b.tipo === 'subtitulo') && parecido(b.texto, entrada.titulo) >= 0.85))
+  const sinTituloRepetido = conSecciones.filter(b => !((b.tipo === 'titulo' || b.tipo === 'subtitulo') && parecido(b.texto, entrada.titulo) >= 0.85))
   return {
     capitulo: {
       id: leidos[0]?.id ?? entrada.id,
@@ -218,4 +226,41 @@ export function ajustarConIndice(leidos: Capitulo[], entrada: CapituloIndice): {
     },
     faltan: entrada.secciones.filter((_, i) => !encontradas.has(i)).map(s => s.texto),
   }
+}
+
+/** Para comparar sin mayúsculas ni tildes, conservando la posición de cada letra. */
+const plano = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+
+/**
+ * Busca el título al comienzo de un párrafo (o después de un punto) seguido de texto que empieza
+ * en mayúscula, y parte ese bloque en: lo de antes, el título y lo de después.
+ * Devuelve los bloques nuevos, o null si no lo encontró.
+ */
+export function separarTitulo(bloques: Bloque[], titulo: string, tipo: 'titulo' | 'subtitulo'): Bloque[] | null {
+  const buscado = plano(titulo.trim())
+  if (buscado.length < 4) return null
+  for (let i = 0; i < bloques.length; i++) {
+    const b = bloques[i]
+    if (b.tipo !== 'parrafo') continue
+    const texto = b.texto
+    const enPlano = plano(texto)
+    let desde = 0
+    while (desde < enPlano.length) {
+      const pos = enPlano.indexOf(buscado, desde)
+      if (pos < 0) break
+      desde = pos + 1
+      const antes = texto.slice(0, pos)
+      const comienzo = !antes.trim() || /\n\s*\n\s*$/.test(antes) || /[.!?:»”"]\s+$/.test(antes)
+      const resto = texto.slice(pos + titulo.trim().length)
+      // Después del título: espacio (o punto) y una mayúscula; si no, es parte de una oración.
+      if (!comienzo || !/^[.:]?\s+[¿¡«“"]?\p{Lu}/u.test(resto)) continue
+      const nuevos: Bloque[] = []
+      if (antes.trim()) nuevos.push({ id: b.id, tipo: 'parrafo', texto: antes.trim() })
+      nuevos.push({ id: antes.trim() ? nuevoId() : b.id, tipo, texto: titulo.trim() })
+      const despues = resto.replace(/^[.:]?\s+/, '').trim()
+      if (despues) nuevos.push({ id: nuevoId(), tipo: 'parrafo', texto: despues })
+      return [...bloques.slice(0, i), ...nuevos, ...bloques.slice(i + 1)]
+    }
+  }
+  return null
 }

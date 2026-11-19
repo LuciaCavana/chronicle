@@ -264,6 +264,8 @@ button.revimp__marca:hover { border-width: 3px; }
 .revimp__texto-bloque { display: flex; flex-direction: column; gap: 4px; }
 .revimp__texto-bloque textarea { font-family: var(--fuente-serif); font-size: 14.5px; }
 .revimp__prefijo { font-family: var(--fuente-serif); font-weight: 700; font-size: 14.5px; }
+.revimp__seleccion { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-height: 36px; font-size: 13px; color: var(--color-texto-suave); }
+.revimp__seleccion > span:first-child:not(.revimp__ayuda) { color: var(--color-texto); font-family: var(--fuente-serif); }
 .revimp__bloque-acciones { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* ---------- Resumen ---------- */

@@ -96,6 +96,13 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
         correcciones.push(...leido.correcciones)
         Object.assign(areas, leido.areas)
         const { capitulo, faltan: sinEncontrar } = ajustarConIndice(leido.capitulos, r.capitulo)
+        // Los bloques que salieron de partir otro (un título pegado a un párrafo) se ubican
+        // en la página donde estaba ese bloque.
+        let previas: Area[] = []
+        for (const b of capitulo.bloques) {
+          if (leido.areas[b.id]?.length) previas = leido.areas[b.id]
+          else if (previas.length) leido.areas[b.id] = previas
+        }
         fichas.push(...leido.fichas, ...extraerFichasDeBloques(capitulo))
         capitulos.push(capitulo)
         faltan[capitulo.id] = sinEncontrar
