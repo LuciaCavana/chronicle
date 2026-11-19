@@ -19,5 +19,6 @@ export function formatoEnLinea(texto: string): ReactNode[] {
 /** Un texto con formato; cada línea en blanco separa párrafos. */
 export default function TextoConFormato({ texto, className }: { texto: string; className?: string }) {
   const parrafos = texto.split(/\n\s*\n/).map(p => p.replace(/\s*\n\s*/g, ' ').trim()).filter(Boolean)
-  return <>{parrafos.map((p, i) => <p key={i} className={className}>{formatoEnLinea(p)}</p>)}</>
+  // Los párrafos que empiezan con un término en negrita se marcan (en el libro van sin sangría).
+  return <>{parrafos.map((p, i) => <p key={i} className={[className, p.startsWith('**') ? 'con-termino' : ''].filter(Boolean).join(' ') || undefined}>{formatoEnLinea(p)}</p>)}</>
 }

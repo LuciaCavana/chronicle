@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, ClipboardPaste, Layers, Plus, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ClipboardPaste, FileUp, Layers, Plus, Trash2, X } from 'lucide-react'
 import {
   CATEGORIAS_FICHAS, TIPOS_BLOQUE, convertirBloque, nuevoBloque, nuevoCapitulo, textoBloque,
   type Bloque, type Capitulo, type TipoBloque,
 } from '../../../types/capitulo'
-import { detectarBloques, limpiarTextoEscaneado, type Correccion } from '../../../lib/pegarDesdeLibro'
+import { comoRecuadro, detectarBloques, limpiarTextoEscaneado, type Correccion } from '../../../lib/pegarDesdeLibro'
+import ImportarPdf from './ImportarPdf'
 import '../../../styles/biblioteca/EditorCapitulos.css'
 
 export type FichasDisponibles = { categoria: string; titulo: string; elementos: { id: string; nombre: string }[] }
@@ -29,6 +30,7 @@ const mover = <T,>(lista: T[], desde: number, hasta: number) => {
 export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectura }: Props) {
   const [seleccion, setSeleccion] = useState<string | null>(capitulos[0]?.id ?? null)
   const [pegando, setPegando] = useState(false)
+  const [importando, setImportando] = useState(false)
   const [porBorrar, setPorBorrar] = useState<string | null>(null)
   const actual = capitulos.find(c => c.id === seleccion) ?? capitulos[0] ?? null
 
@@ -76,11 +78,14 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
       </ol>
       {!soloLectura && <>
         <button type="button" className="capitulos__agregar" onClick={agregarCapitulo}><Plus size={16} aria-hidden="true" />Agregar capítulo</button>
+        <button type="button" className="capitulos__agregar capitulos__agregar--pdf" aria-expanded={importando} onClick={() => setImportando(v => !v)}><FileUp size={16} aria-hidden="true" />Importar desde PDF</button>
         {capitulos.length === 0 && fichas.some(f => f.elementos.length) && <button type="button" className="capitulos__agregar" onClick={crearDesdeCategorias}><Layers size={16} aria-hidden="true" />Crear un capítulo por categoría</button>}
       </>}
     </aside>
 
-    {actual ? <section className="capitulos__capitulo" aria-label="Capítulo seleccionado">
+    {importando && !soloLectura ? <ImportarPdf onCancelar={() => setImportando(false)}
+      onAgregar={nuevos => { onChange([...capitulos, ...nuevos]); setImportando(false); if (nuevos[0]) setSeleccion(nuevos[0].id) }} />
+    : actual ? <section className="capitulos__capitulo" aria-label="Capítulo seleccionado">
       <div className="capitulos__campos">
         <label>Etiqueta<input value={actual.etiqueta} placeholder="Capítulo 1" disabled={soloLectura} maxLength={60}
           onChange={e => cambiarCapitulo(actual.id, c => ({ ...c, etiqueta: e.target.value }))} /></label>
@@ -203,16 +208,19 @@ function PegarDesdeLibro({ onInsertar, onCancelar }: { onInsertar: (b: Bloque[])
   const [texto, setTexto] = useState('')
   const [propuestos, setPropuestos] = useState<Bloque[] | null>(null)
   const [correcciones, setCorrecciones] = useState<Correccion[]>([])
+  const [esRecuadro, setEsRecuadro] = useState(false)
   function procesar() {
     const limpio = limpiarTextoEscaneado(texto)
     setCorrecciones(limpio.correcciones)
-    setPropuestos(detectarBloques(limpio.texto))
+    const bloques = detectarBloques(limpio.texto)
+    setPropuestos(esRecuadro ? comoRecuadro(bloques) : bloques)
   }
   const tiposTexto = TIPOS_BLOQUE.filter(t => t.tipo !== 'fichas')
   return <section className="capitulos__pegado" aria-labelledby="pegar-titulo">
     <h4 id="pegar-titulo">Pegar desde el libro</h4>
     <p className="capitulos__ayuda">Copiá una columna o un recuadro por vez, así no se mezclan. Se corrigen los errores típicos del escaneo y se propone el tipo de cada bloque: revisalo antes de insertar.</p>
     <label className="capitulos__campo">Texto copiado<textarea rows={7} value={texto} onChange={e => { setTexto(e.target.value); setPropuestos(null) }} /></label>
+    <label className="capitulos__check"><input type="checkbox" checked={esRecuadro} onChange={e => { setEsRecuadro(e.target.checked); setPropuestos(null) }} />Es un recuadro (el primer renglón en mayúsculas es su título)</label>
     <div className="capitulos__acciones">
       <button type="button" onClick={onCancelar}>Cancelar</button>
       <button type="button" className="capitulos__primario" disabled={!texto.trim()} onClick={procesar}>Procesar texto</button>
@@ -228,7 +236,7 @@ function PegarDesdeLibro({ onInsertar, onCancelar }: { onInsertar: (b: Bloque[])
             <select value={b.tipo} onChange={e => setPropuestos(ps => ps && ps.map(x => x.id === b.id ? convertirBloque(x, e.target.value as TipoBloque) : x))}>
               {tiposTexto.map(t => <option key={t.tipo} value={t.tipo}>{t.etiqueta}</option>)}
             </select></label>
-          <p>{b.tipo === 'termino' ? <><strong>{b.termino}</strong> {b.texto}</> : textoBloque(b)}</p>
+          <p>{b.tipo === 'termino' ? <><strong>{b.termino}</strong> {b.texto}</> : b.tipo === 'recuadro' ? <><strong>{b.titulo}</strong>{'\n'}{b.texto}</> : textoBloque(b)}</p>
           <button type="button" aria-label="Descartar este bloque" onClick={() => setPropuestos(ps => ps && ps.filter(x => x.id !== b.id))}><X size={15} aria-hidden="true" /></button>
         </li>)}
       </ol>

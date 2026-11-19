@@ -98,3 +98,38 @@
   .capitulos__propuestos li p { grid-column: 1 / -1; }
   .capitulos .capitulos__barra .capitulos__pegar { margin-left: 0; }
 }
+.capitulos .capitulos__agregar--pdf { margin-top: 0; }
+.capitulos__check { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13.5px; color: var(--color-texto-etiqueta); }
+.capitulos__check input { width: 17px; height: 17px; min-height: 0; accent-color: var(--color-acento); }
+
+/* Importar desde PDF */
+.capitulos__importar-titulo { display: flex; align-items: center; gap: 8px; margin: 0; font-family: var(--fuente-serif); font-weight: 400; font-size: 21px; color: var(--color-texto-titulo); }
+.capitulos__importar-titulo svg { color: var(--color-acento); }
+.capitulos__archivo {
+  position: relative; display: flex; align-items: center; justify-content: center; min-height: 64px; padding: 0 16px;
+  border: 1px dashed var(--color-acento-borde); border-radius: var(--radio-lg); background: var(--color-fondo-campo);
+  color: var(--color-acento-claro); font-size: 14.5px; cursor: pointer; overflow-wrap: anywhere; text-align: center;
+}
+.capitulos__archivo:hover { border-color: var(--color-acento); }
+.capitulos__archivo:focus-within { outline: 2px solid var(--color-acento-claro); outline-offset: 2px; }
+.capitulos__archivo input { position: absolute; inset: 0; opacity: 0; cursor: pointer; min-height: 0; }
+.capitulos__rango { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; color: var(--color-texto-etiqueta); }
+.capitulos__rango input { width: 90px; }
+.capitulos__progreso { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; font-size: 13.5px; color: var(--color-texto-etiqueta); }
+.capitulos__progreso progress { grid-column: 1; width: 100%; height: 6px; appearance: none; border: 0; border-radius: var(--radio-pildora); background: var(--color-borde-suave); overflow: hidden; }
+.capitulos__progreso progress::-webkit-progress-bar { background: var(--color-borde-suave); }
+.capitulos__progreso progress::-webkit-progress-value { background: var(--color-acento); }
+.capitulos__progreso progress::-moz-progress-bar { background: var(--color-acento); }
+.capitulos__progreso button { grid-column: 2; grid-row: 1 / span 2; }
+.capitulos__error { margin: 0; padding: 10px 14px; background: var(--color-peligro-fondo); border: 1px solid var(--color-peligro-borde); border-radius: var(--radio-md); color: var(--color-peligro); font-size: 14px; }
+.capitulos__encontrados { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.capitulos__encontrados details { background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.capitulos__encontrados summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 52px; padding: 6px 12px; cursor: pointer; }
+.capitulos__encontrados summary label { display: inline-flex; align-items: center; min-width: 32px; min-height: 32px; }
+.capitulos__encontrados summary input { width: 18px; height: 18px; min-height: 0; accent-color: var(--color-acento); }
+.capitulos__encontrados .capitulos__nombre { flex: 1 1 200px; }
+.capitulos__vista { display: grid; gap: 6px; margin: 0; padding: 0 12px 12px; list-style: none; }
+.capitulos__vista li { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; padding-top: 6px; border-top: 1px solid var(--color-borde-suave); }
+.capitulos__vista span { font-size: 12px; color: var(--color-acento-claro); }
+.capitulos__vista p { margin: 0; font-family: var(--fuente-serif); font-size: 14.5px; line-height: 1.5; color: var(--color-texto-lectura); white-space: pre-line; }
+@media (max-width: 700px) { .capitulos__vista li { grid-template-columns: 1fr; } }

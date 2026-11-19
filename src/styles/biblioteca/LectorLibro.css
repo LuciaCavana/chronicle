@@ -599,3 +599,5 @@
   .lector-capitulo__texto p, .lector-capitulo__termino, .lector-capitulo__lista li, .lector-capitulo__carta p { font-size: 17px; }
   .lector-capitulo__titulo { font-size: 26px; }
 }
+/* Términos en negrita al comienzo del párrafo: sin sangría y con sangría francesa, como en el libro. */
+.lector-capitulo__texto p.con-termino { text-indent: -1.2em; padding-left: 1.2em; }
