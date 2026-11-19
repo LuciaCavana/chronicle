@@ -224,7 +224,10 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   /** ¿Empieza acá una ficha? Su nombre va solo en un renglón y el siguiente tiene la forma de la categoría. */
   const inicioFicha = (i: number): CategoriaFicha | null => {
     const r = flujo[i]
-    const siguientes = flujo.slice(i + 1, i + 6)
+    // Buscar señales dentro de la misma columna física: las páginas pueden
+    // contener dos columnas de lectura y las etiquetas pueden estar separadas
+    // por fragmentos decorativos del PDF.
+    const siguientes = flujo.slice(i + 1, i + 9).filter(x => x.pagina === r.pagina && x.columna === r.columna)
     const sig = siguientes[0]
     if (!sig || r.texto.length > 60 || letras(r.texto) < 3 || /[.:,;]$/.test(r.texto) || !/^[¿¡]?\p{Lu}/u.test(r.texto)) return null
     if (INICIO_CONJURO.test(sig.texto) && siguientes.slice(1, 3).some(x => /^tiempo de lanzamiento/i.test(x.texto))) return 'conjuros'
@@ -242,7 +245,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     // encontrar un campo cercano: podría ser una línea del trasfondo anterior.
     // Exigir que el primer campo sea «Puntuaciones de característica» y que haya
     // al menos otro campo propio de la ficha en la misma columna.
-    const cabecera = flujo.slice(i + 1, i + 9).filter(x => x.pagina === r.pagina && x.columna === r.columna)
+    const cabecera = siguientes
     const campoExtra = /^(?:dote|competencias? en habilidades|competencias? con herramientas|equipo)\s*:/i
     const esNombre = !/:/.test(r.texto) && r.texto.trim().split(/\s+/).length <= 7
     if (esNombre && sig.pagina === r.pagina && sig.columna === r.columna &&
