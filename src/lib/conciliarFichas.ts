@@ -51,7 +51,14 @@ const ETIQUETAS: Record<string, string> = {
   salvaciones: 'Salvaciones', armas: 'Armas', armaduras: 'Armaduras', herramientas: 'Herramientas', equipoInicial: 'Equipo inicial',
   precio: 'Precio', moneda: 'Moneda', peso: 'Peso', dadosDanio: 'Daño', tipoDanio: 'Tipo de daño', propiedadesTexto: 'Propiedades', maestria: 'Maestría',
 }
-export const etiqueta = (ruta: string) => ETIQUETAS[ruta.replace(/^datos\./, '')] ?? ruta
+/** Nombre legible de un campo: el de la lista o, si no está, la ruta separada en palabras («doteOrigen» → «Dote origen»). */
+export const etiqueta = (ruta: string) => {
+  const clave = ruta.replace(/^datos\./, '')
+  if (ETIQUETAS[clave]) return ETIQUETAS[clave]
+  const ultima = clave.split('.').pop() ?? clave
+  const palabras = ultima.replace(/([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])/g, '$1 $2').toLowerCase()
+  return palabras.charAt(0).toUpperCase() + palabras.slice(1)
+}
 
 /** Campos del libro como pares ruta → valor (los de "datos" van con prefijo). */
 export function campos(categoria: CategoriaFicha, datos: Registro): [string, unknown][] {
@@ -74,7 +81,8 @@ export function unificar(detectadas: FichaDetectada[]): { unicas: FichaDetectada
   const porClave = new Map<string, FichaDetectada>()
   const alias = new Map<string, string>()
   for (const f of detectadas) {
-    const k = `${f.categoria}:${claveNombre(f.nombre)}`
+    // Las que no tienen nombre (no estaba en el texto) nunca se unen entre sí.
+    const k = /^Sin nombre \(/.test(f.nombre) ? `sin-nombre:${f.id}` : `${f.categoria}:${claveNombre(f.nombre)}`
     const previa = porClave.get(k)
     if (previa) {
       previa.datos = { ...f.datos, ...previa.datos }

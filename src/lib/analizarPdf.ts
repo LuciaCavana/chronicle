@@ -146,7 +146,9 @@ export function armarRenglones(p: PaginaPdf, mitad = centroColumnas(p)): Omit<Re
       const celda = celdas[celdas.length - 1]
       if (!celda || parte.x0 - fin > parte.h * 1.8) celdas.push({ x0: parte.x0, x1: parte.x1, texto: parte.texto.trim() })
       else { celda.texto = `${celda.texto} ${parte.texto.trim()}`.trim(); celda.x1 = parte.x1 }
-      texto += (texto && parte.x0 - fin > parte.h * 0.12 && !texto.endsWith(' ') ? ' ' : '') + parte.texto
+      // Palabras separadas, o encimadas por el escaneo («viaje» y «y 32» se pisan): van con espacio.
+      const separada = parte.x0 - fin > parte.h * 0.12 || parte.x0 < fin - parte.h * 0.3
+      texto += (texto && separada && !texto.endsWith(' ') ? ' ' : '') + parte.texto
       fin = parte.x1
     }
     const letra = conCapitular.get(r) ?? ''
@@ -180,7 +182,18 @@ const versalitas = (t: string) => {
   return esMayusculas(t) || (ls.length >= 3 && mayus / ls.length >= 0.6) || /\p{Ll}\p{Lu}/u.test(t)
 }
 
-export type ResultadoPdf = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; fichas: FichaDetectada[] }
+/**
+ * Lugar de la página donde estaba un texto (en puntos del PDF, origen arriba a la izquierda).
+ * Sirve para mostrar en la revisión de qué parte de la página salió cada bloque o ficha.
+ */
+export type Area = { pagina: number; x0: number; y0: number; x1: number; y1: number }
+export type ResultadoPdf = {
+  capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; fichas: FichaDetectada[]
+  /** Por id de bloque o de ficha, los renglones de la página de donde salió. */
+  areas: Record<string, Area[]>
+}
+const areaDe = (r: { pagina: number; x0: number; x1: number; base: number; h: number }): Area =>
+  ({ pagina: r.pagina, x0: r.x0, y0: r.base - r.h, x1: r.x1, y1: r.base + r.h * 0.25 })
 
 export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   // Las páginas con casi nada de texto son ilustraciones (solo tienen el pie de imagen).
@@ -308,34 +321,48 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (!capitulo) { capitulo = { id: nuevoId(), etiqueta: '', titulo: 'Antes del primer capítulo', bloques: [] }; capitulos.push(capitulo) }
     return capitulo
   }
-  const agregar = (b: Bloque) => asegurarCapitulo().bloques.push(b)
+  // Dónde estaba cada bloque en la página: los renglones del bloque que se está armando y los
+  // del renglón que se procesa ahora (más los que consumió, como las filas de una tabla).
+  const areas: Record<string, Area[]> = {}
+  let zonasActual: Area[] = []
+  let zonasRenglon: Area[] = []
+  let renglonUsado = false
+  const sumarZonas = (id: string, z: Area[]) => { if (z.length) (areas[id] ??= []).push(...z) }
+  /** Agrega un bloque al capítulo. Sin zonas, el bloque sale del renglón que se procesa ahora. */
+  const agregar = (b: Bloque, z?: Area[]) => {
+    if (z) sumarZonas(b.id, z)
+    else { sumarZonas(b.id, zonasRenglon); renglonUsado = true }
+    asegurarCapitulo().bloques.push(b)
+  }
   const cerrar = () => {
     if (!actual) return
     const a: Actual = actual
     actual = null
+    const z = zonasActual
+    zonasActual = []
     if (a.tipo === 'ficha') {
       const leer = { conjuros: leerConjuro, dotes: leerDote, trasfondos: leerTrasfondo, criaturas: leerCriatura }[a.categoria as 'conjuros']
       const sinNombre = !a.nombre.trim()
       const nombre = sinNombre ? `Sin nombre (página ${a.pagina ?? '?'} del PDF)` : versalitas(a.nombre) ? comoTitulo(a.nombre) : a.nombre.trim()
       const datos = leer ? leer(nombre, a.renglones) : { nombre }
       const dudas = dudasDe(a.categoria, nombre, datos)
-      if (sinNombre) dudas.unshift('No se encontró el nombre en el texto (puede estar sobre una ilustración): escribilo')
       const ficha: FichaDetectada = {
         id: nuevoId(), categoria: a.categoria, nombre, datos,
         original: [...bloquesDeRenglones(sinNombre ? '' : nombre, a.renglones), ...a.tablas], renglones: a.renglones, dudas,
       }
       fichas.push(ficha)
+      sumarZonas(ficha.id, z)
       // En el capítulo, la ficha ocupa su lugar (fichas seguidas de la misma categoría van juntas).
       const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]
-      if (ultimo?.tipo === 'fichas' && ultimo.categoria === a.categoria) ultimo.ids.push(ficha.id)
-      else agregar({ id: nuevoId(), tipo: 'fichas', categoria: a.categoria, ids: [ficha.id] })
+      if (ultimo?.tipo === 'fichas' && ultimo.categoria === a.categoria) { ultimo.ids.push(ficha.id); sumarZonas(ultimo.id, z) }
+      else agregar({ id: nuevoId(), tipo: 'fichas', categoria: a.categoria, ids: [ficha.id] }, z)
       // Las tablas de la ficha (p. ej. «Fabricación rápida» de Fabricante) quedan justo después.
-      a.tablas.forEach(t => agregar(t))
+      a.tablas.forEach(t => agregar(t, z))
       return
     }
     if (a.tipo === 'recuadro') {
       const texto = a.parrafos.map(p => normalizarComienzo(unirRenglones(p))).filter(Boolean).join('\n\n')
-      if (texto || a.titulo) agregar({ id: nuevoId(), tipo: 'recuadro', titulo: a.titulo, texto })
+      if (texto || a.titulo) agregar({ id: nuevoId(), tipo: 'recuadro', titulo: a.titulo, texto }, z)
       return
     }
     const texto = normalizarComienzo(unirRenglones(a.renglones))
@@ -348,20 +375,20 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       if (lista) {
         const tm = lista[2].match(TERMINO)
         const item: LineaLista = tm ? { termino: tm[1], texto: tm[2] } : { termino: '', texto: lista[2] }
-        if (ultimo?.tipo === 'lista') ultimo.items.push(item)
-        else agregar({ id: nuevoId(), tipo: 'lista', items: [item] })
+        if (ultimo?.tipo === 'lista') { ultimo.items.push(item); sumarZonas(ultimo.id, z) }
+        else agregar({ id: nuevoId(), tipo: 'lista', items: [item] }, z)
         return
       }
       const nombreValido = !!dialogo && esNombreDeDialogo(dialogo[1])
       if (dialogo && nombreValido) {
         const linea: LineaDialogo = { nombre: dialogo[1].trim(), texto: dialogo[2] }
-        if (ultimo?.tipo === 'dialogo') ultimo.lineas.push(linea)
-        else agregar({ id: nuevoId(), tipo: 'dialogo', lineas: [linea] })
+        if (ultimo?.tipo === 'dialogo') { ultimo.lineas.push(linea); sumarZonas(ultimo.id, z) }
+        else agregar({ id: nuevoId(), tipo: 'dialogo', lineas: [linea] }, z)
         return
       }
-      if (termino) { agregar({ id: nuevoId(), tipo: 'termino', termino: termino[1], texto: termino[2] }); return }
+      if (termino) { agregar({ id: nuevoId(), tipo: 'termino', termino: termino[1], texto: termino[2] }, z); return }
     }
-    agregar({ id: nuevoId(), tipo: 'parrafo', texto })
+    agregar({ id: nuevoId(), tipo: 'parrafo', texto }, z)
   }
   const anchoColumna = (r: Renglon) => {
     const p = paginas.find(x => x.numero === r.pagina)
@@ -474,7 +501,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   }
   // Créditos, índice…: se saltean hasta el próximo capítulo.
   let omitiendo = false
-  flujo.forEach((r, i) => {
+  const procesar = (r: Renglon, i: number) => {
     const siguiente = flujo[i + 1]
     const anterior = flujo[i - 1]
     const mayus = esMayusculas(r.texto)
@@ -533,7 +560,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       const t = tablaDesde(i)
       if (t) {
         sumarTabla(t.tabla, enFicha.tablas)
-        for (let k = i + 1; k < t.hasta; k++) consumidos.add(k)
+        for (let k = i + 1; k < t.hasta; k++) { consumidos.add(k); zonasRenglon.push(areaDe(flujo[k])) }
         return
       }
       const seccionCriatura = enFicha.categoria === 'criaturas' && /^(rasgos|acciones|acciones adicionales|reacciones|acciones legendarias)$/i.test(r.texto.trim())
@@ -541,7 +568,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       // («o (B) 50 po» después de «…3 po,»).
       const ultimoFicha = enFicha.renglones[enFicha.renglones.length - 1]?.texto ?? ''
       const continua = r.r < 1.6 && !tituloVersalitas && (/^[\p{Ll}(\d]/u.test(r.texto) || /[,(]$/.test(ultimoFicha))
-      if ((r.r < 1.22 && !tituloVersalitas) || continua || seccionCriatura) { enFicha.renglones.push({ texto: r.texto, sangria: r.sangria, zona: `${r.pagina}-${r.columna}` }); return }
+      if ((r.r < 1.22 && !tituloVersalitas) || continua || seccionCriatura) { enFicha.renglones.push({ texto: r.texto, sangria: r.sangria, zona: `${r.pagina}-${r.columna}`, area: areaDe(r) }); return }
       cerrar()
     }
     // Tablas sueltas en el capítulo.
@@ -552,7 +579,8 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       const destino = ultimo?.tipo === 'tabla' ? [ultimo] : []
       sumarTabla(tabla.tabla, destino)
       if (destino[destino.length - 1] !== ultimo) agregar(destino[destino.length - 1])
-      for (let k = i + 1; k < tabla.hasta; k++) consumidos.add(k)
+      else if (ultimo) { sumarZonas(ultimo.id, zonasRenglon); renglonUsado = true }
+      for (let k = i + 1; k < tabla.hasta; k++) { consumidos.add(k); zonasRenglon.push(areaDe(flujo[k])) }
       return
     }
     // Recuadro: título en mayúsculas metido hacia adentro (puede ocupar varios renglones),
@@ -564,7 +592,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       const cuerpo = flujo[j]
       if (cuerpo && cuerpo.sangria >= 6 && !esMayusculas(cuerpo.texto)) {
         cerrar()
-        for (let k = i + 1; k < j; k++) consumidos.add(k)
+        for (let k = i + 1; k < j; k++) { consumidos.add(k); zonasRenglon.push(areaDe(flujo[k])) }
         actual = { tipo: 'recuadro', titulo: comoTitulo(partes.join(' ')), base: cuerpo.sangria, parrafos: [[]] }
         return
       }
@@ -642,11 +670,31 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       return
     }
     actual = { tipo: 'parrafo', renglones: [r.texto] }
+  }
+  flujo.forEach((r, i) => {
+    if (consumidos.has(i)) return
+    zonasRenglon = [areaDe(r)]
+    renglonUsado = false
+    procesar(r, i)
+    if (renglonUsado) return
+    // El renglón quedó en el bloque que se está armando, o continúa el último título.
+    if (actual) zonasActual.push(...zonasRenglon)
+    else if (r.r >= 1.22) { const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]; if (ultimo) sumarZonas(ultimo.id, zonasRenglon) }
   })
   cerrar()
 
-  // El texto entre títulos va en un solo bloque, con los términos en negrita adentro.
-  for (const c of capitulos) c.bloques = unirTexto(c.bloques)
+  // El texto entre títulos va en un solo bloque, con los términos en negrita adentro. Las zonas
+  // de los bloques unidos pasan al bloque que queda.
+  for (const c of capitulos) {
+    const antes = c.bloques
+    c.bloques = unirTexto(antes)
+    const quedan = new Set(c.bloques.map(b => b.id))
+    let destino = ''
+    for (const b of antes) {
+      if (quedan.has(b.id)) destino = b.id
+      else if (destino && areas[b.id]) { sumarZonas(destino, areas[b.id]); delete areas[b.id] }
+    }
+  }
   const resumen = new Map<string, Correccion>()
   for (const c of todas) {
     const clave = `${c.de}→${c.a}`
@@ -654,5 +702,5 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (previo) previo.veces += c.veces
     else resumen.set(clave, { ...c })
   }
-  return { capitulos: capitulos.filter(c => c.bloques.length > 0 || c.titulo), correcciones: [...resumen.values()], paginas: paginas.length, fichas }
+  return { capitulos: capitulos.filter(c => c.bloques.length > 0 || c.titulo), correcciones: [...resumen.values()], paginas: paginas.length, fichas, areas }
 }

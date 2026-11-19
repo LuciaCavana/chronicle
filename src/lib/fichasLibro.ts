@@ -31,7 +31,11 @@ export type FichaDetectada = {
   dudas: string[]
 }
 /** Un renglón de una ficha; `zona` identifica la columna de la página donde está (para no mezclar). */
-export type RenglonFicha = { texto: string; sangria: number; zona?: string }
+export type RenglonFicha = {
+  texto: string; sangria: number; zona?: string
+  /** Dónde estaba en la página del PDF (para marcarlo en la revisión). */
+  area?: { pagina: number; x0: number; y0: number; x1: number; y1: number }
+}
 
 const CARACTERISTICAS = ['Fuerza', 'Destreza', 'Constitución', 'Inteligencia', 'Sabiduría', 'Carisma']
 const sinTildes = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
@@ -394,7 +398,8 @@ const datoInterno = (datos: Record<string, unknown>, clave: string) => (datos.da
 export function dudasDe(categoria: CategoriaFicha, nombre: string, datos: Record<string, unknown>): string[] {
   const dudas: string[] = []
   const palabras = nombre.trim().split(/\s+/).length
-  if (!/^Sin nombre \(/.test(nombre) && (/[:;]/.test(nombre) || /[.,]$/.test(nombre.trim()) || palabras > 7)) dudas.push('El nombre parece parte de un texto')
+  if (/^Sin nombre \(/.test(nombre)) dudas.push('No se encontró el nombre en el texto (puede estar sobre una ilustración): escribilo')
+  else if (/[:;]/.test(nombre) || /[.,]$/.test(nombre.trim()) || palabras > 7) dudas.push('El nombre parece parte de un texto')
   const falta = (cond: boolean, que: string) => { if (cond) dudas.push(`Sin ${que}`) }
   switch (categoria) {
     case 'trasfondos': {

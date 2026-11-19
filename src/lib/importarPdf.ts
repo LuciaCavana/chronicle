@@ -9,6 +9,12 @@ export type PdfAbierto = {
   total: number
   leer: (desde: number, hasta: number, alProgresar?: (hechas: number, total: number) => void, cancelado?: () => boolean) => Promise<PaginaPdf[]>
   cerrar: () => Promise<void>
+  /**
+   * Dibuja una página en un canvas con el ancho pedido (en píxeles de pantalla). Devuelve la
+   * escala usada (píxeles por punto del PDF) para ubicar encima lo que se leyó. Si se pide otra
+   * página antes de terminar, el dibujo anterior se cancela.
+   */
+  dibujar: (numero: number, canvas: HTMLCanvasElement, ancho: number) => Promise<{ escala: number; ancho: number; alto: number } | null>
 }
 
 export async function abrirPdf(archivo: File): Promise<PdfAbierto> {
@@ -19,9 +25,36 @@ export async function abrirPdf(archivo: File): Promise<PdfAbierto> {
   // Sin evaluar código del PDF ni cargar sus fuentes: solo se lee el texto.
   const documento = await pdfjs.getDocument({ data: datos, isEvalSupported: false, disableFontFace: true, useSystemFonts: false }).promise
 
+  let dibujoEnCurso: { cancel: () => void } | null = null
+
   return {
     total: documento.numPages,
     cerrar: () => documento.destroy(),
+    async dibujar(numero, canvas, ancho) {
+      dibujoEnCurso?.cancel()
+      const pagina = await documento.getPage(Math.max(1, Math.min(numero, documento.numPages)))
+      const base = pagina.getViewport({ scale: 1 })
+      const escala = ancho / base.width
+      // Más píxeles en pantallas de alta densidad, con un tope para no gastar memoria de más.
+      const densidad = Math.min(window.devicePixelRatio || 1, 2)
+      const vista = pagina.getViewport({ scale: escala * densidad })
+      canvas.width = Math.floor(vista.width)
+      canvas.height = Math.floor(vista.height)
+      canvas.style.width = `${Math.floor(vista.width / densidad)}px`
+      canvas.style.height = `${Math.floor(vista.height / densidad)}px`
+      const contexto = canvas.getContext('2d')
+      if (!contexto) return null
+      const tarea = pagina.render({ canvasContext: contexto, viewport: vista })
+      dibujoEnCurso = tarea
+      try {
+        await tarea.promise
+      } catch {
+        return null // cancelado porque se pidió otra página
+      } finally {
+        if (dibujoEnCurso === tarea) dibujoEnCurso = null
+      }
+      return { escala, ancho: vista.width / densidad, alto: vista.height / densidad }
+    },
     async leer(desde, hasta, alProgresar, cancelado) {
       const inicio = Math.max(1, Math.min(desde, documento.numPages))
       const fin = Math.max(inicio, Math.min(hasta, documento.numPages))

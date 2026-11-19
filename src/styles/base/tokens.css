@@ -63,6 +63,17 @@
   --color-exito-borde: #50765e;
   --color-exito-fondo: #26382f;
 
+  /* ---------- Revisión de PDF (marcos sobre la página del libro) ---------- */
+  --color-fondo-visor: #0c0d13;        /* detrás de la página del PDF */
+  --color-fondo-hoja: #e9e3d6;         /* página mientras se dibuja */
+  --color-marca-fondo: rgba(216, 183, 123, .12);
+  --color-marca-tenue-borde: rgba(216, 183, 123, .55);
+  --color-marca-tenue-fondo: rgba(216, 183, 123, .06);
+  --color-marca-alerta: #c0485a;       /* marco de algo dudoso (se ve sobre papel claro) */
+  --color-marca-alerta-fondo: rgba(229, 160, 168, .16);
+  --color-marca-foco-fondo: rgba(229, 160, 168, .24);
+  --color-marca-sombra: rgba(12, 13, 19, .45);
+
   /* ---------- Tipografía ---------- */
   --fuente-serif: Georgia, serif;
   --fuente-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
