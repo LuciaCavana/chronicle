@@ -34,7 +34,9 @@ export async function abrirPdf(archivo: File): Promise<PdfAbierto> {
         const fragmentos: Fragmento[] = []
         for (const item of contenido.items) {
           if (!('str' in item) || !item.str.trim()) continue
-          const [, , c, d, e, f] = item.transform as number[]
+          const [a, b, c, d, e, f] = item.transform as number[]
+          // Texto girado (leyendas legales al costado, sellos): no es parte de la lectura.
+          if (Math.abs(b) > Math.abs(a) * 0.2 || Math.abs(c) > Math.abs(d) * 0.2) continue
           const h = Math.hypot(c, d) || item.height
           const [x0, base] = vista.convertToViewportPoint(e, f)
           const [x1] = vista.convertToViewportPoint(e + item.width, f)

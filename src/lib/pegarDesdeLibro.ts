@@ -68,6 +68,16 @@ export const comoOracion = (linea: string) => {
 // "Término." al comienzo del párrafo (puede tener dos puntos adentro: "Capítulo 1: Cómo jugar.").
 export const TERMINO = /^([¿¡]?[A-ZÁÉÍÓÚÑ][^.!?]{0,70}?\.)\s+([A-ZÁÉÍÓÚÑ¿¡"“(].*)$/
 export const LISTA = /^(\d{1,2})\s*[:.)]\s+(.+)$/
+/**
+ * Quién habla en un diálogo: nombres propios ("Héctor", "Sara (como Mirabella)"), hasta tres
+ * palabras con mayúscula. Así "Dirección de arte: …" de los créditos no se toma como diálogo.
+ */
+export function esNombreDeDialogo(nombre: string): boolean {
+  const sinAclaracion = nombre.replace(/\([^)]*\)/g, '').trim()
+  if (/^(cap[ií]tulo|ap[ée]ndice|parte|secci[óo]n|tabla)\b/i.test(sinAclaracion)) return false
+  const palabras = sinAclaracion.split(/\s+/).filter(Boolean)
+  return palabras.length >= 1 && palabras.length <= 3 && palabras.every(p => /^\p{Lu}/u.test(p))
+}
 export const DIALOGO = /^([A-ZÁÉÍÓÚÑ][\p{L} ]{0,30}(?:\s*\([^)]{1,40}\))?)\s*:\s+(.+)$/u
 
 /** Letra capitular separada ("L A IMAGINACIÓN…") y versalitas del comienzo de un párrafo. */
@@ -110,7 +120,7 @@ export function detectarBloques(texto: string): Bloque[] {
       const item: LineaLista = tm ? { termino: tm[1], texto: tm[2] } : { termino: '', texto: resto }
       if (ultimo?.tipo === 'lista') ultimo.items.push(item)
       else bloques.push({ id: nuevoId(), tipo: 'lista', items: [item] })
-    } else if (dialogo && (dialogo[1].includes('(') || dialogo[1].trim().split(' ').length <= 3)) {
+    } else if (dialogo && esNombreDeDialogo(dialogo[1])) {
       const linea: LineaDialogo = { nombre: dialogo[1].trim(), texto: dialogo[2] }
       if (ultimo?.tipo === 'dialogo') ultimo.lineas.push(linea)
       else bloques.push({ id: nuevoId(), tipo: 'dialogo', lineas: [linea] })

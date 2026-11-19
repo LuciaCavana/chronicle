@@ -1,6 +1,6 @@
 import { nuevoId, type Bloque, type Capitulo, type LineaDialogo, type LineaLista } from '../types/capitulo'
 import {
-  comoOracion, DIALOGO, esMayusculas, limpiarTextoEscaneado, LISTA, normalizarComienzo, TERMINO, unirRenglones, unirTexto,
+  comoOracion, DIALOGO, esMayusculas, esNombreDeDialogo, limpiarTextoEscaneado, LISTA, normalizarComienzo, TERMINO, unirRenglones, unirTexto,
   type Correccion,
 } from './pegarDesdeLibro'
 
@@ -72,6 +72,10 @@ function esBasura(t: string): boolean {
   return t.length < 9 && palabras.every(p => letras(p) <= 2)
 }
 
+/** Páginas que no son contenido del libro: se saltean hasta el próximo capítulo. */
+const OMITIR = /^(cr[ée]ditos|[íi]ndice( de t[ée]rminos)?|contenidos?|sumario|agradecimientos|tabla de contenidos?)$/i
+/** Renglones del índice: "Combate……………23". */
+const LINEA_INDICE = /(\.\s?){4,}\s*\d+\s*$|…{2,}\s*\d+\s*$/
 const ETIQUETA = /^(cap[ií]tulo|ap[ée]ndice|introducci[óo]n|pr[óo]logo|prefacio)\b/i
 const comoTitulo = (t: string) => comoOracion(t.replace(/[,;.]+$/, '').trim())
 
@@ -112,7 +116,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     }
     const lista = [...renglones.filter(r => !usados.has(r)), ...unidos]
       // Pie de página ("8 CAPÍTULO 1 | CÓMO JUGAR") y basura.
-      .filter(r => !(r.base > p.alto * 0.955 && r.h < hCuerpo * 1.3) && !esBasura(r.texto))
+      .filter(r => !(r.base > p.alto * 0.955 && r.h < hCuerpo * 1.3) && !esBasura(r.texto) && !LINEA_INDICE.test(r.texto))
     const conColumna = lista.map(r => {
       const ancho = r.x0 < mitad - p.ancho * 0.04 && r.x1 > mitad + p.ancho * 0.04
       return { ...r, columna: (ancho ? 2 : r.x0 < mitad ? 0 : 1) as 0 | 1 | 2 }
@@ -179,7 +183,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
         else agregar({ id: nuevoId(), tipo: 'lista', items: [item] })
         return
       }
-      const nombreValido = !!dialogo && (dialogo[1].includes('(') || dialogo[1].trim().split(' ').length <= 3)
+      const nombreValido = !!dialogo && esNombreDeDialogo(dialogo[1])
       if (dialogo && nombreValido) {
         const linea: LineaDialogo = { nombre: dialogo[1].trim(), texto: dialogo[2] }
         if (ultimo?.tipo === 'dialogo') ultimo.lineas.push(linea)
@@ -196,6 +200,8 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   }
 
   const consumidos = new Set<number>()
+  // Créditos, índice…: se saltean hasta el próximo capítulo.
+  let omitiendo = false
   flujo.forEach((r, i) => {
     const siguiente = flujo[i + 1]
     const anterior = flujo[i - 1]
@@ -204,6 +210,8 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     // Título del capítulo (letra muy grande).
     if (r.r >= 2.6) {
       cerrar(); ultimoTitulo = null
+      if (OMITIR.test(comoTitulo(r.texto))) { omitiendo = true; etiquetaPendiente = ''; return }
+      omitiendo = false
       const ultimoCap: Capitulo | null = capitulo
       if (ultimoCap && ultimoCap.bloques.length === 0 && anterior && anterior.r >= 2.6 && anterior.pagina === r.pagina) {
         ultimoCap.titulo = `${ultimoCap.titulo} ${comoTitulo(r.texto).toLocaleLowerCase('es')}`
@@ -219,10 +227,14 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     const sinSignos = r.texto.replace(/^[^\p{L}]+/u, '')
     if (r.r >= 1.5 && ETIQUETA.test(sinSignos) && sinSignos.length < 40) {
       cerrar()
+      omitiendo = false
       etiquetaPendiente = comoTitulo(sinSignos).replace(/^(\p{L}+)\s+(\p{L}{1,3}|\d+)$/u, (_m, a: string, b: string) => `${a} ${/^\d+$/.test(b) ? b : b.toUpperCase()}`)
       return
     }
     if (consumidos.has(i)) return
+    // Un título "Créditos" o "Índice" empieza páginas que no son contenido.
+    if (r.r >= 1.22 && OMITIR.test(comoTitulo(r.texto))) { cerrar(); omitiendo = true; return }
+    if (omitiendo) return
     // Recuadro: título en mayúsculas metido hacia adentro (puede ocupar varios renglones),
     // seguido de texto también metido hacia adentro.
     if (mayus && r.sangria >= 8 && r.r >= 0.6 && r.r < 1.6 && r.texto.length <= 80) {
@@ -286,7 +298,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     // Renglón al margen.
     const colgante = siguiente && siguiente.pagina === r.pagina && siguiente.columna === r.columna && siguiente.sangria >= 8 && siguiente.sangria < 30
     const empiezaColgante = LISTA.test(r.texto) ||
-      (DIALOGO.test(r.texto) && (() => { const n = r.texto.match(DIALOGO)?.[1] ?? ''; return n.includes('(') || n.trim().split(' ').length <= 3 })()) ||
+      (DIALOGO.test(r.texto) && esNombreDeDialogo(r.texto.match(DIALOGO)?.[1] ?? '')) ||
       (TERMINO.test(r.texto) && colgante)
     if (empiezaColgante) {
       cerrar()
