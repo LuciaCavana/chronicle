@@ -43,6 +43,13 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
     onChange(capitulos.map(c => c.id === id ? cambio(c) : c))
   const cambiarBloques = (cambio: (b: Bloque[]) => Bloque[]) => actual && cambiarCapitulo(actual.id, c => ({ ...c, bloques: cambio(c.bloques) }))
 
+  function borrarCapitulo(id: string) {
+    const restantes = capitulos.filter(c => c.id !== id)
+    onChange(restantes)
+    setPorBorrar(null)
+    if (seleccion === id) setSeleccion(restantes[0]?.id ?? null)
+  }
+
   function agregarCapitulo() {
     const numero = capitulos.filter(c => /^cap/i.test(c.etiqueta)).length + 1
     const nuevo = nuevoCapitulo(`Capítulo ${numero}`, '')
@@ -77,7 +84,13 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
             {!soloLectura && <span className="capitulos__mover">
               <button type="button" aria-label={`Subir ${c.titulo || 'capítulo'}`} disabled={i === 0} onClick={() => onChange(mover(capitulos, i, i - 1))}><ArrowUp size={15} aria-hidden="true" /></button>
               <button type="button" aria-label={`Bajar ${c.titulo || 'capítulo'}`} disabled={i === capitulos.length - 1} onClick={() => onChange(mover(capitulos, i, i + 1))}><ArrowDown size={15} aria-hidden="true" /></button>
+              <button type="button" aria-label={`Eliminar ${c.titulo || c.etiqueta || 'capítulo'}`} title="Eliminar capítulo" className="capitulos__peligro" onClick={() => setPorBorrar(c.id)}><Trash2 size={15} aria-hidden="true" /></button>
             </span>}
+            {!soloLectura && porBorrar === c.id && <div className="capitulos__confirmar-borrado">
+              <span>¿Eliminar este capítulo y sus {c.bloques.length} bloques? Las fichas no se borran.</span>
+              <button type="button" className="capitulos__peligro" onClick={() => borrarCapitulo(c.id)}>Eliminar</button>
+              <button type="button" onClick={() => setPorBorrar(null)}>Cancelar</button>
+            </div>}
           </li>
         })}
       </ol>
@@ -130,7 +143,7 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
       {!soloLectura && <div className="capitulos__pie">
         {porBorrar === actual.id
           ? <><span>¿Borrar «{actual.titulo || 'este capítulo'}» y sus {actual.bloques.length} bloques? Las fichas no se borran.</span>
-            <button type="button" className="capitulos__peligro" onClick={() => { onChange(capitulos.filter(c => c.id !== actual.id)); setPorBorrar(null); setSeleccion(null) }}>Borrar capítulo</button>
+            <button type="button" className="capitulos__peligro" onClick={() => borrarCapitulo(actual.id)}>Borrar capítulo</button>
             <button type="button" onClick={() => setPorBorrar(null)}>Cancelar</button></>
           : <button type="button" className="capitulos__peligro" onClick={() => setPorBorrar(actual.id)}><Trash2 size={15} aria-hidden="true" />Borrar capítulo</button>}
       </div>}
