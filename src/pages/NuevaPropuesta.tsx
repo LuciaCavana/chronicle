@@ -111,6 +111,8 @@ export default function NuevaPropuesta() {
   const [basadoEn, setBasadoEn] = useState('')
   const basadoEnGuardado = useRef('')
   const [puedeBasarse, setPuedeBasarse] = useState(true)
+  // Versión publicada que salió de este borrador (un libro no puede basarse en sí mismo).
+  const [versionPropia, setVersionPropia] = useState<string | null>(null)
   const [abriendoCorreccion, setAbriendoCorreccion] = useState(false)
   const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
   const [errorVersiones, setErrorVersiones] = useState('')
@@ -341,7 +343,8 @@ export default function NuevaPropuesta() {
       setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
       // Solo un libro nuevo que todavía no se publicó puede indicar un libro original.
-      setPuedeBasarse(propuesta.tipo === 'libro_nuevo' && !propuesta.revision_resultante_id)
+      setPuedeBasarse(propuesta.tipo === 'libro_nuevo')
+      setVersionPropia(propuesta.revision_resultante_id ?? null)
       setBasadoEn(propuesta.libro_original_id ?? '')
       basadoEnGuardado.current = propuesta.libro_original_id ?? ''
 
@@ -1072,7 +1075,9 @@ export default function NuevaPropuesta() {
                 <BasadoEnLibro
                   titulo={title}
                   codigo={bookCode}
-                  libros={versionesPublicadas.map(v => ({ libroId: v.libroId, versionId: v.id, titulo: v.titulo, codigo: v.codigo, idioma: v.idioma }))}
+                  libros={versionesPublicadas
+                    .filter(v => !versionPropia || !versionesPublicadas.some(p => p.id === versionPropia && p.libroId === v.libroId))
+                    .map(v => ({ libroId: v.libroId, versionId: v.id, titulo: v.titulo, codigo: v.codigo, idioma: v.idioma, derivado: !!v.libroOriginalDe }))}
                   valor={basadoEn}
                   onChange={setBasadoEn}
                   deshabilitado={!puedeEditar}

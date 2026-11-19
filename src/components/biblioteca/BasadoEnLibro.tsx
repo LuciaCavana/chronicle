@@ -1,6 +1,8 @@
 import { AlertTriangle, Link2 } from 'lucide-react'
 
-export type LibroPublicadoOpcion = { libroId: string; versionId: string; titulo: string; codigo: string | null; idioma: string }
+export type LibroPublicadoOpcion = { libroId: string; versionId: string; titulo: string; codigo: string | null; idioma: string
+ /** Se basa en otro libro (no es un original). */
+ derivado?: boolean }
 
 type Props = {
  titulo: string
@@ -28,7 +30,10 @@ export default function BasadoEnLibro({ titulo, codigo, libros, valor, onChange,
  const unicos = libros.filter((libro, i) => libros.findIndex(l => l.libroId === libro.libroId) === i)
  const t = normalizarNombre(titulo)
  const c = normalizarNombre(codigo)
- const coincidencia = valor ? undefined : libros.find(l => (t && normalizarNombre(l.titulo) === t) || (c && normalizarNombre(l.codigo) === c))
+ // Primero por título; entre los que coinciden por código, los originales antes que los derivados.
+ const coincidencia = valor ? undefined
+  : libros.find(l => t && normalizarNombre(l.titulo) === t)
+  ?? [...libros].sort((a, b) => Number(!!a.derivado) - Number(!!b.derivado)).find(l => c && normalizarNombre(l.codigo) === c)
  const motivo = coincidencia && (t && normalizarNombre(coincidencia.titulo) === t ? 'llamado' : 'con el código')
 
  return <>
