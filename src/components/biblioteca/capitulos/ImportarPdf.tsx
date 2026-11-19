@@ -1,23 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
-import { FileUp } from 'lucide-react'
-import { analizarPaginas, type ResultadoPdf } from '../../../lib/analizarPdf'
+import { FileUp, ListTree } from 'lucide-react'
+import { analizarPaginas } from '../../../lib/analizarPdf'
 import { abrirPdf, type PdfAbierto } from '../../../lib/importarPdf'
+import { ajustarConIndice, analizarIndice, paginasDeCapitulos, type IndiceLibro } from '../../../lib/indicePdf'
+import type { Correccion } from '../../../lib/pegarDesdeLibro'
 import { etiquetaBloque, textoBloque, type Capitulo } from '../../../types/capitulo'
 
 type Props = { onAgregar: (capitulos: Capitulo[]) => void; onCancelar: () => void }
+type Resultado = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; faltan: Record<string, string[]> }
+
+/** Páginas del comienzo donde se busca el índice. */
+const PAGINAS_INDICE = 30
 
 /**
- * Importar desde PDF: lee el libro escaneado en este navegador, reconoce capítulos, títulos,
- * párrafos, recuadros, diálogos y listas, y muestra el resultado para elegir qué agregar.
+ * Importar desde PDF: lee el libro escaneado en este navegador. Si encuentra el índice, se
+ * importa por capítulos (cada uno con sus páginas y su nombre); si no, por rango de páginas.
  */
 export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
   const [pdf, setPdf] = useState<PdfAbierto | null>(null)
   const [nombre, setNombre] = useState('')
+  const [indice, setIndice] = useState<IndiceLibro | null>(null)
+  const [modo, setModo] = useState<'indice' | 'paginas'>('indice')
+  const [elegidosIndice, setElegidosIndice] = useState<Set<string>>(new Set())
   const [desde, setDesde] = useState(1)
   const [hasta, setHasta] = useState(1)
   const [estado, setEstado] = useState<'inicio' | 'abriendo' | 'leyendo' | 'listo'>('inicio')
-  const [progreso, setProgreso] = useState({ hechas: 0, total: 0 })
-  const [resultado, setResultado] = useState<ResultadoPdf | null>(null)
+  const [progreso, setProgreso] = useState({ hechas: 0, total: 0, texto: '' })
+  const [resultado, setResultado] = useState<Resultado | null>(null)
   const [elegidos, setElegidos] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
   const cancelado = useRef(false)
@@ -26,65 +35,140 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
 
   async function elegirArchivo(archivo: File | undefined) {
     if (!archivo) return
-    setError(''); setResultado(null); setEstado('abriendo'); setNombre(archivo.name)
+    setError(''); setResultado(null); setIndice(null); setEstado('abriendo'); setNombre(archivo.name); setProgreso({ hechas: 0, total: 0, texto: '' })
     try {
       if (archivo.type && archivo.type !== 'application/pdf') throw new Error('El archivo tiene que ser un PDF.')
       await pdf?.cerrar()
       const abierto = await abrirPdf(archivo)
-      setPdf(abierto); setDesde(1); setHasta(abierto.total); setEstado('inicio')
+      setPdf(abierto); setDesde(1); setHasta(abierto.total)
+      // Busca el índice en las primeras páginas.
+      setProgreso({ hechas: 0, total: Math.min(PAGINAS_INDICE, abierto.total), texto: 'Buscando el índice' })
+      const primeras = await abierto.leer(1, Math.min(PAGINAS_INDICE, abierto.total), (hechas, total) => setProgreso({ hechas, total, texto: 'Buscando el índice' }))
+      const encontrado = analizarIndice(primeras)
+      setIndice(encontrado)
+      setModo(encontrado ? 'indice' : 'paginas')
+      setElegidosIndice(new Set(encontrado?.capitulos.map(c => c.id) ?? []))
+      setEstado('inicio')
     } catch (e) {
       setPdf(null); setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo abrir el PDF.')
     }
   }
 
-  async function analizar() {
-    if (!pdf) return
+  async function importarPorIndice() {
+    if (!pdf || !indice) return
     setError(''); setEstado('leyendo'); cancelado.current = false
-    setProgreso({ hechas: 0, total: hasta - desde + 1 })
+    const rangos = paginasDeCapitulos(indice, pdf.total).filter(r => elegidosIndice.has(r.capitulo.id))
+    const total = rangos.reduce((n, r) => n + r.hasta - r.desde + 1, 0)
+    let hechas = 0
+    const capitulos: Capitulo[] = []
+    const correcciones: Correccion[] = []
+    const faltan: Record<string, string[]> = {}
     try {
-      const paginas = await pdf.leer(desde, hasta, (hechas, total) => setProgreso({ hechas, total }), () => cancelado.current)
-      if (cancelado.current) { setEstado('inicio'); return }
-      const r = analizarPaginas(paginas)
-      if (!r.capitulos.length) throw new Error('No se encontró texto en esas páginas. Si el PDF es solo imagen (sin texto reconocido), no se puede importar.')
-      setResultado(r)
-      // Lo que está antes del primer capítulo (créditos, índice) va sin marcar.
-      setElegidos(new Set(r.capitulos.filter(c => c.etiqueta || c.titulo !== 'Antes del primer capítulo').map(c => c.id)))
-      setEstado('listo')
+      for (const r of rangos) {
+        const nombreCap = [r.capitulo.etiqueta, r.capitulo.titulo].filter(Boolean).join(': ')
+        const paginas = await pdf.leer(r.desde, r.hasta, n => setProgreso({ hechas: hechas + n, total, texto: nombreCap }), () => cancelado.current)
+        if (cancelado.current) break
+        hechas += r.hasta - r.desde + 1
+        const leido = analizarPaginas(paginas)
+        correcciones.push(...leido.correcciones)
+        const { capitulo, faltan: sinEncontrar } = ajustarConIndice(leido.capitulos, r.capitulo)
+        capitulos.push(capitulo)
+        faltan[capitulo.id] = sinEncontrar
+      }
+      if (cancelado.current && !capitulos.length) { setEstado('inicio'); return }
+      mostrar({ capitulos, correcciones: resumir(correcciones), paginas: hechas, faltan })
     } catch (e) {
       setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
     }
   }
 
+  async function importarPorPaginas() {
+    if (!pdf) return
+    setError(''); setEstado('leyendo'); cancelado.current = false
+    setProgreso({ hechas: 0, total: hasta - desde + 1, texto: 'Leyendo' })
+    try {
+      const paginas = await pdf.leer(desde, hasta, (hechas, total) => setProgreso({ hechas, total, texto: 'Leyendo' }), () => cancelado.current)
+      if (cancelado.current) { setEstado('inicio'); return }
+      const r = analizarPaginas(paginas)
+      mostrar({ ...r, faltan: {} })
+    } catch (e) {
+      setEstado('inicio')
+      setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
+    }
+  }
+
+  function mostrar(r: Resultado) {
+    if (!r.capitulos.some(c => c.bloques.length)) {
+      setEstado('inicio')
+      setError('No se encontró texto en esas páginas. Si el PDF es solo imagen (sin texto reconocido), no se puede importar.')
+      return
+    }
+    setResultado(r)
+    // Lo que está antes del primer capítulo (créditos, índice) va sin marcar.
+    setElegidos(new Set(r.capitulos.filter(c => c.bloques.length && (c.etiqueta || c.titulo !== 'Antes del primer capítulo')).map(c => c.id)))
+    setEstado('listo')
+  }
+
   const elegidosLista = resultado?.capitulos.filter(c => elegidos.has(c.id)) ?? []
   const totalBloques = elegidosLista.reduce((n, c) => n + c.bloques.length, 0)
+  const rangosIndice = pdf && indice ? paginasDeCapitulos(indice, pdf.total) : []
+  const ocupado = estado === 'abriendo' || estado === 'leyendo'
 
   return <section className="capitulos__capitulo capitulos__importar" aria-labelledby="importar-titulo">
     <h3 id="importar-titulo" className="capitulos__importar-titulo"><FileUp size={18} aria-hidden="true" />Importar desde PDF</h3>
-    <p className="capitulos__ayuda">El PDF se lee en este navegador y no se sube a ningún lado. Se reconocen los capítulos, títulos, párrafos, recuadros, diálogos y listas por el tamaño y la posición del texto, y se corrigen los errores típicos del escaneo. Después revisá cada capítulo: es una propuesta.</p>
+    <p className="capitulos__ayuda">El PDF se lee en este navegador y no se sube a ningún lado. Si el libro tiene índice, se usa para saber dónde empieza cada capítulo y cómo se llama cada sección. Después revisá cada capítulo: es una propuesta.</p>
 
     <label className="capitulos__archivo">
       <span>{nombre || 'Elegir PDF…'}</span>
-      <input type="file" accept="application/pdf,.pdf" disabled={estado === 'abriendo' || estado === 'leyendo'} onChange={e => void elegirArchivo(e.target.files?.[0])} />
+      <input type="file" accept="application/pdf,.pdf" disabled={ocupado} onChange={e => void elegirArchivo(e.target.files?.[0])} />
     </label>
-    {estado === 'abriendo' && <p className="capitulos__ayuda" role="status">Abriendo el PDF…</p>}
 
-    {pdf && estado !== 'abriendo' && <div className="capitulos__rango">
-      <span>{pdf.total} páginas. Importar de la</span>
-      <label><span className="capitulos__oculto">Desde la página</span>
-        <input type="number" min={1} max={pdf.total} value={desde} disabled={estado === 'leyendo'} onChange={e => setDesde(Math.max(1, Math.min(pdf.total, Number(e.target.value) || 1)))} /></label>
-      <span>a la</span>
-      <label><span className="capitulos__oculto">Hasta la página</span>
-        <input type="number" min={desde} max={pdf.total} value={hasta} disabled={estado === 'leyendo'} onChange={e => setHasta(Math.max(desde, Math.min(pdf.total, Number(e.target.value) || desde)))} /></label>
-      <button type="button" className="capitulos__primario" disabled={estado === 'leyendo'} onClick={() => void analizar()}>Analizar</button>
-    </div>}
-    <p className="capitulos__ayuda">Conviene saltear la tapa, los créditos y el índice: empezá en la primera página de texto.</p>
+    {pdf && estado !== 'abriendo' && <>
+      <div className="capitulos__modos" role="group" aria-label="Cómo importar">
+        <button type="button" aria-pressed={modo === 'indice'} disabled={!indice || ocupado} onClick={() => setModo('indice')}><ListTree size={15} aria-hidden="true" />Por el índice</button>
+        <button type="button" aria-pressed={modo === 'paginas'} disabled={ocupado} onClick={() => setModo('paginas')}>Por páginas</button>
+      </div>
 
-    {estado === 'leyendo' && <div className="capitulos__progreso" role="status">
-      <span>Leyendo página {progreso.hechas} de {progreso.total}…</span>
+      {modo === 'indice' && indice && <div className="capitulos__indice">
+        <p className="capitulos__ayuda">
+          Índice encontrado en la página {indice.paginasPdf.join(', ')} del PDF: {indice.capitulos.length} capítulos y {indice.capitulos.reduce((n, c) => n + c.secciones.length, 0)} secciones.
+          {indice.desfase === null ? ' No se pudo calcular dónde cae cada página del libro en el PDF: se toman iguales.' : indice.desfase ? ` La página 1 del libro es la ${1 + indice.desfase} del PDF.` : ''}
+        </p>
+        <ul className="capitulos__encontrados">
+          {rangosIndice.map(({ capitulo: c, desde: d, hasta: h }) => <li key={c.id}><label className="capitulos__fila-indice">
+            <input type="checkbox" checked={elegidosIndice.has(c.id)} disabled={ocupado}
+              onChange={() => setElegidosIndice(s => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n })} />
+            <span className="capitulos__nombre">{[c.etiqueta, c.titulo].filter(Boolean).join(': ')}</span>
+            <span className="capitulos__detalle">pág. {c.pagina} del libro · PDF {d}–{h} · {c.secciones.length} secciones</span>
+          </label></li>)}
+        </ul>
+        <div className="capitulos__acciones">
+          <button type="button" disabled={ocupado} onClick={() => setElegidosIndice(new Set(elegidosIndice.size ? [] : indice.capitulos.map(c => c.id)))}>{elegidosIndice.size ? 'Desmarcar todos' : 'Marcar todos'}</button>
+          <button type="button" className="capitulos__primario" disabled={ocupado || !elegidosIndice.size} onClick={() => void importarPorIndice()}>Leer {elegidosIndice.size} {elegidosIndice.size === 1 ? 'capítulo' : 'capítulos'}</button>
+        </div>
+      </div>}
+
+      {modo === 'paginas' && <>
+        {!indice && <p className="capitulos__ayuda">No se encontró un índice en las primeras {Math.min(PAGINAS_INDICE, pdf.total)} páginas: elegí el rango a importar.</p>}
+        <div className="capitulos__rango">
+          <span>{pdf.total} páginas. Importar de la</span>
+          <label><span className="capitulos__oculto">Desde la página</span>
+            <input type="number" min={1} max={pdf.total} value={desde} disabled={ocupado} onChange={e => setDesde(Math.max(1, Math.min(pdf.total, Number(e.target.value) || 1)))} /></label>
+          <span>a la</span>
+          <label><span className="capitulos__oculto">Hasta la página</span>
+            <input type="number" min={desde} max={pdf.total} value={hasta} disabled={ocupado} onChange={e => setHasta(Math.max(desde, Math.min(pdf.total, Number(e.target.value) || desde)))} /></label>
+          <button type="button" className="capitulos__primario" disabled={ocupado} onClick={() => void importarPorPaginas()}>Analizar</button>
+        </div>
+        <p className="capitulos__ayuda">Los créditos y el índice se saltean solos.</p>
+      </>}
+    </>}
+
+    {ocupado && <div className="capitulos__progreso" role="status">
+      <span>{estado === 'abriendo' && !progreso.total ? 'Abriendo el PDF…' : `${progreso.texto}: página ${progreso.hechas} de ${progreso.total}…`}</span>
       <progress max={Math.max(1, progreso.total)} value={progreso.hechas} aria-label="Páginas leídas" />
-      <button type="button" onClick={() => { cancelado.current = true }}>Detener</button>
+      {estado === 'leyendo' && <button type="button" onClick={() => { cancelado.current = true }}>Detener</button>}
     </div>}
     {error && <p className="capitulos__error" role="alert">{error}</p>}
 
@@ -92,23 +176,27 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
       {resultado.correcciones.length > 0 && <ul className="capitulos__correcciones" aria-label="Correcciones del escaneo">
         {resultado.correcciones.slice(0, 24).map(c => <li key={`${c.de}${c.a}`}>{c.de} → {c.a}{c.veces > 1 ? ` (×${c.veces})` : ''}</li>)}
       </ul>}
-      <h4 className="capitulos__rotulo">Se encontraron {resultado.capitulos.length} capítulos en {resultado.paginas} páginas</h4>
+      <h4 className="capitulos__rotulo">Se leyeron {resultado.capitulos.length} capítulos en {resultado.paginas} páginas</h4>
       <ul className="capitulos__encontrados">
-        {resultado.capitulos.map(c => <li key={c.id}>
-          <details>
-            <summary>
-              <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={elegidos.has(c.id)}
-                onChange={() => setElegidos(s => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n })} />
-                <span className="capitulos__oculto">Agregar {c.titulo}</span></label>
-              <span className="capitulos__nombre">{[c.etiqueta, c.titulo].filter(Boolean).join(': ')}</span>
-              <span className="capitulos__detalle">{c.bloques.length} bloques · {c.bloques.filter(b => b.tipo === 'recuadro').length} recuadros</span>
-            </summary>
-            <ol className="capitulos__vista">
-              {c.bloques.slice(0, 40).map(b => <li key={b.id}><span>{etiquetaBloque(b.tipo)}</span><p>{textoBloque(b).replace(/\*\*/g, '').slice(0, 280)}{textoBloque(b).length > 280 ? '…' : ''}</p></li>)}
-              {c.bloques.length > 40 && <li><span /><p>… y {c.bloques.length - 40} bloques más.</p></li>}
-            </ol>
-          </details>
-        </li>)}
+        {resultado.capitulos.map(c => {
+          const faltan = resultado.faltan[c.id] ?? []
+          return <li key={c.id}>
+            <details>
+              <summary>
+                <label onClick={e => e.stopPropagation()}><input type="checkbox" checked={elegidos.has(c.id)}
+                  onChange={() => setElegidos(s => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n })} />
+                  <span className="capitulos__oculto">Agregar {c.titulo}</span></label>
+                <span className="capitulos__nombre">{[c.etiqueta, c.titulo].filter(Boolean).join(': ')}</span>
+                <span className="capitulos__detalle">{c.bloques.length} bloques · {c.bloques.filter(b => b.tipo === 'recuadro').length} recuadros{faltan.length ? ` · faltan ${faltan.length} secciones del índice` : ''}</span>
+              </summary>
+              {faltan.length > 0 && <p className="capitulos__faltan">No se encontraron como títulos: {faltan.join(', ')}. Pueden haber quedado dentro del texto.</p>}
+              <ol className="capitulos__vista">
+                {c.bloques.slice(0, 40).map(b => <li key={b.id}><span>{etiquetaBloque(b.tipo)}</span><p>{textoBloque(b).replace(/\*\*/g, '').slice(0, 280)}{textoBloque(b).length > 280 ? '…' : ''}</p></li>)}
+                {c.bloques.length > 40 && <li><span /><p>… y {c.bloques.length - 40} bloques más.</p></li>}
+              </ol>
+            </details>
+          </li>
+        })}
       </ul>
     </>}
 
@@ -118,4 +206,15 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
         onClick={() => onAgregar(elegidosLista)}>Agregar {elegidosLista.length} {elegidosLista.length === 1 ? 'capítulo' : 'capítulos'} ({totalBloques} bloques)</button>}
     </div>
   </section>
+}
+
+function resumir(lista: Correccion[]): Correccion[] {
+  const mapa = new Map<string, Correccion>()
+  for (const c of lista) {
+    const clave = `${c.de}→${c.a}`
+    const previo = mapa.get(clave)
+    if (previo) previo.veces += c.veces
+    else mapa.set(clave, { ...c })
+  }
+  return [...mapa.values()].sort((a, b) => b.veces - a.veces)
 }

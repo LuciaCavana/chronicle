@@ -133,3 +133,11 @@
 .capitulos__vista span { font-size: 12px; color: var(--color-acento-claro); }
 .capitulos__vista p { margin: 0; font-family: var(--fuente-serif); font-size: 14.5px; line-height: 1.5; color: var(--color-texto-lectura); white-space: pre-line; }
 @media (max-width: 700px) { .capitulos__vista li { grid-template-columns: 1fr; } }
+.capitulos__modos { display: flex; flex-wrap: wrap; gap: 4px; padding: 3px; align-self: flex-start; background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-pildora); }
+.capitulos .capitulos__modos button { min-height: 36px; border: 0; border-radius: var(--radio-pildora); background: transparent; color: var(--color-texto-suave); }
+.capitulos .capitulos__modos button[aria-pressed="true"] { background: var(--color-fondo-activo); color: var(--color-acento-claro); }
+.capitulos__indice { display: grid; gap: 10px; }
+.capitulos__fila-indice { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; min-height: 48px; padding: 6px 12px; background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); cursor: pointer; }
+.capitulos__fila-indice input { width: 18px; height: 18px; min-height: 0; accent-color: var(--color-acento); }
+.capitulos__fila-indice .capitulos__nombre { flex: 1 1 220px; }
+.capitulos__faltan { margin: 0 12px 8px; padding: 8px 10px; background: var(--color-fondo-activo); border-radius: var(--radio-sm); font-size: 13px; line-height: 1.5; color: var(--color-acento-claro); }
