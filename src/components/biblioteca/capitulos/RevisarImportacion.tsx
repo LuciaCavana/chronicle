@@ -6,10 +6,11 @@ import {
 import type { Area } from '../../../lib/analizarPdf'
 import type { PdfAbierto } from '../../../lib/importarPdf'
 import type { Correccion } from '../../../lib/pegarDesdeLibro'
+import { parecido, type EntradaIndice } from '../../../lib/indicePdf'
 import { claveNombre, type Existentes, type Propuesta } from '../../../lib/conciliarFichas'
 import { textoOriginal, TITULO_CATEGORIA, type CategoriaFicha, type FichaDetectada } from '../../../lib/fichasLibro'
 import {
-  agruparZonas, camposDeRevision, dudasDeBloque, mostrarValor, nombreVisible, textoDeCampo, UNA, valorDeTexto, zonasDeCampo,
+  agruparZonas, buscarEnBloques, camposDeRevision, dudasDeBloque, mostrarValor, nombreVisible, posicionTitulo, repartirZonas, textoDeCampo, UNA, valorDeTexto, zonasDeCampo,
   type Ajuste, type CampoRevision, type Decision, type Eleccion,
 } from '../../../lib/revisionImportacion'
 import { convertirBloque, nuevoId, textoBloque, TIPOS_BLOQUE, type Bloque, type Capitulo, type TipoBloque } from '../../../types/capitulo'
@@ -22,7 +23,8 @@ type Props = {
   elegidos: Set<string>
   onElegidos: (s: Set<string>) => void
   onCapitulos: (c: Capitulo[]) => void
-  faltan: Record<string, string[]>
+  /** Por capítulo, las secciones que dice el índice del libro. */
+  secciones: Record<string, EntradaIndice[]>
   correcciones: Correccion[]
   areas: Record<string, Area[]>
   /** Fichas de los capítulos elegidos, ya con las correcciones aplicadas. */
@@ -58,7 +60,7 @@ const claveDe = (s: Seleccion) => (s.tipo === 'correcciones' ? 'correcciones' : 
  * derecha lo leído para corregir. Al final, un resumen antes de agregar al libro.
  */
 export default function RevisarImportacion(props: Props) {
-  const { pdf, capitulos, elegidos, faltan, correcciones, propuestas, eleccion, onEleccion, existentes } = props
+  const { pdf, capitulos, elegidos, secciones, correcciones, propuestas, eleccion, onEleccion, existentes } = props
   const [paso, setPaso] = useState<'revisar' | 'resumen'>('revisar')
   const [filtro, setFiltro] = useState<'problemas' | 'pendientes' | 'todo'>('problemas')
   const [revisados, setRevisados] = useState<Set<string>>(new Set())
@@ -76,7 +78,22 @@ export default function RevisarImportacion(props: Props) {
     return () => { document.body.style.overflow = antes }
   }, [])
 
-  const zonas = (id: string) => [...(props.areas[id] ?? []), ...(areasExtra[id] ?? [])]
+  // Las zonas cambiadas en la revisión (al unir o separar bloques) reemplazan a las leídas.
+  const zonas = (id: string) => areasExtra[id] ?? props.areas[id] ?? []
+  /** Al partir un bloque, cada parte se queda con sus renglones de la página. */
+  const repartirEn = (original: string, partes: Bloque[]) => {
+    const propias = zonas(original)
+    const repartidas = repartirZonas(propias, partes.map(textoBloque))
+    setAreasExtra(a => ({ ...a, ...Object.fromEntries(partes.map((x, n) => [x.id, repartidas[n].length ? repartidas[n] : propias])) }))
+  }
+  // Secciones del índice que se dejaron de lado a mano («está bien así»).
+  const [ignoradas, setIgnoradas] = useState<Set<string>>(new Set())
+  /** Secciones del índice que todavía no son un título del capítulo (se recalcula al corregir). */
+  const faltanDe = (c: Capitulo) => {
+    const titulos = c.bloques.filter((b): b is Extract<Bloque, { tipo: 'titulo' | 'subtitulo' }> => b.tipo === 'titulo' || b.tipo === 'subtitulo')
+    return (secciones[c.id] ?? []).map((s, i) => ({ s, i }))
+      .filter(({ s, i }) => !ignoradas.has(`${c.id}:${i}`) && !titulos.some(t => parecido(t.texto, s.texto) >= 0.8))
+  }
   const zonasFicha = (f: FichaDetectada) => {
     const propias = zonas(f.id)
     return propias.length ? propias : f.original.flatMap(b => zonas(b.id))
@@ -98,8 +115,8 @@ export default function RevisarImportacion(props: Props) {
     }
     for (const c of capitulos) {
       const sospechosos = c.bloques.filter(b => dudasDeBloque(b).length).length
-      const sinEncontrar = faltan[c.id]?.length ?? 0
-      const detalle = sinEncontrar ? `Faltan ${sinEncontrar} secciones del índice` : sospechosos ? `${sospechosos} bloques para mirar` : c.bloques.length === 1 ? '1 bloque' : `${c.bloques.length} bloques`
+      const sinEncontrar = faltanDe(c).length
+      const detalle = sinEncontrar ? (sinEncontrar === 1 ? 'Falta 1 sección del índice' : `Faltan ${sinEncontrar} secciones del índice`) : sospechosos ? `${sospechosos} bloques para mirar` : c.bloques.length === 1 ? '1 bloque' : `${c.bloques.length} bloques`
       lista.push({ clave: `capitulo:${c.id}`, sel: { tipo: 'capitulo', id: c.id }, nombre: [c.etiqueta, c.titulo].filter(Boolean).join(': ') || 'Capítulo', detalle, problema: !!(sinEncontrar || sospechosos), grupo: 'capitulos' })
     }
     if (correcciones.length) {
@@ -108,7 +125,7 @@ export default function RevisarImportacion(props: Props) {
     }
     return lista
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [propuestas, capitulos, faltan, correcciones, eleccion.ajustes, props.areas, areasExtra])
+  }, [propuestas, capitulos, secciones, ignoradas, correcciones, eleccion.ajustes, props.areas, areasExtra])
 
   // Lo que empezó dudoso sigue en «Para revisar» aunque ya se haya corregido (con su marca de revisado).
   const [dudososAlEmpezar] = useState(() => new Set(items.filter(i => i.problema).map(i => i.clave)))
@@ -401,7 +418,7 @@ export default function RevisarImportacion(props: Props) {
 
   // ===================================================================================
   function panelCapitulo(c: Capitulo) {
-    const sinEncontrar = faltan[c.id] ?? []
+    const sinEncontrar = faltanDe(c)
     const incluido = elegidos.has(c.id)
     const tipos = TIPOS_BLOQUE.filter(t => t.tipo !== 'fichas')
     const cambiarTipo = (b: Bloque, tipo: TipoBloque) => conBloques(c.id, bs => bs.map(x => (x.id === b.id ? convertirBloque(x, tipo) : x)))
@@ -410,7 +427,7 @@ export default function RevisarImportacion(props: Props) {
       const actualB = c.bloques[i]
       if (!previo || !('texto' in previo) || actualB.tipo === 'fichas') return
       const unido = { ...previo, texto: `${previo.texto}\n\n${actualB.tipo === 'termino' ? `**${actualB.termino}** ${actualB.texto}` : textoBloque(actualB)}`.trim() } as Bloque
-      setAreasExtra(a => ({ ...a, [previo.id]: [...(a[previo.id] ?? []), ...zonas(actualB.id)] }))
+      setAreasExtra(a => ({ ...a, [previo.id]: [...zonas(previo.id), ...zonas(actualB.id)] }))
       conBloques(c.id, bs => bs.filter(x => x.id !== actualB.id).map(x => (x.id === previo.id ? unido : x)))
     }
     const separar = (b: Bloque) => {
@@ -418,7 +435,7 @@ export default function RevisarImportacion(props: Props) {
       const partes = b.texto.split(/\n\s*\n/).map(t => t.trim()).filter(Boolean)
       if (partes.length < 2) return
       const nuevos: Bloque[] = partes.map((t, n) => ({ id: n ? nuevoId() : b.id, tipo: 'parrafo', texto: t }))
-      setAreasExtra(a => ({ ...a, ...Object.fromEntries(nuevos.slice(1).map(x => [x.id, zonas(b.id)])) }))
+      repartirEn(b.id, nuevos)
       conBloques(c.id, bs => bs.flatMap(x => (x.id === b.id ? nuevos : [x])))
     }
     // Un título pegado al párrafo: lo seleccionado pasa a ser título y el resto queda antes y después.
@@ -432,7 +449,7 @@ export default function RevisarImportacion(props: Props) {
       const tituloB: Bloque = { id: antes ? nuevoId() : b.id, tipo, texto: elegido.replace(/[.:]$/, '') }
       nuevos.push(tituloB)
       if (despues) nuevos.push({ id: nuevoId(), tipo: 'parrafo', texto: despues })
-      setAreasExtra(a => ({ ...a, ...Object.fromEntries(nuevos.filter(x => x.id !== b.id).map(x => [x.id, zonas(b.id)])) }))
+      repartirEn(b.id, nuevos)
       conBloques(c.id, bs => bs.flatMap(x => (x.id === b.id ? nuevos : [x])))
       setBloqueSel(tituloB.id)
     }
@@ -458,8 +475,37 @@ export default function RevisarImportacion(props: Props) {
         Agregar este capítulo al libro
       </label>
       {sinEncontrar.length > 0 && <div className="revimp__bloque-info revimp__bloque-info--alerta">
-        <h4><AlertTriangle size={14} aria-hidden="true" />Secciones del índice que no se encontraron como títulos</h4>
-        <p>{sinEncontrar.join(' · ')}. Pueden haber quedado dentro de un párrafo: buscá el texto, seleccioná el título y tocá «Hacer título».</p>
+        <h4><AlertTriangle size={14} aria-hidden="true" />{sinEncontrar.length === 1 ? 'Falta 1 sección del índice' : `Faltan ${sinEncontrar.length} secciones del índice`}</h4>
+        <p>El índice del libro las nombra, pero en el texto leído no quedaron como título. Se actualiza solo a medida que corregís.</p>
+        <ul className="revimp__faltan">
+          {sinEncontrar.map(({ s, i }) => {
+            const todas = secciones[c.id] ?? []
+            const faltanIdx = new Set(sinEncontrar.map(x => x.i))
+            // Las secciones vecinas que sí están en el capítulo, para saber dónde va.
+            const anterior = todas.slice(0, i).filter((_, k) => !faltanIdx.has(k)).at(-1)
+            const siguiente = todas.slice(i + 1).find((_, k) => !faltanIdx.has(i + 1 + k))
+            const hallado = buscarEnBloques(c.bloques, s.texto)
+            const bloque = hallado ? c.bloques[hallado.indice] : null
+            const posicion = bloque?.tipo === 'parrafo' ? posicionTitulo(bloque.texto, s.texto) : null
+            const tipo = s.nivel === 2 ? 'subtitulo' : 'titulo'
+            return <li key={i}>
+              <span className="revimp__faltan-nombre">«{s.texto}»<span> · pág. {s.pagina} del libro</span></span>
+              <span className="revimp__faltan-lugar">
+                {anterior && siguiente ? <>Va entre «{anterior.texto}» y «{siguiente.texto}».</>
+                  : anterior ? <>Va después de «{anterior.texto}».</>
+                  : siguiente ? <>Va antes de «{siguiente.texto}».</> : null}
+                {' '}{!hallado ? 'No aparece en el texto leído: puede estar en una página que no se importó, o el escaneo lo leyó distinto.'
+                  : posicion ? `Está pegado al comienzo de un párrafo, en el bloque ${hallado.indice + 1}.`
+                  : `Se menciona en el bloque ${hallado.indice + 1}, pero no al comienzo de un párrafo.`}
+              </span>
+              <span className="revimp__faltan-acciones">
+                {bloque && <button type="button" className="revimp__boton revimp__boton--chico" onClick={() => { elegirBloque(bloque.id); setVistaMovil('pagina') }}><Crosshair size={14} aria-hidden="true" />Ver el bloque {hallado!.indice + 1}</button>}
+                {bloque && posicion && <button type="button" className="revimp__boton revimp__boton--chico revimp__boton--primario" onClick={() => separarSeleccion(bloque, (bloque as Extract<Bloque, { tipo: 'parrafo' }>).texto, posicion[0], posicion[1], tipo)}>Separar como {tipo === 'titulo' ? 'título' : 'subtítulo'}</button>}
+                <button type="button" className="revimp__enlace" onClick={() => setIgnoradas(x => new Set(x).add(`${c.id}:${i}`))}>Está bien así</button>
+              </span>
+            </li>
+          })}
+        </ul>
       </div>}
       <ol className="revimp__bloques">
         {c.bloques.map((b, i) => {

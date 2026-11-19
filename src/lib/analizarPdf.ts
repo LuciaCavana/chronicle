@@ -186,14 +186,14 @@ const versalitas = (t: string) => {
  * Lugar de la página donde estaba un texto (en puntos del PDF, origen arriba a la izquierda).
  * Sirve para mostrar en la revisión de qué parte de la página salió cada bloque o ficha.
  */
-export type Area = { pagina: number; x0: number; y0: number; x1: number; y1: number }
+export type Area = { pagina: number; x0: number; y0: number; x1: number; y1: number; texto?: string }
 export type ResultadoPdf = {
   capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; fichas: FichaDetectada[]
   /** Por id de bloque o de ficha, los renglones de la página de donde salió. */
   areas: Record<string, Area[]>
 }
-const areaDe = (r: { pagina: number; x0: number; x1: number; base: number; h: number }): Area =>
-  ({ pagina: r.pagina, x0: r.x0, y0: r.base - r.h, x1: r.x1, y1: r.base + r.h * 0.25 })
+const areaDe = (r: { pagina: number; x0: number; x1: number; base: number; h: number; texto: string }): Area =>
+  ({ pagina: r.pagina, x0: r.x0, y0: r.base - r.h, x1: r.x1, y1: r.base + r.h * 0.25, texto: r.texto })
 
 export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   // Las páginas con casi nada de texto son ilustraciones (solo tienen el pie de imagen).
@@ -554,7 +554,14 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       return
     }
     // Título en versalitas apenas más alto que el texto («DOTES DE DON ÉPICO»).
-    const tituloVersalitas = mayus && r.r >= 1.12 && r.sangria < 8 && r.texto.length <= 60 && !/[.,;:]$/.test(r.texto)
+    // También uno del mismo tamaño que el texto si está solo en su renglón, entre una oración
+    // terminada y un texto que empieza en mayúscula («TIRADAS DE SALVACIÓN» / «Una tirada…»): una
+    // apertura de párrafo en versalitas sigue en minúscula en el renglón de abajo.
+    const mismaColumna = (x?: Renglon) => !!x && x.pagina === r.pagina && x.columna === r.columna
+    const encabezadoChico = mayus && r.r >= 0.9 && r.sangria < 8 && r.texto.length <= 50 && !/[.,;:]$/.test(r.texto) &&
+      mismaColumna(siguiente) && /^[«“"¿¡]?\p{Lu}/u.test(siguiente.texto) && !esMayusculas(siguiente.texto) &&
+      (!mismaColumna(anterior) || /[.!?:»”")]$/.test(anterior.texto) || anterior.r >= 1.22)
+    const tituloVersalitas = (mayus && r.r >= 1.12 && r.sangria < 8 && r.texto.length <= 60 && !/[.,;:]$/.test(r.texto)) || encabezadoChico
     const enFicha: Actual | null = actual
     if (enFicha?.tipo === 'ficha') {
       const t = tablaDesde(i)

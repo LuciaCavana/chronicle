@@ -210,3 +210,78 @@ export const UNA: Record<CategoriaFicha, string> = {
   conjuros: 'Conjuro', dotes: 'Dote', trasfondos: 'Trasfondo', especies: 'Especie', criaturas: 'Criatura',
   clases: 'Clase', subclases: 'Subclase', objetos: 'Objeto',
 }
+
+const letrasDe = (t: string) => t.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '')
+
+/**
+ * Reparte los renglones de un bloque entre las partes en que se dividió (lo de antes, el título,
+ * lo de después…), en orden: cada renglón va a la parte cuyo texto lo contiene. Así cada parte
+ * se marca en su lugar de la página.
+ */
+export function repartirZonas(zonas: Area[], textos: string[]): Area[][] {
+  const partes = textos.map(t => letrasDe(t.replace(/\*\*|_/g, '')))
+  const salida: Area[][] = textos.map(() => [])
+  let k = 0
+  for (const z of zonas) {
+    const propio = letrasDe(z.texto ?? '')
+    const trozo = propio.slice(0, 14)
+    // Avanza a la parte que contiene este renglón (sin volver atrás).
+    let destino = k
+    if (trozo.length >= 3 && !partes[k]?.includes(trozo)) {
+      const siguiente = partes.findIndex((p, i) => i > k && p.includes(trozo))
+      if (siguiente >= 0) destino = siguiente
+    }
+    k = destino
+    salida[k].push(z)
+  }
+  // Una parte sin renglón propio (un título pegado que comparte renglón con el texto que sigue)
+  // se marca en el renglón donde está: el primero de la parte siguiente o el último de la anterior.
+  salida.forEach((zs, n) => {
+    if (zs.length) return
+    const siguiente = salida.slice(n + 1).find(x => x.length)?.[0]
+    const anterior = salida.slice(0, n).reverse().find(x => x.length)?.at(-1)
+    const empieza = (z?: Area) => !!z && letrasDe(z.texto ?? '').startsWith(partes[n].slice(0, 8))
+    const elegido = empieza(siguiente) ? siguiente : empieza(anterior) ? anterior : siguiente ?? anterior
+    if (elegido) zs.push(elegido)
+  })
+  return salida
+}
+
+/**
+ * Una sección del índice buscada en el texto: en qué bloque está. Prefiere donde aparece al
+ * comienzo de un párrafo o de una oración (donde estaría un título pegado) a una mención suelta.
+ */
+export function buscarEnBloques(bloques: Bloque[], texto: string): { indice: number; alComienzo: boolean } | null {
+  const buscado = letrasDe(texto)
+  if (buscado.length < 4) return null
+  let mencion: number | null = null
+  for (let i = 0; i < bloques.length; i++) {
+    const b = bloques[i]
+    if (b.tipo === 'fichas') continue
+    const propio = 'texto' in b ? b.texto : b.tipo === 'termino' ? `${b.termino} ${b.texto}` : ''
+    if (!letrasDe(propio).includes(buscado)) continue
+    const comienzos = propio.split(/\n\s*\n|(?<=[.!?:])\s+/)
+    if (b.tipo === 'parrafo' && comienzos.some(t => letrasDe(t).startsWith(buscado))) return { indice: i, alComienzo: true }
+    mencion ??= i
+  }
+  return mencion === null ? null : { indice: mencion, alComienzo: false }
+}
+
+/**
+ * Dónde empieza y termina un título dentro del texto de un párrafo: al comienzo del texto, de un
+ * párrafo o de una oración. Compara sin tildes ni mayúsculas. null si no está en un comienzo.
+ */
+export function posicionTitulo(texto: string, titulo: string): [number, number] | null {
+  const buscado = letrasDe(titulo)
+  if (!buscado) return null
+  const comienzos = [0]
+  for (const m of texto.matchAll(/\n\s*\n|[.!?:]\s+/g)) comienzos.push((m.index ?? 0) + m[0].length)
+  for (const inicio of comienzos) {
+    if (!letrasDe(texto.slice(inicio, inicio + titulo.length + 12)).startsWith(buscado)) continue
+    // Avanza hasta cubrir todas las letras del título.
+    let fin = inicio
+    while (fin < texto.length && letrasDe(texto.slice(inicio, fin)).length < buscado.length) fin++
+    return [inicio, fin]
+  }
+  return null
+}

@@ -2,13 +2,13 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { FileUp, ListTree } from 'lucide-react'
 import { analizarPaginas } from '../../../lib/analizarPdf'
 import { abrirPdf, type PdfAbierto } from '../../../lib/importarPdf'
-import { ajustarConIndice, analizarIndice, paginasDeCapitulos, type IndiceLibro } from '../../../lib/indicePdf'
+import { ajustarConIndice, analizarIndice, paginasDeCapitulos, type EntradaIndice, type IndiceLibro } from '../../../lib/indicePdf'
 import { unirTexto, type Correccion } from '../../../lib/pegarDesdeLibro'
-import { nuevoId, type Bloque, type Capitulo } from '../../../types/capitulo'
+import { nuevoId, textoBloque, type Bloque, type Capitulo } from '../../../types/capitulo'
 import { extraerFichasDeBloques } from '../../../lib/fichasEnCapitulos'
 import { copiarBloques, dudasDe, releerFicha, type CategoriaFicha, type FichaDetectada } from '../../../lib/fichasLibro'
 import { claveNombre, conciliar, fichaFinal, idFinal, unificar, type Existentes, type Registro } from '../../../lib/conciliarFichas'
-import { conCampo, eleccionVacia, type Decision, type Eleccion } from '../../../lib/revisionImportacion'
+import { conCampo, eleccionVacia, repartirZonas, type Decision, type Eleccion } from '../../../lib/revisionImportacion'
 import type { Area } from '../../../lib/analizarPdf'
 import RevisarImportacion from './RevisarImportacion'
 
@@ -20,7 +20,8 @@ type Props = {
   onAgregar: (capitulos: Capitulo[], fichas: CambioFicha[]) => void
   onCancelar: () => void
 }
-type Resultado = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; faltan: Record<string, string[]>; fichas: FichaDetectada[]; areas: Record<string, Area[]> }
+/** secciones: por capítulo, las secciones que dice el índice (para ver cuáles faltan mientras se revisa). */
+type Resultado = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; secciones: Record<string, EntradaIndice[]>; fichas: FichaDetectada[]; areas: Record<string, Area[]> }
 
 /** Páginas del comienzo donde se busca el índice. */
 const PAGINAS_INDICE = 30
@@ -83,7 +84,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
     let hechas = 0
     const capitulos: Capitulo[] = []
     const correcciones: Correccion[] = []
-    const faltan: Record<string, string[]> = {}
+    const secciones: Record<string, EntradaIndice[]> = {}
     const fichas: FichaDetectada[] = []
     const areas: Record<string, Area[]> = {}
     try {
@@ -95,20 +96,26 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
         const leido = analizarPaginas(paginas)
         correcciones.push(...leido.correcciones)
         Object.assign(areas, leido.areas)
-        const { capitulo, faltan: sinEncontrar } = ajustarConIndice(leido.capitulos, r.capitulo)
-        // Los bloques que salieron de partir otro (un título pegado a un párrafo) se ubican
-        // en la página donde estaba ese bloque.
-        let previas: Area[] = []
-        for (const b of capitulo.bloques) {
-          if (leido.areas[b.id]?.length) previas = leido.areas[b.id]
-          else if (previas.length) leido.areas[b.id] = previas
+        const { capitulo } = ajustarConIndice(leido.capitulos, r.capitulo)
+        // Un bloque partido en partes (un título pegado a un párrafo) reparte sus renglones de la
+        // página entre las partes: el bloque original y los nuevos que lo siguen sin zonas.
+        for (let k = 0; k < capitulo.bloques.length; k++) {
+          const b = capitulo.bloques[k]
+          const propias = leido.areas[b.id]
+          if (!propias?.length) continue
+          let fin = k + 1
+          while (fin < capitulo.bloques.length && !leido.areas[capitulo.bloques[fin].id]?.length) fin++
+          if (fin === k + 1) continue
+          const cadena = capitulo.bloques.slice(k, fin)
+          repartirZonas(propias, cadena.map(textoBloque)).forEach((z, n) => { leido.areas[cadena[n].id] = z.length ? z : propias })
+          k = fin - 1
         }
         fichas.push(...leido.fichas, ...extraerFichasDeBloques(capitulo))
         capitulos.push(capitulo)
-        faltan[capitulo.id] = sinEncontrar
+        secciones[capitulo.id] = r.capitulo.secciones
       }
       if (cancelado.current && !capitulos.length) { setEstado('inicio'); return }
-      mostrar({ capitulos, correcciones: resumir(correcciones), paginas: hechas, faltan, fichas, areas })
+      mostrar({ capitulos, correcciones: resumir(correcciones), paginas: hechas, secciones, fichas, areas })
     } catch (e) {
       setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
@@ -124,7 +131,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
       if (cancelado.current) { setEstado('inicio'); return }
       const r = analizarPaginas(paginas)
       const fichas = [...r.fichas, ...r.capitulos.flatMap(c => extraerFichasDeBloques(c))]
-      mostrar({ ...r, faltan: {}, fichas })
+      mostrar({ ...r, secciones: {}, fichas })
     } catch (e) {
       setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
@@ -294,7 +301,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
     {resultado && estado === 'listo' && revisando && pdf && <RevisarImportacion
       archivo={nombre} pdf={pdf} capitulos={resultado.capitulos} elegidos={elegidos} onElegidos={setElegidos}
       onCapitulos={capitulos => setResultado({ ...resultado, capitulos })}
-      faltan={resultado.faltan} correcciones={resultado.correcciones} areas={resultado.areas}
+      secciones={resultado.secciones} correcciones={resultado.correcciones} areas={resultado.areas}
       propuestas={fichasDeElegidos} eleccion={eleccion} onEleccion={setEleccion} existentes={existentes}
       onVolver={() => setRevisando(false)} onCancelar={() => { cancelado.current = true; onCancelar() }} onAgregar={agregar} />}
 
