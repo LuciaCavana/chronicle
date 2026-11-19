@@ -113,6 +113,7 @@ export default function NuevaPropuesta() {
   const [puedeBasarse, setPuedeBasarse] = useState(true)
   // Versión publicada que salió de este borrador (un libro no puede basarse en sí mismo).
   const [versionPropia, setVersionPropia] = useState<string | null>(null)
+  const [libroPropio, setLibroPropio] = useState<string | null>(null)
   const [abriendoCorreccion, setAbriendoCorreccion] = useState(false)
   const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
   const [errorVersiones, setErrorVersiones] = useState('')
@@ -343,10 +344,18 @@ export default function NuevaPropuesta() {
       setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
       // Solo un libro nuevo que todavía no se publicó puede indicar un libro original.
-      setPuedeBasarse(propuesta.tipo === 'libro_nuevo')
+      setPuedeBasarse(propuesta.tipo === 'libro_nuevo' || propuesta.tipo === 'modificacion')
       setVersionPropia(propuesta.revision_resultante_id ?? null)
-      setBasadoEn(propuesta.libro_original_id ?? '')
-      basadoEnGuardado.current = propuesta.libro_original_id ?? ''
+      setLibroPropio(propuesta.tipo === 'modificacion' ? propuesta.libro_id ?? null : null)
+      // En una corrección, si el borrador no lo indica, se muestra el que ya tiene el libro.
+      let original: string = propuesta.libro_original_id ?? ''
+      if (!original && propuesta.tipo === 'modificacion' && propuesta.libro_id) {
+        const { data: libroBase } = await supabase.from('libros').select('libro_original_id').eq('id', propuesta.libro_id).maybeSingle()
+        original = libroBase?.libro_original_id ?? ''
+      }
+      if (cancelado) return
+      setBasadoEn(original)
+      basadoEnGuardado.current = original
 
       return
     }
@@ -1076,7 +1085,7 @@ export default function NuevaPropuesta() {
                   titulo={title}
                   codigo={bookCode}
                   libros={versionesPublicadas
-                    .filter(v => !versionPropia || !versionesPublicadas.some(p => p.id === versionPropia && p.libroId === v.libroId))
+                    .filter(v => v.libroId !== libroPropio && (!versionPropia || !versionesPublicadas.some(p => p.id === versionPropia && p.libroId === v.libroId)))
                     .map(v => ({ libroId: v.libroId, versionId: v.id, titulo: v.titulo, codigo: v.codigo, idioma: v.idioma, derivado: !!v.libroOriginalDe }))}
                   valor={basadoEn}
                   onChange={setBasadoEn}
