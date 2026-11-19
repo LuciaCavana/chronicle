@@ -60,3 +60,48 @@ drop trigger if exists chronicle_copiar_libro_original_correccion on public.prop
 create trigger chronicle_copiar_libro_original_correccion
  after update of revision_resultante_id on public.propuestas
  for each row execute function private.chronicle_copiar_libro_original_correccion();
+
+-- chronicle_vincular_libro_original devuelve si el vínculo ya quedó en el libro publicado
+-- (creador o administrador, o libro nuevo ya publicado) o queda pendiente de aprobación.
+drop function if exists public.chronicle_vincular_libro_original(uuid, uuid);
+create function public.chronicle_vincular_libro_original(p_propuesta_id uuid, p_libro_id uuid)
+ returns boolean
+ language plpgsql
+ security definer
+ set search_path to ''
+as $function$
+declare v public.propuestas%rowtype; v_propio uuid; v_creador uuid;
+begin
+ if (select auth.uid()) is null then raise exception 'Tenés que iniciar sesión' using errcode='42501'; end if;
+ select * into v from public.propuestas where id=p_propuesta_id for update;
+ if not found then raise exception 'El borrador no existe'; end if;
+ if v.autor_id is distinct from (select auth.uid()) and not exists(
+   select 1 from public.propuesta_colaboradores c where c.propuesta_id=v.id and c.usuario_id=(select auth.uid()) and c.rol='editor') then
+   raise exception 'Sin permiso' using errcode='42501';
+ end if;
+ if v.estado <> 'borrador' or v.tipo not in ('libro_nuevo','modificacion') then
+   raise exception 'Solo un libro nuevo o una corrección pueden indicar un libro original';
+ end if;
+ if v.pendiente_aprobacion then raise exception 'El borrador está enviado a aprobación; retiralo antes de editarlo'; end if;
+ v_propio := case when v.tipo='modificacion' then v.libro_id
+                  else (select libro_id from public.libro_versiones where id=v.revision_resultante_id) end;
+ if p_libro_id is not null then
+   if not exists(select 1 from public.libros where id=p_libro_id and estado='publicado') then
+     raise exception 'El libro original tiene que estar publicado';
+   end if;
+   if v_propio = p_libro_id then raise exception 'Un libro no puede basarse en sí mismo'; end if;
+ end if;
+ update public.propuestas set libro_original_id=p_libro_id where id=v.id and libro_original_id is distinct from p_libro_id;
+ if v.tipo = 'modificacion' then
+   select creado_por into v_creador from public.libros where id=v.libro_id;
+   if v_creador = (select auth.uid()) or exists(select 1 from public.user_roles where user_id=(select auth.uid()) and role in ('admin','creator')) then
+     update public.libros set libro_original_id=p_libro_id where id=v.libro_id and libro_original_id is distinct from p_libro_id;
+     return true;
+   end if;
+   return false;
+ end if;
+ -- Libro nuevo ya publicado: el trigger lo copia al libro en el momento.
+ return v.revision_resultante_id is not null;
+end $function$;
+revoke all on function public.chronicle_vincular_libro_original(uuid, uuid) from public, anon;
+grant execute on function public.chronicle_vincular_libro_original(uuid, uuid) to authenticated;

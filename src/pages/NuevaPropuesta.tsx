@@ -592,8 +592,10 @@ export default function NuevaPropuesta() {
         if (tipoPropuesta === 'traduccion' && !origen) throw new Error('Seleccioná una versión publicada como origen.')
         idGuardado = await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
+      // null: el libro original no cambió; true: ya quedó en el libro publicado; false: queda en el borrador.
+      let vinculoAplicado: boolean | null = null
       if (idGuardado && puedeBasarse && tipoPropuesta === 'nuevo' && basadoEn !== basadoEnGuardado.current) {
-        await vincularLibroOriginal(idGuardado, basadoEn || null)
+        vinculoAplicado = await vincularLibroOriginal(idGuardado, basadoEn || null)
         basadoEnGuardado.current = basadoEn
       }
       instantaneaInicial.current = instantanea()
@@ -601,7 +603,20 @@ export default function NuevaPropuesta() {
       respaldoLocal.descartar()
 
       if (opciones.enviar && idGuardado) {
-        await enviarBorradorAprobacion(idGuardado)
+        try {
+          await enviarBorradorAprobacion(idGuardado)
+        } catch (error) {
+          // Si lo único que cambió es el libro original, no hay nada que aprobar.
+          const sinCambios = error instanceof Error && /no se detectaron cambios/i.test(error.message)
+          if (sinCambios && vinculoAplicado === true) {
+            setMensajeGuardado('Libro original guardado: ya figura en el libro publicado. No había otros cambios para enviar a aprobación.')
+            return
+          }
+          if (sinCambios && vinculoAplicado === false) {
+            throw new Error('Libro original guardado en el borrador. Se aplica al libro cuando se apruebe una corrección; por ahora no hay otros cambios para enviar.')
+          }
+          throw error
+        }
         navigate(destinoSalida)
         return
       }

@@ -391,10 +391,12 @@ export async function crearPropuestaCorreccion(libroId: string, versionId: strin
 }
 
 /** Libro publicado en el que se basa un libro nuevo (null para quitarlo). */
-export async function vincularLibroOriginal(propuestaId: string, libroId: string | null) {
-  const { error } = await supabase.rpc('chronicle_vincular_libro_original', {
+/** Devuelve true si el vínculo ya quedó en el libro publicado (no necesita aprobación). */
+export async function vincularLibroOriginal(propuestaId: string, libroId: string | null): Promise<boolean> {
+  const { data, error } = await supabase.rpc('chronicle_vincular_libro_original', {
     p_propuesta_id: propuestaId,
     p_libro_id: libroId,
   })
   if (error) throw errorDeSupabase(error, 'vincular el libro original')
+  return data === true
 }
