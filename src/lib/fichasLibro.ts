@@ -72,8 +72,10 @@ function camposYTexto(renglones: RenglonFicha[], etiquetas: RegExp[]): { campos:
       campos.set(indice, r.texto.replace(etiquetas[indice], '').trim())
       continue
     }
-    // Un campo puede seguir en el renglón de abajo (sin sangría y sin otra etiqueta).
-    if (actual >= 0 && campos.size < etiquetas.length && r.sangria < 8 && !/[.)]$/.test(campos.get(actual) ?? '.')) {
+    // Un campo puede continuar en la línea siguiente, incluso si ya se
+    // encontraron todas las etiquetas. No absorber prosa o campos ajenos.
+    if (actual >= 0 && r.sangria < 8 && !/[.!?]$/.test(campos.get(actual) ?? '.') &&
+        !/^(?:puntuaciones de característica|dote|competencias? en habilidades|competencias? con herramientas|equipo)\s*:/i.test(r.texto)) {
       campos.set(actual, `${campos.get(actual)} ${r.texto}`.trim())
       continue
     }
