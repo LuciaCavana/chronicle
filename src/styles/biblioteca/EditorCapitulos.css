@@ -1,5 +1,5 @@
 /* Editor de capítulos: orden del libro, bloques del capítulo y "Pegar desde el libro". */
-.capitulos { display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.capitulos { display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); grid-auto-rows: max-content; gap: 18px; align-items: start; align-content: start; }
 .capitulos button, .capitulos input, .capitulos textarea, .capitulos select { font: inherit; }
 .capitulos button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
