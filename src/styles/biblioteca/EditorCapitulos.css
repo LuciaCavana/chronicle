@@ -1,0 +1,100 @@
+/* Editor de capítulos: orden del libro, bloques del capítulo y "Pegar desde el libro". */
+.capitulos { display: grid; grid-template-columns: minmax(230px, 300px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.capitulos button, .capitulos input, .capitulos textarea, .capitulos select { font: inherit; }
+.capitulos button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 40px; padding: 0 12px;
+  background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md);
+  color: var(--color-texto); font-size: 13.5px; cursor: pointer;
+}
+.capitulos button:hover:not(:disabled) { border-color: var(--color-acento); }
+.capitulos button:disabled { opacity: .45; cursor: not-allowed; }
+.capitulos :focus-visible { outline: 2px solid var(--color-acento-claro); outline-offset: 2px; }
+.capitulos input, .capitulos textarea, .capitulos select {
+  width: 100%; box-sizing: border-box; min-height: 42px; padding: 9px 12px;
+  background: var(--color-fondo-campo); border: 1px solid var(--color-borde); border-radius: var(--radio-md);
+  color: var(--color-texto); font-size: 14.5px;
+}
+.capitulos textarea { resize: vertical; line-height: 1.55; font-family: var(--fuente-serif); font-size: 15.5px; }
+.capitulos__oculto { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.capitulos__rotulo { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--color-texto-suave); }
+.capitulos__vacio { margin: 0; padding: 10px 2px; font-size: 13.5px; line-height: 1.5; color: var(--color-texto-suave); }
+.capitulos__ayuda { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--color-texto-suave); }
+
+/* Lista de capítulos */
+.capitulos__lista {
+  position: sticky; top: 12px; display: flex; flex-direction: column; gap: 6px;
+  padding: 14px; background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-lg);
+}
+.capitulos__lista ol { display: flex; flex-direction: column; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.capitulos__item { display: flex; align-items: center; gap: 4px; border: 1px solid transparent; border-radius: var(--radio-md); }
+.capitulos__item--activo { background: var(--color-fondo-activo); border-color: var(--color-acento-borde); }
+.capitulos .capitulos__elegir {
+  flex: 1; min-width: 0; flex-direction: column; align-items: flex-start; gap: 2px;
+  min-height: 52px; padding: 6px 8px; background: transparent; border: 0; text-align: left;
+}
+.capitulos__nombre { font-family: var(--fuente-serif); font-size: 15.5px; color: var(--color-texto); overflow-wrap: anywhere; }
+.capitulos__item--activo .capitulos__nombre { color: var(--color-acento-claro); }
+.capitulos__detalle { font-size: 12px; color: var(--color-texto-apagado); }
+.capitulos__mover { display: flex; gap: 2px; flex-shrink: 0; }
+.capitulos .capitulos__mover button { min-width: 34px; min-height: 34px; padding: 0; background: transparent; border-color: transparent; color: var(--color-texto-suave); }
+.capitulos .capitulos__agregar { margin-top: 6px; background: transparent; border: 1px dashed var(--color-acento-borde); color: var(--color-acento); }
+
+/* Capítulo */
+.capitulos__capitulo {
+  display: flex; flex-direction: column; gap: 12px; min-width: 0;
+  padding: 18px; background: var(--color-fondo-seccion); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-lg);
+}
+.capitulos__campos { display: grid; grid-template-columns: minmax(120px, 180px) minmax(0, 1fr); gap: 12px; }
+.capitulos__campos label, .capitulos__campo { display: grid; gap: 6px; font-size: 13px; color: var(--color-texto-etiqueta); }
+.capitulos__barra { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.capitulos__barra > span { margin-right: 2px; font-size: 12.5px; color: var(--color-texto-suave); }
+.capitulos .capitulos__barra button { min-height: 36px; border-radius: var(--radio-pildora); background: var(--color-fondo-campo); font-size: 13px; }
+.capitulos .capitulos__barra .capitulos__pegar { margin-left: auto; background: var(--color-fondo-activo); border-color: var(--color-acento-borde); color: var(--color-acento-claro); }
+
+.capitulos__bloques { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.capitulos__bloque { display: grid; gap: 10px; padding: 12px 14px; background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.capitulos__bloque-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.capitulos__tipo select { width: auto; min-height: 34px; padding: 4px 10px; border-radius: var(--radio-pildora); font-size: 12.5px; color: var(--color-acento-claro); }
+.capitulos__dos { display: grid; gap: 10px; }
+.capitulos__filas { display: grid; gap: 8px; }
+.capitulos__fila { display: grid; grid-template-columns: 22px minmax(0, 1fr) minmax(0, 2fr) 40px; gap: 8px; align-items: end; }
+.capitulos__numero { padding-bottom: 12px; font-weight: 700; color: var(--color-acento); }
+.capitulos .capitulos__fila > button { min-width: 40px; padding: 0; }
+.capitulos .capitulos__mas { justify-self: start; min-height: 34px; background: transparent; border-style: dashed; color: var(--color-acento); }
+.capitulos__fichas { display: grid; gap: 10px; }
+.capitulos__elegidas { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 10px 12px; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.capitulos__elegidas legend { padding: 0 4px; font-size: 13px; color: var(--color-texto-etiqueta); }
+.capitulos__elegidas label { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 14px; }
+.capitulos__elegidas input { width: 17px; min-height: 0; height: 17px; accent-color: var(--color-acento); }
+.capitulos__elegidas .capitulos__ayuda { flex-basis: 100%; }
+.capitulos__pie { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-top: 8px; border-top: 1px solid var(--color-borde-suave); font-size: 13.5px; }
+.capitulos .capitulos__peligro { background: var(--color-peligro-fondo); border-color: var(--color-peligro-borde); color: var(--color-peligro); }
+
+/* Pegar desde el libro */
+.capitulos__pegado {
+  display: grid; gap: 10px; padding: 16px;
+  background: var(--color-fondo-menu); border: 1px solid var(--color-acento-borde); border-radius: var(--radio-lg);
+}
+.capitulos__pegado h4 { margin: 0; font-family: var(--fuente-serif); font-weight: 400; font-size: 19px; color: var(--color-texto-titulo); }
+.capitulos__pegado textarea { font-family: ui-monospace, Menlo, monospace; font-size: 13px; }
+.capitulos__acciones { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+.capitulos .capitulos__primario { background: var(--color-acento); border-color: var(--color-acento); color: var(--color-texto-sobre-acento); font-weight: 700; }
+.capitulos__correcciones { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.capitulos__correcciones li { padding: 4px 10px; background: var(--color-exito-fondo); border: 1px solid var(--color-exito-borde); border-radius: var(--radio-pildora); font-size: 12px; color: var(--color-exito-claro); }
+.capitulos__propuestos { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.capitulos__propuestos li { display: grid; grid-template-columns: 170px minmax(0, 1fr) 40px; gap: 10px; align-items: start; padding: 10px 12px; background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.capitulos__propuestos .capitulos__tipo select { width: 100%; }
+.capitulos__propuestos p { margin: 4px 0 0; font-family: var(--fuente-serif); font-size: 15px; line-height: 1.5; color: var(--color-texto-lectura); white-space: pre-line; overflow-wrap: anywhere; }
+.capitulos .capitulos__propuestos button { min-width: 40px; padding: 0; }
+
+@media (max-width: 900px) {
+  .capitulos { grid-template-columns: 1fr; }
+  .capitulos__lista { position: static; }
+  .capitulos__campos { grid-template-columns: 1fr; }
+  .capitulos__fila { grid-template-columns: 22px minmax(0, 1fr) 40px; }
+  .capitulos__fila > label:nth-of-type(2) { grid-column: 2 / 3; }
+  .capitulos__propuestos li { grid-template-columns: minmax(0, 1fr) 40px; }
+  .capitulos__propuestos li p { grid-column: 1 / -1; }
+  .capitulos .capitulos__barra .capitulos__pegar { margin-left: 0; }
+}

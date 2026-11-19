@@ -41,6 +41,8 @@ import {
   crearPropuestaCorreccion,
 } from '../services/libros'
 import BasadoEnLibro from '../components/biblioteca/BasadoEnLibro'
+import EditorCapitulos, { type FichasDisponibles } from '../components/biblioteca/capitulos/EditorCapitulos'
+import { leerCapitulos, type Capitulo } from '../types/capitulo'
 
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
@@ -148,6 +150,7 @@ export default function NuevaPropuesta() {
     setSubclases((origen.subclases ?? []) as Elemento[])
     setObjetos(objetosOrigen)
     setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
+    setCapitulos(leerCapitulos((origen.contenido_extra as { capitulos?: unknown } | null | undefined)?.capitulos))
     setDotes([])
     setTrasfondos([])
     setCriaturas([])
@@ -203,6 +206,8 @@ export default function NuevaPropuesta() {
   const claseValidaSubclase = (claseId: string) => clasesDisponiblesSubclase.some(clase => clase.id === claseId)
 
   const [caracteristicas, setCaracteristicas] = useState<CaracteristicaLibro[]>([])
+  // Capítulos: texto del libro por bloques, con las fichas ubicadas adentro.
+  const [capitulos, setCapitulos] = useState<Capitulo[]>([])
   const [editingCaracteristicaId, setEditingCaracteristicaId] = useState<string | null>(null)
   const [editingObjectId, setEditingObjectId] = useState<string | null>(null)
   const [editingSubclassId, setEditingSubclassId] = useState<string | null>(null)
@@ -311,6 +316,7 @@ export default function NuevaPropuesta() {
         subclases?: Elemento[]
         objetos?: Elemento[]
         caracteristicas?: CaracteristicaLibro[]
+        capitulos?: unknown
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -331,6 +337,7 @@ export default function NuevaPropuesta() {
       setSubclases(contenido.subclases ?? [])
       setObjetos(objetosBorrador)
       setCaracteristicas(contenido.caracteristicas ?? [])
+      setCapitulos(leerCapitulos(contenido.capitulos))
       baseColaborativa.current = {
         row_version: propuesta.row_version,
         titulo: propuesta.titulo ?? '',
@@ -557,7 +564,10 @@ export default function NuevaPropuesta() {
         idioma,
         titulo: title.trim(),
         descripcion: description.trim(),
-        categorias: selectedCategories,
+        // "capitulos" se publica como una categoría más, si el libro tiene capítulos.
+        categorias: capitulos.length
+          ? [...selectedCategories.filter(c => c !== 'capitulos'), 'capitulos']
+          : selectedCategories.filter(c => c !== 'capitulos'),
         especies,
         conjuros,
         dotes,
@@ -567,6 +577,7 @@ export default function NuevaPropuesta() {
         subclases,
         objetos,
         caracteristicas,
+        capitulos,
       }
 
       let idGuardado: string | null = propuestaId ?? null
@@ -578,7 +589,7 @@ export default function NuevaPropuesta() {
           idioma: datos.idioma,
           categorias: datos.categorias,
           metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
-          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas },
+          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas, capitulos },
         }
         const nuevaVersion = await guardarElementosCompartidos(propuestaId, baseColaborativa.current, { row_version: rowVersion, ...guardado })
         // Lo guardado pasa a ser la base para el próximo guardado por elementos.
@@ -717,6 +728,18 @@ export default function NuevaPropuesta() {
       ],
     },
   }
+  const fichasDisponibles: FichasDisponibles[] = [
+    { categoria: 'especies', titulo: 'Especies', elementos: especies },
+    { categoria: 'clases', titulo: 'Clases', elementos: clases },
+    { categoria: 'subclases', titulo: 'Subclases', elementos: subclases },
+    { categoria: 'trasfondos', titulo: 'Trasfondos', elementos: trasfondos },
+    { categoria: 'dotes', titulo: 'Dotes', elementos: dotes },
+    { categoria: 'objetos', titulo: 'Objetos y equipo', elementos: objetos },
+    { categoria: 'conjuros', titulo: 'Conjuros', elementos: conjuros },
+    { categoria: 'criaturas', titulo: 'Criaturas', elementos: criaturas },
+    { categoria: 'caracteristicas', titulo: 'Características y reglas', elementos: caracteristicas },
+  ].map(f => ({ ...f, elementos: (f.elementos as { id: string; nombre?: string }[]).map(e => ({ id: e.id, nombre: e.nombre ?? '' })) }))
+
   const secciones: SeccionLibro[] = activeCategories.map(categoria => {
     const datosSeccion = datosSecciones[categoria.id]
     return datosSeccion
@@ -764,7 +787,7 @@ export default function NuevaPropuesta() {
 
   // Cambios sin guardar: se compara el contenido actual con el que había al abrir el editor.
   const instantanea = () => JSON.stringify([title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
-    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas, basadoEn])
+    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas, capitulos, basadoEn])
   const instantaneaInicial = useRef<string | null>(null)
   useEffect(() => {
     if (!cargandoLibro && instantaneaInicial.current === null) instantaneaInicial.current = instantanea()
@@ -793,7 +816,7 @@ export default function NuevaPropuesta() {
   const datosRespaldo = {
     title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
     especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas,
-    tipoPropuesta, libroOriginalId, basadoEn, formulario: formularioEnCurso,
+    capitulos, tipoPropuesta, libroOriginalId, basadoEn, formulario: formularioEnCurso,
   }
   const respaldoLocal = useRespaldoBorrador({
     clave: claveRespaldo,
@@ -826,6 +849,7 @@ export default function NuevaPropuesta() {
     setEspecies(d.especies); setConjuros(d.conjuros); setDotes(d.dotes); setTrasfondos(d.trasfondos)
     setCriaturas(d.criaturas); setClases(d.clases); setSubclases(d.subclases); setObjetos(d.objetos)
     setCaracteristicas(d.caracteristicas)
+    if (Array.isArray(d.capitulos)) setCapitulos(leerCapitulos(d.capitulos))
     if (!modoEdicion) { setTipoPropuesta(d.tipoPropuesta); setLibroOriginalId(d.libroOriginalId) }
     if (puedeBasarse && typeof d.basadoEn === 'string') setBasadoEn(d.basadoEn)
     setMensajeGuardado('')
@@ -962,6 +986,8 @@ export default function NuevaPropuesta() {
               activo={activo}
               problemas={problemas.length}
               onDatos={() => irA('datos')}
+              onCapitulos={() => irA('capitulos')}
+              capitulos={capitulos.length}
               onContenido={() => irA('contenido')}
               onRevisar={() => irA('revisar')}
               onCategoria={id => irA(`cat:${id}`)}
@@ -1195,7 +1221,17 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {editingCaracteristicaId !== null ? (
+            {vista === 'capitulos' ? (
+              <>
+                <div className="editor-libro__encabezado">
+                  <div>
+                    <h2>Capítulos</h2>
+                    <p>El texto del libro, capítulo por capítulo, y dónde va cada ficha. Es opcional: sin capítulos, el libro se lee por categorías.</p>
+                  </div>
+                </div>
+                <EditorCapitulos capitulos={capitulos} onChange={setCapitulos} fichas={fichasDisponibles} soloLectura={!puedeEditar} />
+              </>
+            ) : editingCaracteristicaId !== null ? (
               <section className="nueva-propuesta-panel">
                 <h3>Editar característica</h3>
                 {(() => {

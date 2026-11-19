@@ -7,6 +7,7 @@ import type { Criatura } from '../types/criatura'
 import type { Dote } from '../types/trasfondo'
 import type { Conjuro } from '../types/conjuro'
 import type { Elemento } from './chronicleLibros'
+import type { Capitulo } from '../types/capitulo'
 import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 const ESTADO_PENDIENTE = 'pendiente'
@@ -29,6 +30,8 @@ export type NuevoLibro = {
   subclases: Elemento[]
   objetos: Elemento[]
   caracteristicas?: CaracteristicaLibro[]
+  /** Texto del libro por capítulos (opcional). */
+  capitulos?: Capitulo[]
 }
 
 export async function guardarLibro(datos: NuevoLibro) {
@@ -57,7 +60,7 @@ export type OrigenTraduccion = {
 
 export async function listarVersionesPublicadas() {
   const { data, error } = await supabase.from('libros')
-    .select('id, codigo, edicion, editorial, clasificacion, libro_original_id, libro_versiones(id, idioma, titulo, descripcion, categorias, especies, conjuros, clases, subclases, objetos)')
+    .select('id, codigo, edicion, editorial, clasificacion, libro_original_id, libro_versiones(id, idioma, titulo, descripcion, categorias, especies, conjuros, clases, subclases, objetos, contenido_extra)')
     .eq('estado', 'publicado')
     .order('creado_en', { ascending: false })
   if (error) throw errorDeSupabase(error, 'cargar los libros publicados')
@@ -102,6 +105,7 @@ export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraducc
         subclases: datos.subclases,
         objetos: datos.objetos,
         caracteristicas: datos.caracteristicas ?? [],
+        capitulos: datos.capitulos ?? [],
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -295,7 +299,7 @@ export async function actualizarPropuesta(
       p_propuesta_id: propuestaId, p_version: versionActual,
       p_idioma: datos.idioma, p_titulo: datos.titulo, p_descripcion: datos.descripcion,
       p_categorias: datos.categorias,
-      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos, caracteristicas: datos.caracteristicas ?? [] },
+      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos, caracteristicas: datos.caracteristicas ?? [], capitulos: datos.capitulos ?? [] },
       p_metadatos: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
     })
     if (errorCompartido) throw errorCompartido
@@ -319,6 +323,7 @@ export async function actualizarPropuesta(
         subclases: datos.subclases,
         objetos: datos.objetos,
         caracteristicas: datos.caracteristicas ?? [],
+        capitulos: datos.capitulos ?? [],
       },
       metadatos_libro: {
         codigo: datos.codigo,

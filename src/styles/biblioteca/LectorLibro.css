@@ -471,3 +471,131 @@
   .lector-libro__indice a, .lector-libro__clase, .lector-libro__clase-resumen, .lector-libro__clase-flecha, .lector-libro__volver-arriba { transition: none; }
   .lector-libro__volver-arriba:hover { transform: none; }
 }
+
+/* =====================================================================
+   Diseño nuevo del lector: portada tipo frontispicio, índice por capítulos
+   y capítulos con el formato del libro (en los colores de Chronicle).
+   ===================================================================== */
+.lector-libro__portada {
+  display: grid;
+  grid-template-columns: minmax(160px, 240px) minmax(0, 1fr);
+  column-gap: 44px;
+  row-gap: 10px;
+  align-items: center;
+  justify-items: start;
+  padding: 48px 56px;
+  text-align: left;
+  background: radial-gradient(80% 120% at 16% 40%, var(--color-fondo-activo) 0%, var(--color-fondo-seccion) 55%, var(--color-fondo-app) 100%);
+}
+.lector-libro__portada > * { grid-column: 2; }
+.lector-libro__portada .lector-libro__sello {
+  grid-column: 1; grid-row: 1 / span 6; justify-self: center;
+  width: 100%; max-width: 200px; height: auto; margin: 0;
+  filter: drop-shadow(0 0 26px rgba(242, 203, 116, .25));
+}
+.lector-libro__portada h1 {
+  margin: 0;
+  font-variant: small-caps;
+  letter-spacing: .01em;
+  background: linear-gradient(100deg, #b98833 0%, #f2cb74 38%, #ffe89f 52%, #ddb462 70%, #996916 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.lector-libro__portada .lector-libro__metadatos { justify-content: flex-start; margin-top: 4px; }
+.lector-libro__portada .lector-libro__idioma { margin-top: 6px; }
+
+/* Índice: capítulos y, del capítulo abierto, sus secciones con la pluma. */
+.lector-libro__indice a.lector-libro__indice-sub {
+  position: relative;
+  min-height: 34px;
+  padding-left: 28px;
+  font-size: 14.5px;
+  color: var(--color-texto-suave);
+}
+.lector-libro__indice a.lector-libro__indice-sub--actual { color: var(--color-acento-claro); background: linear-gradient(90deg, rgba(216, 183, 123, .14), rgba(216, 183, 123, 0)); }
+.lector-libro__pluma { position: absolute; left: 6px; top: 50%; transform: translateY(-50%); color: var(--color-acento); }
+
+/* Capítulo */
+.lector-capitulo { scroll-margin-top: 16px; margin-top: 48px; padding-top: 8px; }
+.lector-libro__paginas > .lector-capitulo:first-child { margin-top: 0; }
+.lector-capitulo__apertura { display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 18px; text-align: center; }
+.lector-capitulo__etiqueta {
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--fuente-serif); font-variant: small-caps; letter-spacing: .16em; font-size: 20px; color: var(--color-acento);
+}
+.lector-capitulo__etiqueta::before, .lector-capitulo__etiqueta::after { content: ''; width: 70px; height: 1px; background: var(--color-acento-borde); }
+.lector-capitulo__apertura h2 {
+  margin: 0;
+  font-family: var(--fuente-serif); font-weight: 400; font-variant: small-caps;
+  font-size: clamp(34px, 5vw, 56px); line-height: 1.05;
+  background: linear-gradient(100deg, #b98833 0%, #f2cb74 38%, #ffe89f 52%, #ddb462 70%, #996916 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  overflow-wrap: anywhere;
+}
+.lector-capitulo__ornamento { color: var(--color-acento-tenue); max-width: 100%; }
+
+.lector-capitulo__texto p, .lector-capitulo__termino, .lector-capitulo__lista li, .lector-capitulo__carta p {
+  margin: 0 0 10px;
+  font-family: var(--fuente-serif); font-size: 18px; line-height: 1.7; color: var(--color-texto-lectura);
+}
+.lector-capitulo__texto p + p, .lector-capitulo__texto + .lector-capitulo__texto p { text-indent: 1.2em; }
+.lector-capitulo__texto strong, .lector-capitulo__termino strong, .lector-capitulo__lista strong { color: var(--color-texto); font-weight: 700; }
+.lector-capitulo__texto--capitular p:first-child::first-letter {
+  float: left; margin: 6px 12px 0 0;
+  font-size: 4.4em; line-height: .75; font-weight: 400; color: var(--color-acento);
+}
+.lector-capitulo__texto--capitular p:first-child::first-line { font-variant: small-caps; letter-spacing: .03em; color: var(--color-texto); }
+.lector-capitulo__titulo {
+  scroll-margin-top: 16px; margin: 30px 0 8px;
+  font-family: var(--fuente-serif); font-weight: 400; font-variant: small-caps; font-size: 30px; line-height: 1.15; color: var(--color-texto-titulo);
+}
+.lector-capitulo__subtitulo {
+  margin: 22px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--color-acento-borde);
+  font-family: var(--fuente-serif); font-weight: 400; font-variant: small-caps; font-size: 22px; color: var(--color-acento-claro);
+}
+.lector-capitulo__lista { margin: 6px 0 12px; padding: 0; list-style: none; }
+.lector-capitulo__lista li { display: grid; grid-template-columns: 28px 1fr; gap: 4px; }
+.lector-capitulo__numero { font-weight: 700; color: var(--color-acento); }
+.lector-capitulo__recuadro {
+  position: relative; margin: 20px 0; padding: 18px 22px;
+  background: var(--color-fondo-panel);
+  border-top: 1px solid var(--color-acento-borde); border-bottom: 1px solid var(--color-acento-borde);
+}
+.lector-capitulo__recuadro::before, .lector-capitulo__recuadro::after {
+  content: ''; position: absolute; top: -5px; width: 9px; height: 9px; transform: rotate(45deg); background: var(--color-acento);
+}
+.lector-capitulo__recuadro::before { left: -4px; }
+.lector-capitulo__recuadro::after { right: -4px; }
+.lector-capitulo__recuadro h5 { margin: 0 0 8px; font-family: var(--fuente-serif); font-weight: 600; font-variant: small-caps; letter-spacing: .07em; font-size: 19px; color: var(--color-acento); }
+.lector-capitulo__recuadro p { margin: 0 0 8px; font-size: 15.5px; line-height: 1.65; color: var(--color-texto-etiqueta); }
+.lector-capitulo__recuadro p:last-child { margin-bottom: 0; }
+.lector-capitulo__dialogo { margin: 14px 0; padding: 16px 20px 8px; background: var(--color-fondo-campo); border-radius: var(--radio-lg); }
+.lector-capitulo__dialogo p { margin: 0 0 8px; padding-left: 1.2em; text-indent: -1.2em; font-size: 15.5px; line-height: 1.6; color: var(--color-texto-etiqueta); }
+.lector-capitulo__voz { font-weight: 600; }
+.lector-capitulo__voz--0 { color: var(--color-acento-claro); }
+.lector-capitulo__voz--1 { color: #9fd6d2; }
+.lector-capitulo__voz--2 { color: #e8b4a8; }
+.lector-capitulo__carta { margin: 12px 0; padding: 0 0 0 18px; }
+.lector-capitulo__carta p { font-style: italic; }
+.lector-capitulo__carta .lector-capitulo__firma { text-align: right; color: var(--color-acento); }
+.lector-capitulo__tabla { margin: 16px 0; }
+.lector-capitulo__tabla caption { caption-side: top; padding: 12px 14px 8px; text-align: left; font-family: var(--fuente-serif); font-variant: small-caps; font-size: 19px; color: var(--color-texto-titulo); }
+.lector-capitulo .lector-libro__clases { margin-top: 14px; }
+.lector-capitulo__lista-conjuros { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px 28px; }
+.lector-capitulo__lista-conjuros h5 { margin: 6px 0 4px; font-family: var(--fuente-serif); font-variant: small-caps; font-weight: 600; font-size: 17px; color: var(--color-acento); }
+.lector-capitulo__lista-conjuros p { margin: 0; font-family: var(--fuente-serif); font-size: 16px; line-height: 1.55; color: var(--color-texto-lectura); }
+.lector-libro__pie { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+
+@media (max-width: 900px) {
+  .lector-libro__indice a.lector-libro__indice-sub { display: none; }
+  .lector-capitulo, .lector-capitulo__titulo { scroll-margin-top: 72px; }
+}
+@media (max-width: 700px) {
+  .lector-libro__portada { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 32px 18px 28px; }
+  .lector-libro__portada .lector-libro__sello { width: 110px; }
+  .lector-libro__portada .lector-libro__metadatos { justify-content: center; }
+  .lector-capitulo__etiqueta::before, .lector-capitulo__etiqueta::after { width: 36px; }
+  .lector-capitulo__texto p, .lector-capitulo__termino, .lector-capitulo__lista li, .lector-capitulo__carta p { font-size: 17px; }
+  .lector-capitulo__titulo { font-size: 26px; }
+}
