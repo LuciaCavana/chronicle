@@ -224,7 +224,15 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     const sig = siguientes[0]
     if (!sig || r.texto.length > 60 || letras(r.texto) < 3 || /[.:,;]$/.test(r.texto) || !/^[¿¡]?\p{Lu}/u.test(r.texto)) return null
     if (INICIO_CONJURO.test(sig.texto) && siguientes.slice(1, 3).some(x => /^tiempo de lanzamiento/i.test(x.texto))) return 'conjuros'
-    if (INICIO_DOTE.test(sig.texto)) return 'dotes'
+    if (INICIO_DOTE.test(sig.texto)) {
+      // Una entrada real lleva un nombre breve e independiente del texto explicativo.
+      // Evitar que frases como «Dote. El trasfondo aporta...» se conviertan en fichas.
+      const nombre = r.texto.trim()
+      const palabras = nombre.split(/\\s+/)
+      const pareceExplicacion = /[.!?;:,]/.test(nombre) || palabras.length > 7 || /^(dote|dotes|beneficios|prerrequisitos?)\\b/i.test(nombre)
+      const mismoContexto = sig.pagina === r.pagina && sig.columna === r.columna
+      if (!pareceExplicacion && mismoContexto) return 'dotes'
+    }
     if (INICIO_CRIATURA.test(sig.texto) && siguientes.some(x => /\bCA\s+\d/.test(x.texto))) return 'criaturas'
     if (siguientes.slice(0, 3).some(x => CAMPO_TRASFONDO.test(x.texto))) return 'trasfondos'
     return null
