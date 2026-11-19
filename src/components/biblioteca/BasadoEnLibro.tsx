@@ -22,8 +22,8 @@ export const normalizarNombre = (texto: string | null | undefined) =>
  (texto ?? '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '')
 
 /**
- * "Basado en": el autor de un libro nuevo indica el libro publicado del que parte, así el
- * administrador puede compararlo. Si el título o el código coinciden con uno publicado, avisa.
+ * "Basado en": el autor indica que su libro no es el original sino que se basa en un libro
+ * publicado. Si el título o el código coinciden con uno publicado, avisa.
  */
 export default function BasadoEnLibro({ titulo, codigo, libros, valor, onChange, deshabilitado, onCorregir, corrigiendo }: Props) {
  // Una opción por libro (no por idioma).
@@ -56,7 +56,7 @@ export default function BasadoEnLibro({ titulo, codigo, libros, valor, onChange,
     <option value="">Ningún libro original</option>
     {unicos.map(libro => <option key={libro.libroId} value={libro.libroId}>{[libro.titulo, libro.codigo].filter(Boolean).join(' · ')}</option>)}
    </select>
-   <small id="basado-en-ayuda" className="basado-en__ayuda">Sirve para que el administrador compare tu libro con el publicado.</small>
+   <small id="basado-en-ayuda" className="basado-en__ayuda">Indica que tu libro no es el original: está basado en ese libro publicado.</small>
   </div>
  </>
 }
