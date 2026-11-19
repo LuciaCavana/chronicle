@@ -141,3 +141,33 @@
 .capitulos__fila-indice input { width: 18px; height: 18px; min-height: 0; accent-color: var(--color-acento); }
 .capitulos__fila-indice .capitulos__nombre { flex: 1 1 220px; }
 .capitulos__faltan { margin: 0 12px 8px; padding: 8px 10px; background: var(--color-fondo-activo); border-radius: var(--radio-sm); font-size: 13px; line-height: 1.5; color: var(--color-acento-claro); }
+
+/* Revisión de fichas encontradas al importar */
+.fichas-rev { display: grid; gap: 10px; padding-top: 6px; border-top: 1px solid var(--color-borde-suave); }
+.fichas-rev__grupo { background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.fichas-rev__grupo > summary { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 48px; padding: 6px 14px; cursor: pointer; font-family: var(--fuente-serif); }
+.fichas-rev__barra { display: flex; gap: 8px; padding: 0 14px 8px; }
+.capitulos .fichas-rev__barra button { min-height: 34px; font-size: 12.5px; }
+.fichas-rev__lista { display: grid; gap: 4px; margin: 0; padding: 0 10px 10px; list-style: none; }
+.fichas-rev__lista details { background: var(--color-fondo-seccion); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-sm); }
+.fichas-rev__lista summary { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; min-height: 46px; padding: 4px 10px; cursor: pointer; }
+.fichas-rev__lista summary label { display: inline-flex; align-items: center; min-width: 32px; min-height: 32px; }
+.fichas-rev__lista summary input { width: 18px; height: 18px; min-height: 0; accent-color: var(--color-acento); }
+.fichas-rev__lista .capitulos__nombre { flex: 1 1 160px; }
+.fichas-rev__estado { padding: 2px 10px; border-radius: var(--radio-pildora); font-size: 12px; border: 1px solid var(--color-borde-suave); color: var(--color-texto-suave); }
+.fichas-rev__estado--nueva { background: var(--color-exito-fondo); border-color: var(--color-exito-borde); color: var(--color-exito-claro); }
+.fichas-rev__estado--completar { background: var(--color-fondo-activo); border-color: var(--color-acento-borde); color: var(--color-acento-claro); }
+.fichas-rev__estado--diferencias { background: var(--color-peligro-fondo); border-color: var(--color-peligro-borde); color: var(--color-peligro); }
+.fichas-rev__detalle { display: grid; gap: 8px; padding: 4px 12px 12px; }
+.fichas-rev__campos { display: grid; gap: 6px; margin: 0; }
+.fichas-rev__campos div { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 10px; }
+.fichas-rev__campos dt { font-size: 12.5px; color: var(--color-texto-etiqueta); }
+.fichas-rev__campos dd { margin: 0; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.fichas-rev__campos ins { text-decoration: none; color: var(--color-exito-claro); }
+.fichas-rev__difs { display: grid; gap: 8px; }
+.fichas-rev__difs fieldset { display: grid; gap: 4px; margin: 0; padding: 8px 10px; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-sm); }
+.fichas-rev__difs legend { padding: 0 4px; font-size: 12.5px; color: var(--color-texto-etiqueta); }
+.fichas-rev__difs label { display: flex; align-items: flex-start; gap: 8px; min-height: 32px; font-size: 13.5px; line-height: 1.5; }
+.fichas-rev__difs input { width: 16px; height: 16px; min-height: 0; margin-top: 3px; accent-color: var(--color-acento); }
+.fichas-rev__difs span { color: var(--color-texto-suave); overflow-wrap: anywhere; }
+@media (max-width: 700px) { .fichas-rev__campos div { grid-template-columns: 1fr; gap: 2px; } }

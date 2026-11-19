@@ -1,5 +1,9 @@
 import { nuevoId, type Bloque, type Capitulo, type LineaDialogo, type LineaLista } from '../types/capitulo'
 import {
+  CAMPO_TRASFONDO, INICIO_CONJURO, INICIO_CRIATURA, INICIO_DOTE, leerConjuro, leerCriatura, leerDote, leerTrasfondo,
+  type CategoriaFicha, type FichaDetectada, type RenglonFicha,
+} from './fichasLibro'
+import {
   comoOracion, DIALOGO, esMayusculas, esNombreDeDialogo, limpiarTextoEscaneado, LISTA, normalizarComienzo, TERMINO, unirRenglones, unirTexto,
   type Correccion,
 } from './pegarDesdeLibro'
@@ -79,7 +83,7 @@ const LINEA_INDICE = /(\.\s?){4,}\s*\d+\s*$|…{2,}\s*\d+\s*$/
 const ETIQUETA = /^(cap[ií]tulo|ap[ée]ndice|introducci[óo]n|pr[óo]logo|prefacio)\b/i
 const comoTitulo = (t: string) => comoOracion(t.replace(/[,;.]+$/, '').trim())
 
-export type ResultadoPdf = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number }
+export type ResultadoPdf = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; fichas: FichaDetectada[] }
 
 export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   // Las páginas con casi nada de texto son ilustraciones (solo tienen el pie de imagen).
@@ -152,7 +156,9 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     | { tipo: 'parrafo'; renglones: string[] }
     | { tipo: 'colgante'; renglones: string[] }
     | { tipo: 'recuadro'; titulo: string; base: number; parrafos: string[][] }
+    | { tipo: 'ficha'; categoria: CategoriaFicha; nombre: string; renglones: RenglonFicha[] }
   let actual: Actual | null = null
+  const fichas: FichaDetectada[] = []
   let ultimoTitulo: { bloque: Extract<Bloque, { tipo: 'titulo' | 'subtitulo' }>; base: number; pagina: number; columna: number } | null = null
 
   const asegurarCapitulo = () => {
@@ -164,6 +170,17 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (!actual) return
     const a: Actual = actual
     actual = null
+    if (a.tipo === 'ficha') {
+      const leer = { conjuros: leerConjuro, dotes: leerDote, trasfondos: leerTrasfondo, criaturas: leerCriatura }[a.categoria as 'conjuros']
+      const nombre = esMayusculas(a.nombre) ? comoTitulo(a.nombre) : a.nombre.trim()
+      const ficha: FichaDetectada = { id: nuevoId(), categoria: a.categoria, nombre, datos: leer ? leer(nombre, a.renglones) : { nombre } }
+      fichas.push(ficha)
+      // En el capítulo, la ficha ocupa su lugar (fichas seguidas de la misma categoría van juntas).
+      const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]
+      if (ultimo?.tipo === 'fichas' && ultimo.categoria === a.categoria) ultimo.ids.push(ficha.id)
+      else agregar({ id: nuevoId(), tipo: 'fichas', categoria: a.categoria, ids: [ficha.id] })
+      return
+    }
     if (a.tipo === 'recuadro') {
       const texto = a.parrafos.map(p => normalizarComienzo(unirRenglones(p))).filter(Boolean).join('\n\n')
       if (texto || a.titulo) agregar({ id: nuevoId(), tipo: 'recuadro', titulo: a.titulo, texto })
@@ -200,6 +217,18 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   }
 
   const consumidos = new Set<number>()
+  /** ¿Empieza acá una ficha? Su nombre va solo en un renglón y el siguiente tiene la forma de la categoría. */
+  const inicioFicha = (i: number): CategoriaFicha | null => {
+    const r = flujo[i]
+    const siguientes = flujo.slice(i + 1, i + 6)
+    const sig = siguientes[0]
+    if (!sig || r.texto.length > 60 || letras(r.texto) < 3 || /[.:,;]$/.test(r.texto) || !/^[¿¡]?\p{Lu}/u.test(r.texto)) return null
+    if (INICIO_CONJURO.test(sig.texto) && siguientes.slice(1, 3).some(x => /^tiempo de lanzamiento/i.test(x.texto))) return 'conjuros'
+    if (INICIO_DOTE.test(sig.texto)) return 'dotes'
+    if (INICIO_CRIATURA.test(sig.texto) && siguientes.some(x => /\bCA\s+\d/.test(x.texto))) return 'criaturas'
+    if (siguientes.slice(0, 3).some(x => CAMPO_TRASFONDO.test(x.texto))) return 'trasfondos'
+    return null
+  }
   // Créditos, índice…: se saltean hasta el próximo capítulo.
   let omitiendo = false
   flujo.forEach((r, i) => {
@@ -235,6 +264,19 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     // Un título "Créditos" o "Índice" empieza páginas que no son contenido.
     if (r.r >= 1.22 && OMITIR.test(comoTitulo(r.texto))) { cerrar(); omitiendo = true; return }
     if (omitiendo) return
+    // Fichas impresas en el texto (conjuros, dotes, trasfondos, criaturas): se leen aparte.
+    const ficha = inicioFicha(i)
+    if (ficha) {
+      cerrar()
+      actual = { tipo: 'ficha', categoria: ficha, nombre: r.texto, renglones: [] }
+      return
+    }
+    const enFicha: Actual | null = actual
+    if (enFicha?.tipo === 'ficha') {
+      const seccionCriatura = enFicha.categoria === 'criaturas' && /^(rasgos|acciones|acciones adicionales|reacciones|acciones legendarias)$/i.test(r.texto.trim())
+      if (r.r < 1.22 || seccionCriatura) { enFicha.renglones.push({ texto: r.texto, sangria: r.sangria }); return }
+      cerrar()
+    }
     // Recuadro: título en mayúsculas metido hacia adentro (puede ocupar varios renglones),
     // seguido de texto también metido hacia adentro.
     if (mayus && r.sangria >= 8 && r.r >= 0.6 && r.r < 1.6 && r.texto.length <= 80) {
@@ -285,7 +327,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     const corriente: Actual | null = actual
     if (r.sangria >= 30) {
       // Renglones al lado de la letra capitular.
-      if (corriente && corriente.tipo !== 'recuadro') corriente.renglones.push(r.texto)
+      if (corriente && (corriente.tipo === 'parrafo' || corriente.tipo === 'colgante')) corriente.renglones.push(r.texto)
       else actual = { tipo: 'parrafo', renglones: [r.texto] }
       return
     }
@@ -331,5 +373,5 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (previo) previo.veces += c.veces
     else resumen.set(clave, { ...c })
   }
-  return { capitulos: capitulos.filter(c => c.bloques.length > 0 || c.titulo), correcciones: [...resumen.values()], paginas: paginas.length }
+  return { capitulos: capitulos.filter(c => c.bloques.length > 0 || c.titulo), correcciones: [...resumen.values()], paginas: paginas.length, fichas }
 }

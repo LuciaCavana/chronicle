@@ -4,10 +4,21 @@ import { analizarPaginas } from '../../../lib/analizarPdf'
 import { abrirPdf, type PdfAbierto } from '../../../lib/importarPdf'
 import { ajustarConIndice, analizarIndice, paginasDeCapitulos, type IndiceLibro } from '../../../lib/indicePdf'
 import type { Correccion } from '../../../lib/pegarDesdeLibro'
-import { etiquetaBloque, textoBloque, type Capitulo } from '../../../types/capitulo'
+import { etiquetaBloque, textoBloque, type Bloque, type Capitulo } from '../../../types/capitulo'
+import { extraerFichasDeBloques } from '../../../lib/fichasEnCapitulos'
+import type { CategoriaFicha, FichaDetectada } from '../../../lib/fichasLibro'
+import { claveNombre, conciliar, fichaFinal, idFinal, unificar, type Existentes, type Propuesta, type Registro } from '../../../lib/conciliarFichas'
+import RevisionFichas, { type Eleccion } from './RevisionFichas'
 
-type Props = { onAgregar: (capitulos: Capitulo[]) => void; onCancelar: () => void }
-type Resultado = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; faltan: Record<string, string[]> }
+/** Una ficha que se crea o se completa al importar. */
+export type CambioFicha = { categoria: CategoriaFicha; ficha: Registro; nueva: boolean }
+type Props = {
+  /** Fichas ya cargadas en el libro, para completar en vez de duplicar. */
+  existentes: Existentes
+  onAgregar: (capitulos: Capitulo[], fichas: CambioFicha[]) => void
+  onCancelar: () => void
+}
+type Resultado = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; faltan: Record<string, string[]>; fichas: FichaDetectada[] }
 
 /** Páginas del comienzo donde se busca el índice. */
 const PAGINAS_INDICE = 30
@@ -16,7 +27,7 @@ const PAGINAS_INDICE = 30
  * Importar desde PDF: lee el libro escaneado en este navegador. Si encuentra el índice, se
  * importa por capítulos (cada uno con sus páginas y su nombre); si no, por rango de páginas.
  */
-export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
+export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props) {
   const [pdf, setPdf] = useState<PdfAbierto | null>(null)
   const [nombre, setNombre] = useState('')
   const [indice, setIndice] = useState<IndiceLibro | null>(null)
@@ -29,6 +40,8 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [elegidos, setElegidos] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
+  const [propuestas, setPropuestas] = useState<Propuesta[]>([])
+  const [eleccion, setEleccion] = useState<Eleccion>({ aceptadas: new Set(), delLibro: {} })
   const cancelado = useRef(false)
 
   useEffect(() => () => { cancelado.current = true; void pdf?.cerrar() }, [pdf])
@@ -64,6 +77,7 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
     const capitulos: Capitulo[] = []
     const correcciones: Correccion[] = []
     const faltan: Record<string, string[]> = {}
+    const fichas: FichaDetectada[] = []
     try {
       for (const r of rangos) {
         const nombreCap = [r.capitulo.etiqueta, r.capitulo.titulo].filter(Boolean).join(': ')
@@ -73,11 +87,12 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
         const leido = analizarPaginas(paginas)
         correcciones.push(...leido.correcciones)
         const { capitulo, faltan: sinEncontrar } = ajustarConIndice(leido.capitulos, r.capitulo)
+        fichas.push(...leido.fichas, ...extraerFichasDeBloques(capitulo))
         capitulos.push(capitulo)
         faltan[capitulo.id] = sinEncontrar
       }
       if (cancelado.current && !capitulos.length) { setEstado('inicio'); return }
-      mostrar({ capitulos, correcciones: resumir(correcciones), paginas: hechas, faltan })
+      mostrar({ capitulos, correcciones: resumir(correcciones), paginas: hechas, faltan, fichas })
     } catch (e) {
       setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
@@ -92,7 +107,8 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
       const paginas = await pdf.leer(desde, hasta, (hechas, total) => setProgreso({ hechas, total, texto: 'Leyendo' }), () => cancelado.current)
       if (cancelado.current) { setEstado('inicio'); return }
       const r = analizarPaginas(paginas)
-      mostrar({ ...r, faltan: {} })
+      const fichas = [...r.fichas, ...r.capitulos.flatMap(c => extraerFichasDeBloques(c))]
+      mostrar({ ...r, faltan: {}, fichas })
     } catch (e) {
       setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
@@ -105,6 +121,14 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
       setError('No se encontró texto en esas páginas. Si el PDF es solo imagen (sin texto reconocido), no se puede importar.')
       return
     }
+    // Las fichas repetidas en el libro se unen, y los capítulos apuntan a la que queda.
+    const { unicas, alias } = unificar(r.fichas)
+    for (const c of r.capitulos) for (const b of c.bloques) if (b.tipo === 'fichas') b.ids = [...new Set(b.ids.map(id => alias.get(id) ?? id))]
+    const lista = conciliar(unicas, existentes)
+    setPropuestas(lista)
+    // Por defecto se acepta todo, salvo subclases cuya clase no está ni se crea.
+    const clases = new Set([...(existentes.clases ?? []).map(c => claveNombre(c.nombre)), ...lista.filter(p => p.ficha.categoria === 'clases').map(p => claveNombre(p.ficha.nombre))])
+    setEleccion({ aceptadas: new Set(lista.filter(p => p.ficha.categoria !== 'subclases' || p.existente || clases.has(claveNombre(p.ficha.clase))).map(p => p.ficha.id)), delLibro: {} })
     setResultado(r)
     // Lo que está antes del primer capítulo (créditos, índice) va sin marcar.
     setElegidos(new Set(r.capitulos.filter(c => c.bloques.length && (c.etiqueta || c.titulo !== 'Antes del primer capítulo')).map(c => c.id)))
@@ -112,6 +136,40 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
   }
 
   const elegidosLista = resultado?.capitulos.filter(c => elegidos.has(c.id)) ?? []
+  // Solo cuentan las fichas de los capítulos que se agregan.
+  const idsEnElegidos = new Set(elegidosLista.flatMap(c => c.bloques.flatMap(b => b.tipo === 'fichas' ? b.ids : [])))
+  const fichasDeElegidos = propuestas.filter(p => idsEnElegidos.has(p.ficha.id))
+
+  function agregar() {
+    const aceptadas = fichasDeElegidos.filter(p => eleccion.aceptadas.has(p.ficha.id))
+    const finales = aceptadas.map(p => ({ p, ficha: fichaFinal(p, eleccion.delLibro[p.ficha.id] ?? new Set()) }))
+    // Subclases: se vinculan a su clase (cargada o nueva). Trasfondos: a su dote de origen.
+    const buscar = (categoria: CategoriaFicha, nombre: unknown) =>
+      finales.find(f => f.p.ficha.categoria === categoria && claveNombre(f.ficha.nombre) === claveNombre(nombre))?.ficha
+      ?? (existentes[categoria] ?? []).find(e => claveNombre(e.nombre) === claveNombre(nombre))
+    for (const { p, ficha } of finales) {
+      if (p.ficha.categoria === 'subclases' && !p.existente) {
+        const clase = buscar('clases', p.ficha.clase)
+        ficha.datos = { ...(ficha.datos as Registro), claseId: clase ? String(clase.id) : '' }
+      }
+      const doteTexto = (ficha.datosAdicionales as Registro | undefined)?.dote
+      if (p.ficha.categoria === 'trasfondos' && !ficha.doteOrigenId && doteTexto) {
+        const dote = buscar('dotes', doteTexto)
+        if (dote) ficha.doteOrigenId = String(dote.id)
+      }
+    }
+    // En los capítulos, cada ficha aceptada apunta a su id final; las rechazadas no aparecen.
+    const destino = new Map(aceptadas.map(p => [p.ficha.id, idFinal(p)]))
+    const capitulos = elegidosLista.map(c => ({
+      ...c,
+      bloques: c.bloques.flatMap((b): Bloque[] => {
+        if (b.tipo !== 'fichas') return [b]
+        const ids = b.ids.flatMap(id => destino.get(id) ?? [])
+        return ids.length ? [{ ...b, ids: [...new Set(ids)] }] : []
+      }),
+    }))
+    onAgregar(capitulos, finales.filter(f => f.p.estado !== 'igual').map(f => ({ categoria: f.p.ficha.categoria, ficha: f.ficha, nueva: !f.p.existente })))
+  }
   const totalBloques = elegidosLista.reduce((n, c) => n + c.bloques.length, 0)
   const rangosIndice = pdf && indice ? paginasDeCapitulos(indice, pdf.total) : []
   const ocupado = estado === 'abriendo' || estado === 'leyendo'
@@ -200,10 +258,13 @@ export default function ImportarPdf({ onAgregar, onCancelar }: Props) {
       </ul>
     </>}
 
+    {resultado && estado === 'listo' && fichasDeElegidos.length > 0 &&
+      <RevisionFichas propuestas={fichasDeElegidos} eleccion={eleccion} onCambiar={setEleccion} existentes={existentes} />}
+
     <div className="capitulos__acciones">
       <button type="button" onClick={() => { cancelado.current = true; onCancelar() }}>Cancelar</button>
       {resultado && estado === 'listo' && <button type="button" className="capitulos__primario" disabled={!elegidosLista.length}
-        onClick={() => onAgregar(elegidosLista)}>Agregar {elegidosLista.length} {elegidosLista.length === 1 ? 'capítulo' : 'capítulos'} ({totalBloques} bloques)</button>}
+        onClick={agregar}>Agregar {elegidosLista.length} {elegidosLista.length === 1 ? 'capítulo' : 'capítulos'} ({totalBloques} bloques){fichasDeElegidos.length ? ` y ${fichasDeElegidos.filter(p => eleccion.aceptadas.has(p.ficha.id)).length} fichas` : ''}</button>}
     </div>
   </section>
 }

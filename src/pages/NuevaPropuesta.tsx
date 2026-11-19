@@ -42,6 +42,8 @@ import {
 } from '../services/libros'
 import BasadoEnLibro from '../components/biblioteca/BasadoEnLibro'
 import EditorCapitulos, { type FichasDisponibles } from '../components/biblioteca/capitulos/EditorCapitulos'
+import type { CambioFicha } from '../components/biblioteca/capitulos/ImportarPdf'
+import type { Existentes } from '../lib/conciliarFichas'
 import { leerCapitulos, type Capitulo } from '../types/capitulo'
 
 import type { Conjuro } from '../types/conjuro'
@@ -728,6 +730,22 @@ export default function NuevaPropuesta() {
       ],
     },
   }
+  /** Fichas reconocidas al importar un PDF: las nuevas se agregan y las completadas se reemplazan. */
+  function aplicarFichasImportadas(cambios: CambioFicha[]) {
+    const aplicar = <T extends { id: string }>(categoria: CambioFicha['categoria'], actuales: T[]): T[] => {
+      const propios = cambios.filter(c => c.categoria === categoria)
+      if (!propios.length) return actuales
+      const porId = new Map(propios.map(c => [String(c.ficha.id), c.ficha as unknown as T]))
+      return [...actuales.map(a => porId.get(a.id) ?? a), ...propios.filter(c => c.nueva).map(c => c.ficha as unknown as T)]
+    }
+    setConjuros(a => aplicar('conjuros', a)); setDotes(a => aplicar('dotes', a)); setTrasfondos(a => aplicar('trasfondos', a))
+    setEspecies(a => aplicar('especies', a)); setCriaturas(a => aplicar('criaturas', a)); setClases(a => aplicar('clases', a))
+    setSubclases(a => aplicar('subclases', a)); setObjetos(a => aplicar('objetos', a))
+    // Las categorías con fichas nuevas pasan a estar activas en el libro.
+    const conNuevas = [...new Set(cambios.map(c => c.categoria))]
+    setSelectedCategories(actuales => [...new Set([...actuales, ...conNuevas])])
+  }
+
   const fichasDisponibles: FichasDisponibles[] = [
     { categoria: 'especies', titulo: 'Especies', elementos: especies },
     { categoria: 'clases', titulo: 'Clases', elementos: clases },
@@ -1229,7 +1247,9 @@ export default function NuevaPropuesta() {
                     <p>El texto del libro, capítulo por capítulo, y dónde va cada ficha. Es opcional: sin capítulos, el libro se lee por categorías.</p>
                   </div>
                 </div>
-                <EditorCapitulos capitulos={capitulos} onChange={setCapitulos} fichas={fichasDisponibles} soloLectura={!puedeEditar} />
+                <EditorCapitulos capitulos={capitulos} onChange={setCapitulos} fichas={fichasDisponibles} soloLectura={!puedeEditar}
+                  existentes={{ conjuros, dotes, trasfondos, especies, criaturas, clases, subclases, objetos } as unknown as Existentes}
+                  onAplicarFichas={aplicarFichasImportadas} />
               </>
             ) : editingCaracteristicaId !== null ? (
               <section className="nueva-propuesta-panel">

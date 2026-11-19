@@ -5,7 +5,8 @@ import {
   type Bloque, type Capitulo, type TipoBloque,
 } from '../../../types/capitulo'
 import { comoRecuadro, detectarBloques, limpiarTextoEscaneado, type Correccion } from '../../../lib/pegarDesdeLibro'
-import ImportarPdf from './ImportarPdf'
+import ImportarPdf, { type CambioFicha } from './ImportarPdf'
+import type { Existentes } from '../../../lib/conciliarFichas'
 import '../../../styles/biblioteca/EditorCapitulos.css'
 
 export type FichasDisponibles = { categoria: string; titulo: string; elementos: { id: string; nombre: string }[] }
@@ -16,6 +17,10 @@ type Props = {
   /** Fichas cargadas en el libro, para ubicarlas en un capítulo. */
   fichas: FichasDisponibles[]
   soloLectura?: boolean
+  /** Fichas completas del libro, para que la importación complete en vez de duplicar. */
+  existentes: Existentes
+  /** Crea o completa fichas reconocidas al importar. */
+  onAplicarFichas: (cambios: CambioFicha[]) => void
 }
 
 const mover = <T,>(lista: T[], desde: number, hasta: number) => {
@@ -27,7 +32,7 @@ const mover = <T,>(lista: T[], desde: number, hasta: number) => {
 }
 
 /** Capítulos del libro: orden, texto por bloques, fichas ubicadas y "Pegar desde el libro". */
-export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectura }: Props) {
+export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectura, existentes, onAplicarFichas }: Props) {
   const [seleccion, setSeleccion] = useState<string | null>(capitulos[0]?.id ?? null)
   const [pegando, setPegando] = useState(false)
   const [importando, setImportando] = useState(false)
@@ -83,8 +88,8 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
       </>}
     </aside>
 
-    {importando && !soloLectura ? <ImportarPdf onCancelar={() => setImportando(false)}
-      onAgregar={nuevos => { onChange([...capitulos, ...nuevos]); setImportando(false); if (nuevos[0]) setSeleccion(nuevos[0].id) }} />
+    {importando && !soloLectura ? <ImportarPdf existentes={existentes} onCancelar={() => setImportando(false)}
+      onAgregar={(nuevos, cambios) => { if (cambios.length) onAplicarFichas(cambios); onChange([...capitulos, ...nuevos]); setImportando(false); if (nuevos[0]) setSeleccion(nuevos[0].id) }} />
     : actual ? <section className="capitulos__capitulo" aria-label="Capítulo seleccionado">
       <div className="capitulos__campos">
         <label>Etiqueta<input value={actual.etiqueta} placeholder="Capítulo 1" disabled={soloLectura} maxLength={60}
