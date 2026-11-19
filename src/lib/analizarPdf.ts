@@ -238,7 +238,15 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       if (!pareceExplicacion && mismoContexto) return 'dotes'
     }
     if (INICIO_CRIATURA.test(sig.texto) && siguientes.some(x => /\bCA\s+\d/.test(x.texto))) return 'criaturas'
-    if (siguientes.slice(0, 3).some(x => CAMPO_TRASFONDO.test(x.texto))) return 'trasfondos'
+    // El título de un trasfondo precede a una cabecera de campos. No alcanza con
+    // encontrar un campo cercano: podría ser una línea del trasfondo anterior.
+    // Exigir que el primer campo sea «Puntuaciones de característica» y que haya
+    // al menos otro campo propio de la ficha en la misma columna.
+    const cabecera = flujo.slice(i + 1, i + 9).filter(x => x.pagina === r.pagina && x.columna === r.columna)
+    const campoExtra = /^(?:dote|competencias? en habilidades|competencias? con herramientas|equipo)\s*:/i
+    const esNombre = !/:/.test(r.texto) && r.texto.trim().split(/\s+/).length <= 7
+    if (esNombre && sig.pagina === r.pagina && sig.columna === r.columna &&
+        CAMPO_TRASFONDO.test(sig.texto) && cabecera.slice(1).some(x => campoExtra.test(x.texto))) return 'trasfondos'
     return null
   }
   // Créditos, índice…: se saltean hasta el próximo capítulo.
