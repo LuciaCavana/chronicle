@@ -258,7 +258,7 @@ export function buscarEnBloques(bloques: Bloque[], texto: string): { indice: num
   for (let i = 0; i < bloques.length; i++) {
     const b = bloques[i]
     if (b.tipo === 'fichas') continue
-    const propio = 'texto' in b ? b.texto : b.tipo === 'termino' ? `${b.termino} ${b.texto}` : ''
+    const propio = b.tipo === 'termino' ? `${b.termino} ${b.texto}` : 'texto' in b ? b.texto : ''
     if (!letrasDe(propio).includes(buscado)) continue
     const comienzos = propio.split(/\n\s*\n|(?<=[.!?:])\s+/)
     if (b.tipo === 'parrafo' && comienzos.some(t => letrasDe(t).startsWith(buscado))) return { indice: i, alComienzo: true }
