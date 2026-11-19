@@ -78,6 +78,8 @@ async function cargarParecidos(propuesta: PropuestaRevision): Promise<LibroParec
   if (errorOriginal) throw errorDeSupabase(errorOriginal, 'cargar el libro original')
   for (const v of versiones ?? []) {
    const libro = (Array.isArray(v.libros) ? v.libros[0] : v.libros) as { id: string; codigo: string; edicion: string; editorial: string; estado: string }
+   // Un libro original que ya no está publicado (papelera) no se puede usar para comparar.
+   if (libro.estado !== 'publicado' && libro.estado !== 'oculto') continue
    lista.unshift({ libro_id: libro.id, version_id: v.id, titulo: v.titulo, codigo: libro.codigo, edicion: libro.edicion, editorial: libro.editorial,
     idioma: v.idioma, estado: libro.estado, revision: v.revision_actual, mismo_titulo: false, mismo_codigo: false })
   }
