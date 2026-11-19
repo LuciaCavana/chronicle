@@ -171,3 +171,18 @@
 .fichas-rev__difs input { width: 16px; height: 16px; min-height: 0; margin-top: 3px; accent-color: var(--color-acento); }
 .fichas-rev__difs span { color: var(--color-texto-suave); overflow-wrap: anywhere; }
 @media (max-width: 700px) { .fichas-rev__campos div { grid-template-columns: 1fr; gap: 2px; } }
+/* Pendientes de revisión: fragmentos que el motor no clasificó con seguridad. */
+.fichas-rev__pendientes { display: grid; gap: 8px; padding: 10px; background: var(--color-fondo-activo); border: 1px solid var(--color-acento-borde); border-radius: var(--radio-md); }
+.fichas-rev__pendientes > .fichas-rev__lista { padding: 0; }
+.fichas-rev__dudas { margin: 0; padding: 4px 12px 0 30px; font-size: 13px; line-height: 1.5; color: var(--color-acento-claro); }
+.fichas-rev__ajuste { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 12px 0; }
+.fichas-rev__ajuste label { display: grid; gap: 4px; flex: 1 1 180px; font-size: 12.5px; color: var(--color-texto-etiqueta); }
+.fichas-rev__ajuste select, .fichas-rev__ajuste input { min-height: 40px; padding: 6px 10px; font: inherit; font-size: 14px; color: var(--color-texto); background: var(--color-fondo-campo); border: 1px solid var(--color-borde); border-radius: var(--radio-sm); }
+.fichas-rev__decision { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; border: 0; }
+.fichas-rev__decision label { display: inline-flex; align-items: center; gap: 8px; min-height: 36px; font-size: 13.5px; }
+.fichas-rev__decision input { width: 16px; height: 16px; min-height: 0; accent-color: var(--color-acento); }
+.fichas-rev__estado--ficha { background: var(--color-exito-fondo); border-color: var(--color-exito-borde); color: var(--color-exito-claro); }
+.fichas-rev__estado--quitar { background: var(--color-peligro-fondo); border-color: var(--color-peligro-borde); color: var(--color-peligro); }
+.fichas-rev__original > summary { min-height: 36px; display: flex; align-items: center; font-size: 13px; color: var(--color-texto-suave); cursor: pointer; }
+.fichas-rev__original p { margin: 0; padding: 8px 10px; white-space: pre-line; font-size: 13px; line-height: 1.55; color: var(--color-texto-suave); background: var(--color-fondo-panel); border-radius: var(--radio-sm); }
+

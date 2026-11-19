@@ -1,4 +1,4 @@
-import { nuevoId } from '../types/capitulo'
+import { nuevoId, type Bloque } from '../types/capitulo'
 import { TERMINO, unirRenglones, comoOracion } from './pegarDesdeLibro'
 
 /**
@@ -20,6 +20,15 @@ export type FichaDetectada = {
   datos: Record<string, unknown>
   /** Para una subclase: nombre de su clase. */
   clase?: string
+  /**
+   * El texto tal como estaba en el capítulo. Si la ficha no se acepta o se marca como texto,
+   * vuelve a su lugar: nunca se pierde contenido por no poder clasificarlo.
+   */
+  original: Bloque[]
+  /** Renglones leídos (si vino del análisis del PDF), para volver a leerla con otra categoría. */
+  renglones?: RenglonFicha[]
+  /** Motivos por los que la detección es dudosa; vacío = segura. */
+  dudas: string[]
 }
 export type RenglonFicha = { texto: string; sangria: number }
 
@@ -342,15 +351,142 @@ export function objetoDeTermino(termino: string, texto: string): Record<string, 
 }
 
 /** Filas de la tabla de armas dentro de un texto; devuelve las armas y el texto que sobra. */
-export function armasEnTexto(texto: string): { armas: Record<string, unknown>[]; resto: string } {
+export function armasEnTexto(texto: string): { armas: Record<string, unknown>[]; filas: string[]; resto: string } {
   const armas: Record<string, unknown>[] = []
-  const resto = texto.replace(FILA_ARMA, (_m, nombre: string, dado: string, tipoDanio: string, propiedades: string, maestria: string, peso: string, precio: string, moneda: string) => {
+  const filas: string[] = []
+  const resto = texto.replace(FILA_ARMA, (fila: string, nombre: string, dado: string, tipoDanio: string, propiedades: string, maestria: string, peso: string, precio: string, moneda: string) => {
     const kg = Number(peso.replace(',', '.').replace(/[^\d.]/g, ''))
+    filas.push(fila.trim())
     armas.push({ nombre: nombre.trim(), descripcion: '', datos: {
       tipo: 'arma', dadosDanio: dado, tipoDanio: tipoDanio.toLowerCase(), propiedadesTexto: propiedades.trim().replace(/^—$/, ''),
       maestria, ...(kg ? { peso: Math.round(kg * 2 * 100) / 100 } : {}), precio: Number(precio), moneda: moneda.toLowerCase(),
     } })
     return ' '
   })
-  return { armas, resto: resto.replace(/\s+/g, ' ').trim() }
+  return { armas, filas, resto: resto.replace(/\s+/g, ' ').trim() }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Confianza y texto original
+// ---------------------------------------------------------------------------------------------
+const vacio = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length) || (typeof v === 'object' && !Array.isArray(v) && !Object.keys(v as object).length)
+const datoInterno = (datos: Record<string, unknown>, clave: string) => (datos.datos as Record<string, unknown> | undefined)?.[clave]
+
+/**
+ * Motivos por los que una ficha detectada puede no serlo o estar mal leída. Una ficha con
+ * dudas va a «Pendientes de revisión» y por defecto queda como texto del capítulo.
+ */
+export function dudasDe(categoria: CategoriaFicha, nombre: string, datos: Record<string, unknown>): string[] {
+  const dudas: string[] = []
+  const palabras = nombre.trim().split(/\s+/).length
+  if (/[:;]/.test(nombre) || /[.,]$/.test(nombre.trim()) || palabras > 7) dudas.push('El nombre parece parte de un texto')
+  const falta = (cond: boolean, que: string) => { if (cond) dudas.push(`Sin ${que}`) }
+  switch (categoria) {
+    case 'trasfondos': {
+      const car = datos.caracteristicas as string[] | undefined
+      falta(vacio(car), 'puntuaciones de característica')
+      if (car && car.length !== 3) dudas.push(`Se leyeron ${car.length} características (un trasfondo tiene 3)`)
+      const extra = datos.datosAdicionales as Record<string, unknown> | undefined
+      falta(vacio(extra?.dote), 'dote')
+      falta(vacio(datos.competenciasHabilidades), 'competencias en habilidades')
+      falta(vacio(extra?.equipo), 'equipo')
+      break
+    }
+    case 'conjuros':
+      falta(vacio(datos.tiempoLanzamiento), 'tiempo de lanzamiento')
+      falta(vacio(datos.alcance), 'alcance')
+      falta(vacio(datos.componentes), 'componentes')
+      falta(vacio(datos.duracion), 'duración')
+      break
+    case 'dotes':
+      falta(vacio(datos.categoria), 'categoría')
+      falta(vacio(datos.beneficios) && vacio(datos.descripcion), 'beneficios ni descripción')
+      break
+    case 'criaturas':
+      falta(vacio(datos.ca), 'CA')
+      falta(vacio(datos.pg), 'PG')
+      falta(vacio(datos.caracteristicas), 'las seis características')
+      break
+    case 'clases':
+      falta(vacio(datoInterno(datos, 'dadoGolpe')), 'dado de golpe')
+      falta(vacio(datoInterno(datos, 'rasgos')), 'rasgos por nivel')
+      break
+    case 'subclases':
+      falta(vacio(datoInterno(datos, 'rasgos')), 'rasgos por nivel')
+      break
+    case 'especies':
+      falta(vacio(datos.tiposCriatura), 'tipo de criatura')
+      falta(vacio(datos.velocidad), 'velocidad')
+      break
+    case 'objetos':
+      break
+  }
+  return dudas
+}
+
+/** Etiqueta de campo al comienzo de un renglón: "Equipo: …", "Alcance: …". */
+const CAMPO = /^([A-ZÁÉÍÓÚÑ][\p{L} ]{1,40}?):\s+(.*)$/u
+
+/**
+ * Texto de una ficha como bloques del capítulo (nombre como subtítulo, campos con la etiqueta en
+ * negrita, términos y párrafos). Es lo que se conserva si la ficha no se carga.
+ */
+export function bloquesDeRenglones(nombre: string, renglones: RenglonFicha[]): Bloque[] {
+  const bloques: Bloque[] = [{ id: nuevoId(), tipo: 'subtitulo', texto: nombre }]
+  const parrafos: string[][] = []
+  let enCampo = false
+  let colgante = false
+  for (const r of renglones) {
+    const campo = r.sangria < 8 && CAMPO.test(r.texto)
+    const termino = r.sangria < 8 && TERMINO.test(r.texto)
+    const sangria = r.sangria >= 8 && r.sangria < 30
+    const nuevo = !parrafos.length || campo || termino || (sangria && !colgante) || (enCampo && r.sangria < 8 && /[.)]$/.test(parrafos.at(-1)!.at(-1) ?? ''))
+    if (nuevo) { parrafos.push([]); enCampo = campo; colgante = termino }
+    parrafos[parrafos.length - 1].push(r.texto)
+  }
+  const textos = parrafos.map(p => {
+    const t = unirRenglones(p)
+    const c = t.match(CAMPO)
+    if (c && c[1].split(' ').length <= 5) return `**${c[1]}:** ${c[2]}`
+    const m = t.match(TERMINO)
+    return m ? `**${m[1]}** ${m[2]}` : t
+  }).filter(Boolean)
+  if (textos.length) bloques.push({ id: nuevoId(), tipo: 'parrafo', texto: textos.join('\n\n') })
+  return bloques
+}
+
+/** Copia profunda de bloques (los originales no deben cambiar si se edita el capítulo). */
+export const copiarBloques = (bloques: Bloque[]): Bloque[] => JSON.parse(JSON.stringify(bloques)) as Bloque[]
+
+/** Texto plano de los bloques originales (para mostrar en la revisión). */
+export function textoOriginal(bloques: Bloque[]): string {
+  return bloques.map(b => {
+    switch (b.tipo) {
+      case 'parrafo': case 'titulo': case 'subtitulo': return b.texto
+      case 'termino': return `${b.termino} ${b.texto}`
+      case 'recuadro': return `${b.titulo}\n${b.texto}`
+      case 'lista': return b.items.map(i => `• ${i.termino} ${i.texto}`.trim()).join('\n')
+      default: return ''
+    }
+  }).filter(Boolean).join('\n\n').replace(/\*\*|_/g, '')
+}
+
+/**
+ * Vuelve a leer una ficha con otra categoría o nombre (corrección desde «Pendientes de revisión»).
+ * Las que vinieron del análisis del PDF se releen con sus renglones; las demás guardan el texto
+ * como descripción para completar a mano.
+ */
+export function releerFicha(ficha: FichaDetectada, categoria: CategoriaFicha, nombre: string): FichaDetectada {
+  const lectores: Partial<Record<CategoriaFicha, (n: string, r: RenglonFicha[]) => Record<string, unknown>>> = {
+    conjuros: leerConjuro, dotes: leerDote, trasfondos: leerTrasfondo, criaturas: leerCriatura,
+  }
+  const leer = lectores[categoria]
+  let datos: Record<string, unknown>
+  if (categoria === ficha.categoria) datos = { ...ficha.datos, nombre }
+  else if (leer && ficha.renglones) datos = leer(nombre, ficha.renglones)
+  else {
+    const texto = textoOriginal(ficha.original.slice(1))
+    datos = { nombre, ...(texto ? { descripcion: aHtml(texto.split(/\n\s*\n/)) } : {}) }
+  }
+  return { ...ficha, categoria, nombre, datos, dudas: dudasDe(categoria, nombre, datos) }
 }

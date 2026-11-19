@@ -1,4 +1,4 @@
-import type { CategoriaFicha, FichaDetectada } from './fichasLibro'
+import { dudasDe, type CategoriaFicha, type FichaDetectada } from './fichasLibro'
 
 /**
  * Compara las fichas leídas del libro con las ya cargadas en el borrador:
@@ -51,10 +51,10 @@ const ETIQUETAS: Record<string, string> = {
   salvaciones: 'Salvaciones', armas: 'Armas', armaduras: 'Armaduras', herramientas: 'Herramientas', equipoInicial: 'Equipo inicial',
   precio: 'Precio', moneda: 'Moneda', peso: 'Peso', dadosDanio: 'Daño', tipoDanio: 'Tipo de daño', propiedadesTexto: 'Propiedades', maestria: 'Maestría',
 }
-const etiqueta = (ruta: string) => ETIQUETAS[ruta.replace(/^datos\./, '')] ?? ruta
+export const etiqueta = (ruta: string) => ETIQUETAS[ruta.replace(/^datos\./, '')] ?? ruta
 
 /** Campos del libro como pares ruta → valor (los de "datos" van con prefijo). */
-function campos(categoria: CategoriaFicha, datos: Registro): [string, unknown][] {
+export function campos(categoria: CategoriaFicha, datos: Registro): [string, unknown][] {
   const lista: [string, unknown][] = []
   for (const [k, v] of Object.entries(datos)) {
     if (k === 'nombre' || k === 'id') continue
@@ -78,8 +78,9 @@ export function unificar(detectadas: FichaDetectada[]): { unicas: FichaDetectada
     const previa = porClave.get(k)
     if (previa) {
       previa.datos = { ...f.datos, ...previa.datos }
+      previa.dudas = dudasDe(previa.categoria, previa.nombre, previa.datos)
       alias.set(f.id, previa.id)
-    } else { porClave.set(k, f); alias.set(f.id, f.id) }
+    } else { porClave.set(k, { ...f }); alias.set(f.id, f.id) }
   }
   return { unicas: [...porClave.values()], alias }
 }

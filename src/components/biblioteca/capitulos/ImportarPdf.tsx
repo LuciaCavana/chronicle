@@ -1,14 +1,14 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { FileUp, ListTree } from 'lucide-react'
 import { analizarPaginas } from '../../../lib/analizarPdf'
 import { abrirPdf, type PdfAbierto } from '../../../lib/importarPdf'
 import { ajustarConIndice, analizarIndice, paginasDeCapitulos, type IndiceLibro } from '../../../lib/indicePdf'
-import type { Correccion } from '../../../lib/pegarDesdeLibro'
-import { etiquetaBloque, textoBloque, type Bloque, type Capitulo } from '../../../types/capitulo'
+import { unirTexto, type Correccion } from '../../../lib/pegarDesdeLibro'
+import { etiquetaBloque, nuevoId, textoBloque, type Bloque, type Capitulo } from '../../../types/capitulo'
 import { extraerFichasDeBloques } from '../../../lib/fichasEnCapitulos'
-import type { CategoriaFicha, FichaDetectada } from '../../../lib/fichasLibro'
-import { claveNombre, conciliar, fichaFinal, idFinal, unificar, type Existentes, type Propuesta, type Registro } from '../../../lib/conciliarFichas'
-import RevisionFichas, { type Eleccion } from './RevisionFichas'
+import { copiarBloques, releerFicha, type CategoriaFicha, type FichaDetectada } from '../../../lib/fichasLibro'
+import { claveNombre, conciliar, fichaFinal, idFinal, unificar, type Existentes, type Registro } from '../../../lib/conciliarFichas'
+import RevisionFichas, { type Decision, type Eleccion } from './RevisionFichas'
 
 /** Una ficha que se crea o se completa al importar. */
 export type CambioFicha = { categoria: CategoriaFicha; ficha: Registro; nueva: boolean }
@@ -40,8 +40,11 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
   const [resultado, setResultado] = useState<Resultado | null>(null)
   const [elegidos, setElegidos] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
-  const [propuestas, setPropuestas] = useState<Propuesta[]>([])
-  const [eleccion, setEleccion] = useState<Eleccion>({ aceptadas: new Set(), delLibro: {} })
+  // Fichas únicas, a qué ficha quedó cada repetida y el texto original de cada aparición.
+  const [detectadas, setDetectadas] = useState<FichaDetectada[]>([])
+  const [alias, setAlias] = useState<Map<string, string>>(new Map())
+  const [originales, setOriginales] = useState<Map<string, FichaDetectada['original']>>(new Map())
+  const [eleccion, setEleccion] = useState<Eleccion>({ decision: {}, delLibro: {}, ajustes: {} })
   const cancelado = useRef(false)
 
   useEffect(() => () => { cancelado.current = true; void pdf?.cerrar() }, [pdf])
@@ -121,27 +124,41 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
       setError('No se encontró texto en esas páginas. Si el PDF es solo imagen (sin texto reconocido), no se puede importar.')
       return
     }
-    // Las fichas repetidas en el libro se unen, y los capítulos apuntan a la que queda.
-    const { unicas, alias } = unificar(r.fichas)
-    for (const c of r.capitulos) for (const b of c.bloques) if (b.tipo === 'fichas') b.ids = [...new Set(b.ids.map(id => alias.get(id) ?? id))]
+    // Las fichas repetidas en el libro se unen; cada aparición conserva su texto original.
+    setOriginales(new Map(r.fichas.map(f => [f.id, copiarBloques(f.original)])))
+    const { unicas, alias: aliasNuevo } = unificar(r.fichas)
+    setDetectadas(unicas)
+    setAlias(aliasNuevo)
+    // Por defecto: las seguras se cargan; las dudosas (Pendientes de revisión) y las subclases
+    // cuya clase no está ni se crea quedan como texto del capítulo.
     const lista = conciliar(unicas, existentes)
-    setPropuestas(lista)
-    // Por defecto se acepta todo, salvo subclases cuya clase no está ni se crea.
-    const clases = new Set([...(existentes.clases ?? []).map(c => claveNombre(c.nombre)), ...lista.filter(p => p.ficha.categoria === 'clases').map(p => claveNombre(p.ficha.nombre))])
-    setEleccion({ aceptadas: new Set(lista.filter(p => p.ficha.categoria !== 'subclases' || p.existente || clases.has(claveNombre(p.ficha.clase))).map(p => p.ficha.id)), delLibro: {} })
+    const clases = new Set([...(existentes.clases ?? []).map(c => claveNombre(c.nombre)), ...lista.filter(p => p.ficha.categoria === 'clases' && !p.ficha.dudas.length).map(p => claveNombre(p.ficha.nombre))])
+    const decision: Record<string, Decision> = {}
+    for (const p of lista) {
+      const sinClase = p.ficha.categoria === 'subclases' && !p.existente && !clases.has(claveNombre(p.ficha.clase))
+      decision[p.ficha.id] = p.ficha.dudas.length || sinClase ? 'texto' : 'ficha'
+    }
+    setEleccion({ decision, delLibro: {}, ajustes: {} })
     setResultado(r)
     // Lo que está antes del primer capítulo (créditos, índice) va sin marcar.
     setElegidos(new Set(r.capitulos.filter(c => c.bloques.length && (c.etiqueta || c.titulo !== 'Antes del primer capítulo')).map(c => c.id)))
     setEstado('listo')
   }
 
+  // Las correcciones de categoría y nombre de «Pendientes de revisión» vuelven a leer la ficha.
+  const propuestas = useMemo(() => conciliar(detectadas.map(f => {
+    const a = eleccion.ajustes[f.id]
+    return a && (a.categoria !== f.categoria || a.nombre.trim() !== f.nombre) && a.nombre.trim() ? releerFicha(f, a.categoria, a.nombre.trim()) : f
+  }), existentes), [detectadas, eleccion.ajustes, existentes])
+  const decisionDe = (id: string): Decision => eleccion.decision[id] ?? 'texto'
+
   const elegidosLista = resultado?.capitulos.filter(c => elegidos.has(c.id)) ?? []
   // Solo cuentan las fichas de los capítulos que se agregan.
-  const idsEnElegidos = new Set(elegidosLista.flatMap(c => c.bloques.flatMap(b => b.tipo === 'fichas' ? b.ids : [])))
+  const idsEnElegidos = new Set(elegidosLista.flatMap(c => c.bloques.flatMap(b => b.tipo === 'fichas' ? b.ids.map(id => alias.get(id) ?? id) : [])))
   const fichasDeElegidos = propuestas.filter(p => idsEnElegidos.has(p.ficha.id))
 
   function agregar() {
-    const aceptadas = fichasDeElegidos.filter(p => eleccion.aceptadas.has(p.ficha.id))
+    const aceptadas = fichasDeElegidos.filter(p => decisionDe(p.ficha.id) === 'ficha')
     const finales = aceptadas.map(p => ({ p, ficha: fichaFinal(p, eleccion.delLibro[p.ficha.id] ?? new Set()) }))
     // Subclases: se vinculan a su clase (cargada o nueva). Trasfondos: a su dote de origen.
     const buscar = (categoria: CategoriaFicha, nombre: unknown) =>
@@ -158,15 +175,29 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
         if (dote) ficha.doteOrigenId = String(dote.id)
       }
     }
-    // En los capítulos, cada ficha aceptada apunta a su id final; las rechazadas no aparecen.
-    const destino = new Map(aceptadas.map(p => [p.ficha.id, idFinal(p)]))
+    // En los capítulos, cada ficha aceptada apunta a su id final. Las que quedan como texto
+    // vuelven a su texto original en el mismo lugar; solo «No incluir» las saca.
+    const destino = new Map(aceptadas.map(p => [p.ficha.id, { id: idFinal(p), categoria: p.ficha.categoria }]))
     const capitulos = elegidosLista.map(c => ({
       ...c,
-      bloques: c.bloques.flatMap((b): Bloque[] => {
+      bloques: unirTexto(c.bloques.flatMap((b): Bloque[] => {
         if (b.tipo !== 'fichas') return [b]
-        const ids = b.ids.flatMap(id => destino.get(id) ?? [])
-        return ids.length ? [{ ...b, ids: [...new Set(ids)] }] : []
-      }),
+        const salida: Bloque[] = []
+        const vistos = new Set<string>()
+        for (const id of b.ids) {
+          const principal = alias.get(id) ?? id
+          const final = destino.get(principal)
+          if (final) {
+            // La categoría puede haberse corregido en «Pendientes de revisión».
+            if (vistos.has(final.id)) continue
+            vistos.add(final.id)
+            const ultimo = salida[salida.length - 1]
+            if (ultimo?.tipo === 'fichas' && ultimo.categoria === final.categoria) ultimo.ids.push(final.id)
+            else salida.push({ id: nuevoId(), tipo: 'fichas', categoria: final.categoria, ids: [final.id] })
+          } else if (decisionDe(principal) !== 'quitar') salida.push(...copiarBloques(originales.get(id) ?? []))
+        }
+        return salida
+      })),
     }))
     onAgregar(capitulos, finales.filter(f => f.p.estado !== 'igual').map(f => ({ categoria: f.p.ficha.categoria, ficha: f.ficha, nueva: !f.p.existente })))
   }
@@ -264,7 +295,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
     <div className="capitulos__acciones">
       <button type="button" onClick={() => { cancelado.current = true; onCancelar() }}>Cancelar</button>
       {resultado && estado === 'listo' && <button type="button" className="capitulos__primario" disabled={!elegidosLista.length}
-        onClick={agregar}>Agregar {elegidosLista.length} {elegidosLista.length === 1 ? 'capítulo' : 'capítulos'} ({totalBloques} bloques){fichasDeElegidos.length ? ` y ${fichasDeElegidos.filter(p => eleccion.aceptadas.has(p.ficha.id)).length} fichas` : ''}</button>}
+        onClick={agregar}>Agregar {elegidosLista.length} {elegidosLista.length === 1 ? 'capítulo' : 'capítulos'} ({totalBloques} bloques){fichasDeElegidos.length ? ` y ${fichasDeElegidos.filter(p => decisionDe(p.ficha.id) === 'ficha').length} fichas` : ''}</button>}
     </div>
   </section>
 }

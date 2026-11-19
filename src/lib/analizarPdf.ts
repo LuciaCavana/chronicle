@@ -1,6 +1,6 @@
 import { nuevoId, type Bloque, type Capitulo, type LineaDialogo, type LineaLista } from '../types/capitulo'
 import {
-  CAMPO_TRASFONDO, INICIO_CONJURO, INICIO_CRIATURA, INICIO_DOTE, leerConjuro, leerCriatura, leerDote, leerTrasfondo,
+  bloquesDeRenglones, CAMPO_TRASFONDO, dudasDe, INICIO_CONJURO, INICIO_CRIATURA, INICIO_DOTE, leerConjuro, leerCriatura, leerDote, leerTrasfondo,
   type CategoriaFicha, type FichaDetectada, type RenglonFicha,
 } from './fichasLibro'
 import {
@@ -39,23 +39,47 @@ const letras = (t: string) => t.replace(/[^\p{L}]/gu, '').length
 /** Junta los fragmentos de una página en renglones (los escaneos suelen traer palabras sueltas). */
 function armarRenglones(p: PaginaPdf): Omit<Renglon, 'columna' | 'sangria' | 'r'>[] {
   const mitad = p.ancho / 2
-  const frs = p.fragmentos.filter(f => f.texto.trim() && f.h > 0).sort((a, b) => a.base - b.base || a.x0 - b.x0)
-  const renglones: { x0: number; x1: number; base: number; hs: number[]; partes: Fragmento[] }[] = []
-  for (const f of frs) {
-    const destino = renglones.find(r => {
-      const h = Math.min(mediana(r.hs), f.h)
-      // No mezclar palabras de columnas opuestas aunque compartan la misma altura.
-      // Un fragmento que cruza el centro se considera ancho y solo se une con
-      // otros fragmentos anchos; así no arrastra texto de una columna.
-      const lado = (x0: number, x1: number) =>
-        x1 <= mitad ? 0 : x0 >= mitad ? 1 : 2
-      if (lado(r.x0, r.x1) !== lado(f.x0, f.x1)) return false
-      return Math.abs(r.base - f.base) < h * 0.5 && f.x0 - r.x1 < h * 2 && f.x0 > r.x0 - h
-    })
-    if (destino) {
-      destino.partes.push(f); destino.hs.push(f.h)
-      destino.x1 = Math.max(destino.x1, f.x1); destino.x0 = Math.min(destino.x0, f.x0)
-    } else renglones.push({ x0: f.x0, x1: f.x1, base: f.base, hs: [f.h], partes: [f] })
+  const todos = p.fragmentos.filter(f => f.texto.trim() && f.h > 0)
+  // Letras capitulares: una sola letra mayúscula mucho más alta que el texto y angosta, con
+  // un renglón que empieza a su derecha a la altura de su parte de arriba: se pega a ese renglón.
+  const hPagina = mediana(todos.map(f => f.h))
+  const esCapitular = (f: Fragmento) => /^\p{Lu}$/u.test(f.texto.trim()) && f.h >= hPagina * 2 && f.x1 - f.x0 <= f.h * 1.5
+  type Grupo = { x0: number; x1: number; base: number; hs: number[]; partes: Fragmento[] }
+  const agrupar = (lista: Fragmento[]): Grupo[] => {
+    const renglones: Grupo[] = []
+    for (const f of [...lista].sort((a, b) => a.base - b.base || a.x0 - b.x0)) {
+      const destino = renglones.find(r => {
+        const h = Math.min(mediana(r.hs), f.h)
+        // No mezclar palabras de columnas opuestas aunque compartan la misma altura: un
+        // fragmento que cruza el centro es ancho y solo se une con otros anchos.
+        const lado = (x0: number, x1: number) => x1 <= mitad ? 0 : x0 >= mitad ? 1 : 2
+        if (lado(r.x0, r.x1) !== lado(f.x0, f.x1)) return false
+        return Math.abs(r.base - f.base) < h * 0.5 && f.x0 - r.x1 < h * 2 && f.x0 > r.x0 - h
+      })
+      if (destino) {
+        destino.partes.push(f); destino.hs.push(f.h)
+        destino.x1 = Math.max(destino.x1, f.x1); destino.x0 = Math.min(destino.x0, f.x0)
+      } else renglones.push({ x0: f.x0, x1: f.x1, base: f.base, hs: [f.h], partes: [f] })
+    }
+    return renglones
+  }
+  /** El renglón más alto que empieza pegado a la derecha de la capitular, dentro de su altura. */
+  const alLado = (c: Fragmento, renglones: Grupo[], ocupados: Map<object, string>) => renglones
+    .filter(r => mediana(r.hs) < c.h * 0.6 && !ocupados.has(r) &&
+      r.x0 >= c.x1 - hPagina * 0.5 && r.x0 - c.x1 < hPagina * 2.5 &&
+      r.base >= c.base - c.h - hPagina && r.base <= c.base + hPagina * 0.5)
+    .sort((a, b) => a.base - b.base)[0]
+
+  const candidatas = todos.filter(esCapitular)
+  const resto = todos.filter(f => !candidatas.includes(f))
+  // Una letra grande sin renglón al lado no es capitular (p. ej. la «A» de un título): va con el resto.
+  const previos = agrupar(resto)
+  const capitulares = candidatas.filter(c => alLado(c, previos, new Map()))
+  const renglones = agrupar([...resto, ...candidatas.filter(c => !capitulares.includes(c))])
+  const conCapitular = new Map<object, string>()
+  for (const c of capitulares) {
+    const destino = alLado(c, renglones, conCapitular)
+    if (destino) conCapitular.set(destino, c.texto.trim())
   }
   return renglones.map(r => {
     const partes = r.partes.sort((a, b) => a.x0 - b.x0)
@@ -67,7 +91,8 @@ function armarRenglones(p: PaginaPdf): Omit<Renglon, 'columna' | 'sangria' | 'r'
       texto += (texto && parte.x0 - fin > parte.h * 0.12 && !texto.endsWith(' ') ? ' ' : '') + parte.texto
       fin = parte.x1
     }
-    return { x0: r.x0, x1: r.x1, base: r.base, h: mediana(r.hs), texto: texto.replace(/\s+/g, ' ').trim(), pagina: p.numero }
+    const letra = conCapitular.get(r) ?? ''
+    return { x0: r.x0, x1: r.x1, base: r.base, h: mediana(r.hs), texto: letra + texto.replace(/\s+/g, ' ').trim(), pagina: p.numero }
   })
 }
 
@@ -108,7 +133,12 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   const preparados = porPagina.map(({ p, renglones }) => {
     const mitad = p.ancho / 2
     // Encabezados grandes partidos entre columnas ("CAPÍTULO" … "1,"): se unen.
-    const grandes = renglones.filter(r => r.h >= hCuerpo * 1.5 && letras(r.texto) >= 2).sort((a, b) => a.base - b.base || a.x0 - b.x0)
+    // Incluye palabras de una letra («A») y números («1,»): los títulos se parten en el centro de la página.
+    const grandes = renglones.filter(r => {
+      const n = r.texto.replace(/[^\p{L}\d]/gu, '').length
+      // Una letra sola mucho más ancha que alta es un adorno mal leído por el escaneo.
+      return r.h >= hCuerpo * 1.5 && n >= 1 && !(n <= 2 && r.x1 - r.x0 > r.h * 1.5 * n)
+    }).sort((a, b) => a.base - b.base || a.x0 - b.x0)
     const usados = new Set<object>()
     const unidos: typeof renglones = []
     for (const g of grandes) {
@@ -177,7 +207,11 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (a.tipo === 'ficha') {
       const leer = { conjuros: leerConjuro, dotes: leerDote, trasfondos: leerTrasfondo, criaturas: leerCriatura }[a.categoria as 'conjuros']
       const nombre = esMayusculas(a.nombre) ? comoTitulo(a.nombre) : a.nombre.trim()
-      const ficha: FichaDetectada = { id: nuevoId(), categoria: a.categoria, nombre, datos: leer ? leer(nombre, a.renglones) : { nombre } }
+      const datos = leer ? leer(nombre, a.renglones) : { nombre }
+      const ficha: FichaDetectada = {
+        id: nuevoId(), categoria: a.categoria, nombre, datos,
+        original: bloquesDeRenglones(nombre, a.renglones), renglones: a.renglones, dudas: dudasDe(a.categoria, nombre, datos),
+      }
       fichas.push(ficha)
       // En el capítulo, la ficha ocupa su lugar (fichas seguidas de la misma categoría van juntas).
       const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]
@@ -235,8 +269,8 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       // Una entrada real lleva un nombre breve e independiente del texto explicativo.
       // Evitar que frases como «Dote. El trasfondo aporta...» se conviertan en fichas.
       const nombre = r.texto.trim()
-      const palabras = nombre.split(/\\s+/)
-      const pareceExplicacion = /[.!?;:,]/.test(nombre) || palabras.length > 7 || /^(dote|dotes|beneficios|prerrequisitos?)\\b/i.test(nombre)
+      const palabras = nombre.split(/\s+/)
+      const pareceExplicacion = /[.!?;:,]/.test(nombre) || palabras.length > 7 || /^(dote|dotes|beneficios|prerrequisitos?)\b/i.test(nombre)
       const mismoContexto = sig.pagina === r.pagina && sig.columna === r.columna
       if (!pareceExplicacion && mismoContexto) return 'dotes'
     }

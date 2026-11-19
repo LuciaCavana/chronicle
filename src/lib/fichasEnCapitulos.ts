@@ -1,6 +1,6 @@
 import { nuevoId, type Bloque, type Capitulo } from '../types/capitulo'
 import {
-  armasEnTexto, leerClase, leerEspecie, leerSubclase, NIVEL_RASGO, objetoDeTermino,
+  armasEnTexto, copiarBloques, dudasDe, leerClase, leerEspecie, leerSubclase, NIVEL_RASGO, objetoDeTermino,
   type CategoriaFicha, type FichaDetectada,
 } from './fichasLibro'
 
@@ -20,6 +20,12 @@ const finDeSeccion = (bloques: Bloque[], i: number) => {
   return j
 }
 const NO_ES_SUBCLASE = /^(rasgos|lista de conjuros|opciones de|convertirse|nivel \d|caracter[ií]sticas de|tabla|multiclase)/i
+
+/** Arma una ficha detectada con su texto original y sus dudas. */
+function nueva(categoria: CategoriaFicha, nombre: string, datos: Record<string, unknown>, original: Bloque[], clase?: string): FichaDetectada {
+  return { id: nuevoId(), categoria, nombre, datos, ...(clase ? { clase } : {}), original: copiarBloques(original), dudas: dudasDe(categoria, nombre, datos) }
+}
+const parrafoOriginal = (texto: string): Bloque[] => [{ id: nuevoId(), tipo: 'parrafo', texto }]
 
 function bloqueFichas(categoria: CategoriaFicha, ids: string[]): Bloque {
   return { id: nuevoId(), tipo: 'fichas', categoria, ids }
@@ -72,13 +78,13 @@ export function extraerFichasDeBloques(capitulo: Capitulo): FichaDetectada[] {
         return lista
       }
       const clase = leerClase(encabezado.texto, partes(0, finClase))
-      const fichaClase: FichaDetectada = { id: nuevoId(), categoria: 'clases', nombre: encabezado.texto, datos: clase }
+      const fichaClase = nueva('clases', encabezado.texto, clase, [encabezado, ...tramo.slice(0, finClase)])
       fichas.push(fichaClase)
       nuevos.push(bloqueFichas('clases', [fichaClase.id]))
       const idsSub: string[] = []
       subclases.forEach((s, n) => {
         const nombre = (tramo[s] as Encabezado).texto
-        const sub: FichaDetectada = { id: nuevoId(), categoria: 'subclases', nombre, clase: encabezado.texto, datos: leerSubclase(nombre, partes(s + 1, subclases[n + 1] ?? tramo.length)) }
+        const sub = nueva('subclases', nombre, leerSubclase(nombre, partes(s + 1, subclases[n + 1] ?? tramo.length)), tramo.slice(s, subclases[n + 1] ?? tramo.length), encabezado.texto)
         fichas.push(sub)
         idsSub.push(sub.id)
       })
@@ -99,7 +105,7 @@ export function extraerFichasDeBloques(capitulo: Capitulo): FichaDetectada[] {
     const parrafos = (lista: Bloque[]) => lista.filter(x => !esEncabezado(x)).flatMap(x => textoDe(x).split(/\n\s*\n/)).filter(Boolean)
     const antes = parrafos(tramo.slice(0, corte))
     const despues = parrafos(tramo.slice(corte))
-    const ficha: FichaDetectada = { id: nuevoId(), categoria: 'especies', nombre: b.texto, datos: leerEspecie(b.texto, antes, despues) }
+    const ficha = nueva('especies', b.texto, leerEspecie(b.texto, antes, despues), bloques.slice(i, fin))
     fichas.push(ficha)
     const previo = bloques[i - 1]
     if (previo?.tipo === 'fichas' && previo.categoria === 'especies') { previo.ids.push(ficha.id); bloques.splice(i, fin - i); i-- }
@@ -124,12 +130,12 @@ export function extraerFichasDeBloques(capitulo: Capitulo): FichaDetectada[] {
       const t = p.match(/^\*\*(.+?)\*\*\s*([\s\S]*)$/)
       const objeto = t ? objetoDeTermino(t[1], t[2]) : null
       if (objeto) {
-        const ficha: FichaDetectada = { id: nuevoId(), categoria: 'objetos', nombre: String(objeto.nombre), datos: objeto }
+        const ficha = nueva('objetos', String(objeto.nombre), objeto, parrafoOriginal(p))
         fichas.push(ficha); ids.push(ficha.id); continue
       }
-      const { armas, resto } = armasEnTexto(p)
+      const { armas, filas, resto } = armasEnTexto(p)
       if (armas.length) {
-        for (const a of armas) { const ficha: FichaDetectada = { id: nuevoId(), categoria: 'objetos', nombre: String(a.nombre), datos: a }; fichas.push(ficha); ids.push(ficha.id) }
+        armas.forEach((a, n) => { const ficha = nueva('objetos', String(a.nombre), a, parrafoOriginal(filas[n] ?? String(a.nombre))); fichas.push(ficha); ids.push(ficha.id) })
         if (resto.length > 60) { volcarObjetos(); quedan.push(resto) }
         continue
       }
