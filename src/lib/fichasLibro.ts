@@ -30,12 +30,15 @@ export type FichaDetectada = {
   /** Motivos por los que la detección es dudosa; vacío = segura. */
   dudas: string[]
 }
-export type RenglonFicha = { texto: string; sangria: number }
+/** Un renglón de una ficha; `zona` identifica la columna de la página donde está (para no mezclar). */
+export type RenglonFicha = { texto: string; sangria: number; zona?: string }
 
 const CARACTERISTICAS = ['Fuerza', 'Destreza', 'Constitución', 'Inteligencia', 'Sabiduría', 'Carisma']
 const sinTildes = (t: string) => t.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 const caracteristicasEn = (t: string) => CARACTERISTICAS.filter(c => sinTildes(t).includes(sinTildes(c)))
-const separarLista = (t: string) => t.replace(/\.$/, '').split(/\s*,\s*|\s+y\s+|\s+o\s+/).map(x => x.trim()).filter(Boolean)
+const separarLista = (t: string) => t.replace(/\.$/, '').split(/\s*,\s*|\s+[yeo]\s+/).map(x => x.trim()).filter(Boolean)
+/** Quita las referencias «(consulta el capítulo 5)» / «(ver …)» de un valor. */
+const sinReferencia = (t: string) => t.replace(/\s*\((?:consulta|ver)\b[^)]*\)/gi, '').replace(/\s+/g, ' ').trim()
 const capitalizar = (t: string) => t ? t.charAt(0).toLocaleUpperCase('es') + t.slice(1) : t
 const escapar = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 /** Párrafos a HTML simple (el formato de las descripciones del editor), con **negrita**. */
@@ -68,24 +71,36 @@ const conTermino = (p: string) => {
   return m ? { nombre: m[1].replace(/[.:]$/, '').trim(), texto: m[2] } : null
 }
 
+/** Etiquetas de campo de cualquier ficha: un renglón que empieza así no continúa el campo anterior. */
+const ETIQUETA_FICHA = /^(?:puntuaciones de caracter[ií]stica|dote|competencias? en habilidades|competencias? con herramientas|equipo|tiempo de lanzamiento|alcance|componentes|duraci[óo]n)\s*:/i
+
 /** Lee campos "Etiqueta: valor" de renglones; el resto (después del último campo) es el texto. */
 function camposYTexto(renglones: RenglonFicha[], etiquetas: RegExp[]): { campos: Map<number, string>; resto: RenglonFicha[] } {
   const campos = new Map<number, string>()
   let actual = -1
+  let zonaCampo: string | undefined
+  let sangriaCampo = 0
   let i = 0
   for (; i < renglones.length; i++) {
     const r = renglones[i]
     const indice = etiquetas.findIndex(e => e.test(r.texto))
     if (indice >= 0) {
       actual = indice
+      zonaCampo = r.zona
+      sangriaCampo = r.sangria
       campos.set(indice, r.texto.replace(etiquetas[indice], '').trim())
       continue
     }
-    // Un campo puede continuar en la línea siguiente, incluso si ya se
-    // encontraron todas las etiquetas. No absorber prosa o campos ajenos.
-    if (actual >= 0 && r.sangria < 8 && !/[.!?]$/.test(campos.get(actual) ?? '.') &&
-        !/^(?:puntuaciones de característica|dote|competencias? en habilidades|competencias? con herramientas|equipo)\s*:/i.test(r.texto)) {
-      campos.set(actual, `${campos.get(actual)} ${r.texto}`.trim())
+    // Un campo puede seguir en el renglón de abajo, en la misma columna: con sangría francesa
+    // (lo usual en las fichas) o al margen si el valor quedó claramente sin terminar.
+    const valor = campos.get(actual) ?? '.'
+    const mismaZona = r.zona === undefined || r.zona === zonaCampo
+    const sinTerminar = /(,|\b(y|o|e|u|de|del|con|en|la|el|los|las|un|una)|\()$/i.test(valor)
+    const otraEtiqueta = etiquetas.some(e => e.test(r.texto)) || ETIQUETA_FICHA.test(r.texto)
+    // La sangría se mide desde el renglón de la etiqueta (algunas fichas van corridas hacia adentro).
+    const dx = r.sangria - sangriaCampo
+    if (actual >= 0 && mismaZona && !otraEtiqueta && !/[.!?]$/.test(valor) && ((dx >= 6 && dx < 30) || (Math.abs(dx) < 8 && sinTerminar))) {
+      campos.set(actual, `${valor} ${r.texto}`.trim())
       continue
     }
     if (campos.size) break
@@ -140,7 +155,7 @@ export function leerDote(nombre: string, renglones: RenglonFicha[]): Record<stri
   if (m) {
     const tipo = sinTildes(m[1])
     datos.categoria = tipo.includes('origen') ? 'origen' : tipo.includes('estilo') ? 'estilo_combate' : tipo.includes('epico') ? 'epica' : 'general'
-    if (m[2]) datos.requisitos = m[2].replace(/^prerrequisitos?\s*:\s*/i, '').split(/\s*,\s*(?=[A-ZÁÉÍÓÚÑa-z])/).map(x => x.trim()).filter(Boolean)
+    if (m[2]) datos.requisitos = m[2].replace(/^(?:pre|pr)?requisitos?\s*:\s*/i, '').split(/\s*,\s*(?=[A-ZÁÉÍÓÚÑa-z])/).map(x => x.trim()).filter(Boolean)
   }
   const parrafos = parrafosDe(renglones.slice(1))
   const beneficios: string[] = []
@@ -168,9 +183,9 @@ export function leerTrasfondo(nombre: string, renglones: RenglonFicha[]): Record
   ])
   if (campos.get(0)) datos.caracteristicas = caracteristicasEn(campos.get(0) ?? '')
   const extra: Record<string, unknown> = {}
-  if (campos.get(1)) extra.dote = campos.get(1)!.replace(/\s*\(ver[^)]*\)\s*$/i, '').trim()
+  if (campos.get(1)) extra.dote = sinReferencia(campos.get(1)!)
   if (campos.get(2)) datos.competenciasHabilidades = separarLista(campos.get(2) ?? '')
-  if (campos.get(3)) datos.competenciasHerramientas = [campos.get(3)!.replace(/\.$/, '').trim()]
+  if (campos.get(3)) datos.competenciasHerramientas = [sinReferencia(campos.get(3)!).replace(/\.$/, '').trim()]
   if (campos.get(4)) extra.equipo = campos.get(4)
   if (Object.keys(extra).length) datos.datosAdicionales = extra
   const parrafos = parrafosDe(resto)
@@ -379,7 +394,7 @@ const datoInterno = (datos: Record<string, unknown>, clave: string) => (datos.da
 export function dudasDe(categoria: CategoriaFicha, nombre: string, datos: Record<string, unknown>): string[] {
   const dudas: string[] = []
   const palabras = nombre.trim().split(/\s+/).length
-  if (/[:;]/.test(nombre) || /[.,]$/.test(nombre.trim()) || palabras > 7) dudas.push('El nombre parece parte de un texto')
+  if (!/^Sin nombre \(/.test(nombre) && (/[:;]/.test(nombre) || /[.,]$/.test(nombre.trim()) || palabras > 7)) dudas.push('El nombre parece parte de un texto')
   const falta = (cond: boolean, que: string) => { if (cond) dudas.push(`Sin ${que}`) }
   switch (categoria) {
     case 'trasfondos': {
@@ -432,10 +447,16 @@ const CAMPO = /^([A-ZÁÉÍÓÚÑ][\p{L} ]{1,40}?):\s+(.*)$/u
  * negrita, términos y párrafos). Es lo que se conserva si la ficha no se carga.
  */
 export function bloquesDeRenglones(nombre: string, renglones: RenglonFicha[]): Bloque[] {
-  const bloques: Bloque[] = [{ id: nuevoId(), tipo: 'subtitulo', texto: nombre }]
+  const bloques: Bloque[] = nombre ? [{ id: nuevoId(), tipo: 'subtitulo', texto: nombre }] : []
   const parrafos: string[][] = []
   let enCampo = false
   let colgante = false
+  // La línea de tipo («Dote de origen», «Evocación de nivel 3 (mago)») va aparte, en cursiva.
+  const [primero] = renglones
+  if (primero && (INICIO_DOTE.test(primero.texto) || INICIO_CONJURO.test(primero.texto) || INICIO_CRIATURA.test(primero.texto))) {
+    bloques.push({ id: nuevoId(), tipo: 'parrafo', texto: `_${primero.texto.trim()}_` })
+    renglones = renglones.slice(1)
+  }
   for (const r of renglones) {
     const campo = r.sangria < 8 && CAMPO.test(r.texto)
     const termino = r.sangria < 8 && TERMINO.test(r.texto)
@@ -485,7 +506,7 @@ export function releerFicha(ficha: FichaDetectada, categoria: CategoriaFicha, no
   if (categoria === ficha.categoria) datos = { ...ficha.datos, nombre }
   else if (leer && ficha.renglones) datos = leer(nombre, ficha.renglones)
   else {
-    const texto = textoOriginal(ficha.original.slice(1))
+    const texto = textoOriginal(ficha.original[0]?.tipo === 'subtitulo' ? ficha.original.slice(1) : ficha.original)
     datos = { nombre, ...(texto ? { descripcion: aHtml(texto.split(/\n\s*\n/)) } : {}) }
   }
   return { ...ficha, categoria, nombre, datos, dudas: dudasDe(categoria, nombre, datos) }

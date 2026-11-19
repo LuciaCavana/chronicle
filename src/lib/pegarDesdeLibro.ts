@@ -21,6 +21,8 @@ const REGLAS: Regla[] = [
   { patron: /(^|\n)J (?=[a-záéíóúñ])/g, reemplazo: (_m: string, inicio: string) => `${inicio}y `, a: 'y' },
   // "y" pegada a un nombre: "yDave".
   { patron: /(?<![\p{L}])y(?=[A-ZÁÉÍÓÚÑ][a-záéíóúñ])/gu, reemplazo: 'y ', a: 'y ' },
+  // "d20" escaneado como "420" o "d2o" ("tires 1420" → "tires 1d20").
+  { patron: /\b(\d{1,2})4(20)\b|\b(\d{0,2})d2o\b/g, reemplazo: (_m: string, n1?: string, _v?: string, n2?: string) => `${n1 ?? n2 ?? ''}d20`, a: 'd20' },
   // Comillas y espacios raros del escaneo.
   { patron: /[   ]/g, reemplazo: ' ', a: 'espacio' },
 ]

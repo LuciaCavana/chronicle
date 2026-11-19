@@ -194,7 +194,13 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
             const ultimo = salida[salida.length - 1]
             if (ultimo?.tipo === 'fichas' && ultimo.categoria === final.categoria) ultimo.ids.push(final.id)
             else salida.push({ id: nuevoId(), tipo: 'fichas', categoria: final.categoria, ids: [final.id] })
-          } else if (decisionDe(principal) !== 'quitar') salida.push(...copiarBloques(originales.get(id) ?? []))
+          } else if (decisionDe(principal) !== 'quitar') {
+            const texto = copiarBloques(originales.get(id) ?? [])
+            // Si el nombre no estaba en el texto y se escribió en la revisión, va como subtítulo.
+            const nombre = eleccion.ajustes[principal]?.nombre.trim()
+            if (nombre && texto[0]?.tipo !== 'subtitulo') texto.unshift({ id: nuevoId(), tipo: 'subtitulo', texto: nombre })
+            salida.push(...texto)
+          }
         }
         return salida
       })),

@@ -22,7 +22,9 @@ import {
 export type Fragmento = { x0: number; x1: number; base: number; h: number; texto: string }
 export type PaginaPdf = { numero: number; ancho: number; alto: number; fragmentos: Fragmento[] }
 
-type Renglon = { x0: number; x1: number; base: number; h: number; texto: string; pagina: number; columna: 0 | 1 | 2; sangria: number; r: number }
+/** Trozos de un renglón separados por un espacio grande (celdas de una tabla). */
+type Celda = { x0: number; x1: number; texto: string }
+type Renglon = { x0: number; x1: number; base: number; h: number; texto: string; celdas: Celda[]; trozos: Celda[]; pagina: number; columna: 0 | 1 | 2; sangria: number; r: number }
 
 const mediana = (v: number[]) => {
   if (!v.length) return 0
@@ -36,9 +38,36 @@ const percentil = (v: number[], p: number) => {
 }
 const letras = (t: string) => t.replace(/[^\p{L}]/gu, '').length
 
-/** Junta los fragmentos de una página en renglones (los escaneos suelen traer palabras sueltas). */
-function armarRenglones(p: PaginaPdf): Omit<Renglon, 'columna' | 'sangria' | 'r'>[] {
+/**
+ * Dónde está el espacio entre columnas: la franja vertical más ancha sin texto cerca del centro.
+ * No siempre es la mitad exacta (márgenes espejados, fichas con texto más ancho de un lado).
+ */
+export function centroColumnas(p: PaginaPdf): number {
   const mitad = p.ancho / 2
+  const desde = Math.floor(p.ancho * 0.35)
+  const hasta = Math.ceil(p.ancho * 0.65)
+  const ocupado = new Uint8Array(hasta - desde + 1)
+  for (const f of p.fragmentos) {
+    if (!f.texto.trim() || f.x1 - f.x0 > p.ancho * 0.6) continue
+    for (let x = Math.max(desde, Math.floor(f.x0)); x <= Math.min(hasta, Math.ceil(f.x1)); x++) ocupado[x - desde] = 1
+  }
+  let mejor = { largo: 0, centro: mitad }
+  let inicio = -1
+  for (let i = 0; i <= ocupado.length; i++) {
+    if (i < ocupado.length && !ocupado[i]) { if (inicio < 0) inicio = i; continue }
+    if (inicio >= 0) {
+      const largo = i - inicio
+      const centro = desde + inicio + largo / 2
+      // La franja más ancha; a igual ancho, la más cercana al centro de la página.
+      if (largo > mejor.largo || (largo === mejor.largo && Math.abs(centro - mitad) < Math.abs(mejor.centro - mitad))) mejor = { largo, centro }
+      inicio = -1
+    }
+  }
+  return mejor.largo >= 6 ? mejor.centro : mitad
+}
+
+/** Junta los fragmentos de una página en renglones (los escaneos suelen traer palabras sueltas). */
+export function armarRenglones(p: PaginaPdf, mitad = centroColumnas(p)): Omit<Renglon, 'columna' | 'sangria' | 'r'>[] {
   const todos = p.fragmentos.filter(f => f.texto.trim() && f.h > 0)
   // Letras capitulares: una sola letra mayúscula mucho más alta que el texto y angosta, con
   // un renglón que empieza a su derecha a la altura de su parte de arriba: se pega a ese renglón.
@@ -54,14 +83,36 @@ function armarRenglones(p: PaginaPdf): Omit<Renglon, 'columna' | 'sangria' | 'r'
         // fragmento que cruza el centro es ancho y solo se une con otros anchos.
         const lado = (x0: number, x1: number) => x1 <= mitad ? 0 : x0 >= mitad ? 1 : 2
         if (lado(r.x0, r.x1) !== lado(f.x0, f.x1)) return false
-        return Math.abs(r.base - f.base) < h * 0.5 && f.x0 - r.x1 < h * 2 && f.x0 > r.x0 - h
+        // Los escaneos vienen algo torcidos: la línea base se compara con la palabra más cercana
+        // del renglón, y la palabra puede quedar a la derecha o a la izquierda de lo ya juntado.
+        const cercana = r.partes.reduce((m, x) => Math.abs(x.x0 - f.x0) < Math.abs(m.x0 - f.x0) ? x : m)
+        return Math.abs(cercana.base - f.base) < h * 0.5 && f.x0 - r.x1 < h * 2 && r.x0 - f.x1 < h * 2
       })
       if (destino) {
         destino.partes.push(f); destino.hs.push(f.h)
         destino.x1 = Math.max(destino.x1, f.x1); destino.x0 = Math.min(destino.x0, f.x0)
       } else renglones.push({ x0: f.x0, x1: f.x1, base: f.base, hs: [f.h], partes: [f] })
     }
-    return renglones
+    // Dos trozos del mismo renglón pueden haber empezado por separado (una palabra más baja por la
+    // inclinación aparece antes): se unen si quedan pegados en la misma línea.
+    const ordenados = renglones.sort((a, b) => a.x0 - b.x0)
+    for (let i = 0; i < ordenados.length; i++) {
+      for (let j = i + 1; j < ordenados.length; j++) {
+        const a = ordenados[i], b = ordenados[j]
+        const h = Math.min(mediana(a.hs), mediana(b.hs))
+        const lado = (x0: number, x1: number) => x1 <= mitad ? 0 : x0 >= mitad ? 1 : 2
+        const borde = a.partes.reduce((m, x) => x.x1 > m.x1 ? x : m)
+        const inicio = b.partes.reduce((m, x) => x.x0 < m.x0 ? x : m)
+        // Más separados (celdas de una tabla) también van juntos, si los dos tienen palabras.
+        const conPalabras = (g: Grupo) => letras(g.partes.map(x => x.texto).join('')) >= 2
+        const pegados = b.x0 - a.x1 < h * 2 || (conPalabras(a) && conPalabras(b))
+        if (lado(a.x0, a.x1) !== lado(b.x0, b.x1) || Math.abs(borde.base - inicio.base) >= h * 0.5 || !pegados || b.x0 < a.x0) continue
+        a.partes.push(...b.partes); a.hs.push(...b.hs)
+        a.x1 = Math.max(a.x1, b.x1)
+        ordenados.splice(j, 1); j = i
+      }
+    }
+    return ordenados
   }
   /** El renglón más alto que empieza pegado a la derecha de la capitular, dentro de su altura. */
   const alLado = (c: Fragmento, renglones: Grupo[], ocupados: Map<object, string>) => renglones
@@ -85,23 +136,34 @@ function armarRenglones(p: PaginaPdf): Omit<Renglon, 'columna' | 'sangria' | 'r'
     const partes = r.partes.sort((a, b) => a.x0 - b.x0)
     let texto = ''
     let fin = -Infinity
+    const celdas: Celda[] = []
+    const trozos: Celda[] = []
     for (const parte of partes) {
       // Una letra suelta encimada sobre otra palabra es ruido del escaneo (p. ej. la capitular).
-      if (parte.x0 < fin - parte.h * 0.3 && letras(parte.texto) <= 1) continue
+      if (parte.x0 < fin - parte.h * 0.3 && parte.texto.trim().length <= 1 && letras(parte.texto) === 1) continue
+      // Un espacio mucho más ancho que el normal entre palabras separa celdas de una tabla.
+      trozos.push({ x0: parte.x0, x1: parte.x1, texto: parte.texto.trim() })
+      const celda = celdas[celdas.length - 1]
+      if (!celda || parte.x0 - fin > parte.h * 1.8) celdas.push({ x0: parte.x0, x1: parte.x1, texto: parte.texto.trim() })
+      else { celda.texto = `${celda.texto} ${parte.texto.trim()}`.trim(); celda.x1 = parte.x1 }
       texto += (texto && parte.x0 - fin > parte.h * 0.12 && !texto.endsWith(' ') ? ' ' : '') + parte.texto
       fin = parte.x1
     }
     const letra = conCapitular.get(r) ?? ''
-    return { x0: r.x0, x1: r.x1, base: r.base, h: mediana(r.hs), texto: letra + texto.replace(/\s+/g, ' ').trim(), pagina: p.numero }
+    if (letra && celdas[0]) celdas[0].texto = letra + celdas[0].texto
+    return { x0: r.x0, x1: r.x1, base: r.base, h: mediana(r.hs), texto: letra + texto.replace(/\s+/g, ' ').trim(), celdas, trozos, pagina: p.numero }
   })
 }
 
 /** Basura del escaneo: marcas de adornos y renglones sin palabras ("pa ma", "a Cc >"). */
 function esBasura(t: string): boolean {
-  const n = letras(t)
+  // Los números cuentan como contenido («50 po», «12 m»).
+  const n = letras(t) + (t.match(/\d/g)?.length ?? 0)
   if (n < 3) return true
   if (n / t.length < 0.5) return true
   const palabras = t.split(' ').filter(p => letras(p) > 0)
+  // «50 po», «3 m»: cantidad con unidad.
+  if (/\d/.test(t) && palabras.length >= 1) return false
   return t.length < 9 && palabras.every(p => letras(p) <= 2)
 }
 
@@ -111,6 +173,12 @@ const OMITIR = /^(cr[ée]ditos|[íi]ndice( de t[ée]rminos)?|contenidos?|sumario
 const LINEA_INDICE = /(\.\s?){4,}\s*\d+\s*$|…{2,}\s*\d+\s*$/
 const ETIQUETA = /^(cap[ií]tulo|ap[ée]ndice|introducci[óo]n|pr[óo]logo|prefacio)\b/i
 const comoTitulo = (t: string) => comoOracion(t.replace(/[,;.]+$/, '').trim())
+/** Nombre en versalitas, aunque el escaneo haya leído algunas letras en minúscula («DoN DE LA HABILIDAD», «DueLo»). */
+const versalitas = (t: string) => {
+  const ls = t.replace(/[^\p{L}]/gu, '')
+  const mayus = ls.replace(/[^\p{Lu}]/gu, '').length
+  return esMayusculas(t) || (ls.length >= 3 && mayus / ls.length >= 0.6) || /\p{Ll}\p{Lu}/u.test(t)
+}
 
 export type ResultadoPdf = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; fichas: FichaDetectada[] }
 
@@ -123,21 +191,24 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     todas.push(...correcciones)
     return texto
   }
-  const porPagina = paginas.filter(p => p.fragmentos.length >= 40).map(p => ({ p, renglones: armarRenglones(p) }))
+  const porPagina = paginas.filter(p => p.fragmentos.length >= 40).map(p => {
+    const mitad = centroColumnas(p)
+    return { p, mitad, renglones: armarRenglones(p, mitad) }
+  })
   const todos = porPagina.flatMap(x => x.renglones)
   // Tamaño de la letra del texto corrido: el de los renglones largos.
   const hCuerpo = mediana(todos.filter(r => r.texto.length >= 25).map(r => r.h)) || 10
 
   // Bordes izquierdos de cada columna, separados por páginas pares e impares (márgenes espejados).
   const bordes: Record<string, number[]> = {}
-  const preparados = porPagina.map(({ p, renglones }) => {
-    const mitad = p.ancho / 2
+  const preparados = porPagina.map(({ p, mitad, renglones }) => {
     // Encabezados grandes partidos entre columnas ("CAPÍTULO" … "1,"): se unen.
     // Incluye palabras de una letra («A») y números («1,»): los títulos se parten en el centro de la página.
     const grandes = renglones.filter(r => {
       const n = r.texto.replace(/[^\p{L}\d]/gu, '').length
       // Una letra sola mucho más ancha que alta es un adorno mal leído por el escaneo.
-      return r.h >= hCuerpo * 1.5 && n >= 1 && !(n <= 2 && r.x1 - r.x0 > r.h * 1.5 * n)
+      const soloLetras = /^\p{L}+$/u.test(r.texto.replace(/[^\p{L}\d]/gu, ''))
+      return r.h >= hCuerpo * 1.5 && n >= 1 && !(soloLetras && n <= 2 && r.x1 - r.x0 > r.h * 1.5 * n)
     }).sort((a, b) => a.base - b.base || a.x0 - b.x0)
     const usados = new Set<object>()
     const unidos: typeof renglones = []
@@ -150,7 +221,12 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       const tituloCapitulo = mismos.every(o => o.h >= hCuerpo * 2.6)
       if (mismos.length > 1 && !esEtiqueta && !tituloCapitulo) continue
       mismos.forEach(o => usados.add(o))
-      unidos.push({ ...g, x0: Math.min(...mismos.map(o => o.x0)), x1: Math.max(...mismos.map(o => o.x1)), texto: mismos.sort((a, b) => a.x0 - b.x0).map(o => o.texto).join(' ') })
+      let partes = [...mismos].sort((a, b) => a.x0 - b.x0)
+      // En una etiqueta partida, lo que está antes de «Capítulo» es un adorno mal leído («al»).
+      if (esEtiqueta) partes = partes.slice(Math.max(0, partes.findIndex(o => ETIQUETA.test(o.texto.replace(/^[^\p{L}]+/u, '')))))
+      const texto = partes.map(o => o.texto).join(' ')
+      const x0 = Math.min(...partes.map(o => o.x0)), x1 = Math.max(...partes.map(o => o.x1))
+      unidos.push({ ...g, x0, x1, texto, celdas: [{ x0, x1, texto }], trozos: [{ x0, x1, texto }] })
     }
     const lista = [...renglones.filter(r => !usados.has(r)), ...unidos]
       // Pie de página ("8 CAPÍTULO 1 | CÓMO JUGAR") y basura.
@@ -168,19 +244,52 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   const borde = (pagina: number, col: 0 | 1 | 2, ancho: number) =>
     col === 2 ? 0 : mediana(bordes[`${pagina % 2}-${col}`] ?? []) || (col === 0 ? ancho * 0.08 : ancho * 0.52)
 
-  // Orden de lectura: lo ancho de arriba, la columna izquierda, la derecha y lo ancho de abajo.
-  const flujo: Renglon[] = preparados.flatMap(({ p, renglones }) => {
-    const enColumna = renglones.filter(r => r.columna !== 2)
+  // Orden de lectura. La página se divide en franjas separadas por un hueco grande sin texto en
+  // ninguna columna (una ilustración que ocupa todo el ancho): en las fichas de trasfondo, por
+  // ejemplo, cada franja tiene los datos a la izquierda y la descripción a la derecha. Dentro de
+  // cada franja: lo ancho de arriba, la columna izquierda, la derecha y lo ancho de abajo.
+  const franjas = <T extends { base: number; h: number }>(renglones: T[]): T[][] => {
+    const orden = [...renglones].sort((a, b) => a.base - b.base)
+    const grupos: T[][] = []
+    let fin = -Infinity
+    for (const r of orden) {
+      if (!grupos.length || r.base - r.h - fin > hCuerpo * 4) grupos.push([])
+      grupos[grupos.length - 1].push(r)
+      fin = Math.max(fin, r.base)
+    }
+    return grupos
+  }
+  const flujo: Renglon[] = preparados.flatMap(({ p, renglones }) => franjas(renglones).flatMap(grupo => {
+    const enColumna = grupo.filter(r => r.columna !== 2)
     const primero = Math.min(...enColumna.map(r => r.base), Infinity)
-    const anchos = renglones.filter(r => r.columna === 2).sort((a, b) => a.base - b.base)
+    const anchos = grupo.filter(r => r.columna === 2).sort((a, b) => a.base - b.base)
     const orden = [
       ...anchos.filter(r => r.base <= primero),
       ...enColumna.filter(r => r.columna === 0).sort((a, b) => a.base - b.base),
       ...enColumna.filter(r => r.columna === 1).sort((a, b) => a.base - b.base),
       ...anchos.filter(r => r.base > primero),
     ]
-    return orden.map(r => ({ ...r, texto: limpiar(r.texto.replace(/^[+|•·»«]\s+/, '')), sangria: r.x0 - borde(p.numero, r.columna, p.ancho), r: r.h / hCuerpo }))
-  })
+    // Comilla suelta al comienzo de un nombre en versalitas («“TRITURADOR»): ruido del escaneo.
+    const sinRuido = (t: string) => t.replace(/^[+|•·»«]\s+/, '').replace(/^[“"«‘'](?=[^”"»’']+$)/, m => (esMayusculas(t) && t.length <= 60 ? '' : m))
+    return orden.map(r => ({ ...r, texto: limpiar(sinRuido(r.texto)), sangria: r.x0 - borde(p.numero, r.columna, p.ancho), r: r.h / hCuerpo }))
+  }))
+
+  // Letra capitular que el escaneo leyó como una letra suelta al comienzo del renglón de abajo
+  // («STE CAPÍTULO…» / «E de dotes…»): vuelve al comienzo de la primera palabra.
+  for (let i = 0; i < flujo.length; i++) {
+    const r = flujo[i]
+    if (r.sangria < 30 || !/^\p{Lu}{2,}/u.test(r.texto)) continue
+    for (let j = i + 1; j <= i + 2 && j < flujo.length; j++) {
+      const abajo = flujo[j]
+      if (abajo.pagina !== r.pagina || abajo.columna !== r.columna) break
+      const m = abajo.texto.match(/^(?:[^\p{L}\s]{1,3}\s+)?(\p{Lu})\s+(?=\p{Ll})/u)
+      if (m && abajo.x0 < r.x0 - hCuerpo * 2) {
+        flujo[i] = { ...r, texto: m[1] + r.texto }
+        flujo[j] = { ...abajo, texto: abajo.texto.slice(m[0].length) }
+        break
+      }
+    }
+  }
 
   // ---------- Clasificación ----------
   const capitulos: Capitulo[] = []
@@ -190,7 +299,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     | { tipo: 'parrafo'; renglones: string[] }
     | { tipo: 'colgante'; renglones: string[] }
     | { tipo: 'recuadro'; titulo: string; base: number; parrafos: string[][] }
-    | { tipo: 'ficha'; categoria: CategoriaFicha; nombre: string; renglones: RenglonFicha[] }
+    | { tipo: 'ficha'; categoria: CategoriaFicha; nombre: string; pagina?: number; renglones: RenglonFicha[]; tablas: Extract<Bloque, { tipo: 'tabla' }>[] }
   let actual: Actual | null = null
   const fichas: FichaDetectada[] = []
   let ultimoTitulo: { bloque: Extract<Bloque, { tipo: 'titulo' | 'subtitulo' }>; base: number; pagina: number; columna: number } | null = null
@@ -206,17 +315,22 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     actual = null
     if (a.tipo === 'ficha') {
       const leer = { conjuros: leerConjuro, dotes: leerDote, trasfondos: leerTrasfondo, criaturas: leerCriatura }[a.categoria as 'conjuros']
-      const nombre = esMayusculas(a.nombre) ? comoTitulo(a.nombre) : a.nombre.trim()
+      const sinNombre = !a.nombre.trim()
+      const nombre = sinNombre ? `Sin nombre (página ${a.pagina ?? '?'} del PDF)` : versalitas(a.nombre) ? comoTitulo(a.nombre) : a.nombre.trim()
       const datos = leer ? leer(nombre, a.renglones) : { nombre }
+      const dudas = dudasDe(a.categoria, nombre, datos)
+      if (sinNombre) dudas.unshift('No se encontró el nombre en el texto (puede estar sobre una ilustración): escribilo')
       const ficha: FichaDetectada = {
         id: nuevoId(), categoria: a.categoria, nombre, datos,
-        original: bloquesDeRenglones(nombre, a.renglones), renglones: a.renglones, dudas: dudasDe(a.categoria, nombre, datos),
+        original: [...bloquesDeRenglones(sinNombre ? '' : nombre, a.renglones), ...a.tablas], renglones: a.renglones, dudas,
       }
       fichas.push(ficha)
       // En el capítulo, la ficha ocupa su lugar (fichas seguidas de la misma categoría van juntas).
       const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]
       if (ultimo?.tipo === 'fichas' && ultimo.categoria === a.categoria) ultimo.ids.push(ficha.id)
       else agregar({ id: nuevoId(), tipo: 'fichas', categoria: a.categoria, ids: [ficha.id] })
+      // Las tablas de la ficha (p. ej. «Fabricación rápida» de Fabricante) quedan justo después.
+      a.tablas.forEach(t => agregar(t))
       return
     }
     if (a.tipo === 'recuadro') {
@@ -255,6 +369,78 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   }
 
   const consumidos = new Set<number>()
+
+  /**
+   * Tabla que empieza en el renglón i: un título opcional (corto, en mayúsculas o más grande) y
+   * al menos tres renglones con dos o más celdas alineadas en columnas. Los renglones con una sola
+   * celda dentro del ancho de una columna continúan la celda de la fila anterior.
+   * Devuelve la tabla y hasta qué renglón llega.
+   */
+  const tablaDesde = (i: number): { tabla: Extract<Bloque, { tipo: 'tabla' }>; hasta: number } | null => {
+    const r = flujo[i]
+    let k = i
+    let titulo = ''
+    if (r.celdas.length < 2) {
+      if (r.texto.length > 60 || /[.,;]$/.test(r.texto) || !(esMayusculas(r.texto) || r.r >= 1.12)) return null
+      titulo = comoTitulo(r.texto)
+      k = i + 1
+    }
+    const cab = flujo[k]
+    if (!cab || cab.pagina !== r.pagina || cab.columna !== r.columna || cab.r >= 1.5) return null
+    // Las columnas salen del primer renglón con celdas bien separadas (el encabezado puede tenerlas
+    // más juntas: «Herramientas de artesano  Equipo fabricado»).
+    const modelo = [cab, flujo[k + 1], flujo[k + 2]].find(x => x && x.pagina === cab.pagina && x.columna === cab.columna && x.celdas.length >= 2)
+    if (!modelo || (modelo !== cab && cab.trozos.length < 2)) return null
+    const xs = modelo.celdas.map(c => c.x0)
+    const tolerancia = hCuerpo * 1.5
+    /** Reparte las palabras del renglón en las columnas de la tabla según dónde empiezan. */
+    const enColumnas = (f: Renglon): string[] | null => {
+      if (f.trozos[0].x0 < xs[0] - tolerancia) return null
+      const fila = xs.map(() => '')
+      for (const t of f.trozos) {
+        let col = 0
+        while (col + 1 < xs.length && t.x0 >= xs[col + 1] - tolerancia) col++
+        // Una palabra que pisa el comienzo de la columna siguiente: no es una tabla.
+        if (col + 1 < xs.length && t.x1 > xs[col + 1] + hCuerpo * 0.5 && t.x0 < xs[col + 1] - tolerancia) return null
+        fila[col] = `${fila[col]} ${t.texto}`.trim()
+      }
+      return fila
+    }
+    const filas: string[][] = []
+    let j = k
+    for (; j < flujo.length; j++) {
+      const f = flujo[j]
+      const previo = flujo[j - 1]
+      if (f.pagina !== cab.pagina || f.columna !== cab.columna || f.r >= 1.3 || (j > k && f.base - previo.base > hCuerpo * 2.6)) break
+      const fila = enColumnas(f)
+      if (!fila) break
+      const usadas = fila.filter(Boolean).length
+      if (usadas >= 2 || !filas.length) { filas.push(fila); continue }
+      // Una sola celda: continúa la de la fila anterior (texto que no entró en un renglón).
+      const col = fila.findIndex(Boolean)
+      if (col < 0) continue
+      // Texto corrido del ancho de toda la columna después de la tabla: termina la tabla.
+      if (col === 0 && xs.length > 1 && f.x1 > xs[1] - tolerancia) break
+      const ultima = filas[filas.length - 1]
+      ultima[col] = `${ultima[col]} ${fila[col]}`.trim()
+    }
+    if (filas.length < 3) return null
+    // Texto justificado con espacios grandes (o palabras que el escaneo no leyó) puede parecer una
+    // tabla: en una tabla las filas empiezan en mayúscula o número, no continuando una oración.
+    const enMinuscula = filas.filter(f => /^\p{Ll}/u.test(f.find(Boolean) ?? '')).length
+    if (enMinuscula > filas.length / 3) return null
+    if (!titulo && filas[0].some(c => /[:;,]$/.test(c) || c.split(' ').length > 6)) return null
+    const [columnas, ...cuerpo] = filas
+    return { tabla: { id: nuevoId(), tipo: 'tabla', titulo, columnas, filas: cuerpo }, hasta: j }
+  }
+  /** Una tabla que sigue en otra columna o página sin título continúa la anterior. */
+  const sumarTabla = (t: Extract<Bloque, { tipo: 'tabla' }>, destino: Extract<Bloque, { tipo: 'tabla' }>[]) => {
+    const ultima = destino[destino.length - 1]
+    // La continuación puede repetir el encabezado: no se copia otra vez.
+    const repiteEncabezado = (f: string[]) => ultima && f.join('|').toLowerCase() === ultima.columnas.join('|').toLowerCase()
+    if (!t.titulo && ultima && ultima.columnas.length === t.columnas.length) ultima.filas.push(...[t.columnas, ...t.filas].filter(f => !repiteEncabezado(f)))
+    else destino.push(t)
+  }
   /** ¿Empieza acá una ficha? Su nombre va solo en un renglón y el siguiente tiene la forma de la categoría. */
   const inicioFicha = (i: number): CategoriaFicha | null => {
     const r = flujo[i]
@@ -322,17 +508,52 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (r.r >= 1.22 && OMITIR.test(comoTitulo(r.texto))) { cerrar(); omitiendo = true; return }
     if (omitiendo) return
     // Fichas impresas en el texto (conjuros, dotes, trasfondos, criaturas): se leen aparte.
+    // Un trasfondo cuyo nombre no está en el texto (impreso sobre una ilustración, que el escaneo
+    // no lee) empieza directamente con sus campos: se crea sin nombre y va a «Pendientes de revisión».
+    const abierta: Actual | null = actual
+    const yaTieneCampos = abierta?.tipo === 'ficha' && abierta.categoria === 'trasfondos' && abierta.renglones.some(x => CAMPO_TRASFONDO.test(x.texto))
+    const abiertaVacia = abierta?.tipo === 'ficha' && abierta.renglones.length === 0
+    if (CAMPO_TRASFONDO.test(r.texto) && !abiertaVacia && (abierta?.tipo !== 'ficha' || yaTieneCampos || abierta.categoria !== 'trasfondos')) {
+      const siguientes = flujo.slice(i + 1, i + 8).filter(x => x.pagina === r.pagina && x.columna === r.columna)
+      if (siguientes.some(x => /^(?:dote|competencias? en habilidades|competencias? con herramientas|equipo)\s*:/i.test(x.texto))) {
+        cerrar()
+        actual = { tipo: 'ficha', categoria: 'trasfondos', nombre: '', pagina: r.pagina, renglones: [], tablas: [] }
+      }
+    }
     const ficha = inicioFicha(i)
     if (ficha) {
       cerrar()
-      actual = { tipo: 'ficha', categoria: ficha, nombre: r.texto, renglones: [] }
+      actual = { tipo: 'ficha', categoria: ficha, nombre: r.texto, renglones: [], tablas: [] }
       return
     }
+    // Título en versalitas apenas más alto que el texto («DOTES DE DON ÉPICO»).
+    const tituloVersalitas = mayus && r.r >= 1.12 && r.sangria < 8 && r.texto.length <= 60 && !/[.,;:]$/.test(r.texto)
     const enFicha: Actual | null = actual
     if (enFicha?.tipo === 'ficha') {
+      const t = tablaDesde(i)
+      if (t) {
+        sumarTabla(t.tabla, enFicha.tablas)
+        for (let k = i + 1; k < t.hasta; k++) consumidos.add(k)
+        return
+      }
       const seccionCriatura = enFicha.categoria === 'criaturas' && /^(rasgos|acciones|acciones adicionales|reacciones|acciones legendarias)$/i.test(r.texto.trim())
-      if (r.r < 1.22 || seccionCriatura) { enFicha.renglones.push({ texto: r.texto, sangria: r.sangria }); return }
+      // Un renglón que continúa la ficha no la cierra aunque el escaneo lo haya leído más grande
+      // («o (B) 50 po» después de «…3 po,»).
+      const ultimoFicha = enFicha.renglones[enFicha.renglones.length - 1]?.texto ?? ''
+      const continua = r.r < 1.6 && !tituloVersalitas && (/^[\p{Ll}(\d]/u.test(r.texto) || /[,(]$/.test(ultimoFicha))
+      if ((r.r < 1.22 && !tituloVersalitas) || continua || seccionCriatura) { enFicha.renglones.push({ texto: r.texto, sangria: r.sangria, zona: `${r.pagina}-${r.columna}` }); return }
       cerrar()
+    }
+    // Tablas sueltas en el capítulo.
+    const tabla = tablaDesde(i)
+    if (tabla) {
+      cerrar()
+      const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]
+      const destino = ultimo?.tipo === 'tabla' ? [ultimo] : []
+      sumarTabla(tabla.tabla, destino)
+      if (destino[destino.length - 1] !== ultimo) agregar(destino[destino.length - 1])
+      for (let k = i + 1; k < tabla.hasta; k++) consumidos.add(k)
+      return
     }
     // Recuadro: título en mayúsculas metido hacia adentro (puede ocupar varios renglones),
     // seguido de texto también metido hacia adentro.
@@ -348,8 +569,11 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
         return
       }
     }
-    // Títulos de sección y subtítulos (un título largo puede ocupar dos renglones).
-    if (r.r >= 1.22) {
+    // Títulos de sección y subtítulos (un título largo puede ocupar dos renglones). En versalitas,
+    // un título puede ser apenas más alto que el texto: alcanza con que esté solo y al margen.
+    // Una oración terminada en punto no es un título aunque el escaneo la haya leído grande («*Esta dote…»).
+    const esOracion = /\.$/.test(r.texto) && r.texto.length > 25 && /\p{Ll}/u.test(r.texto)
+    if ((r.r >= 1.22 && !esOracion) || tituloVersalitas) {
       cerrar()
       const tipo = r.r >= 1.6 ? 'titulo' : 'subtitulo'
       const previo = ultimoTitulo as { bloque: Extract<Bloque, { tipo: 'titulo' | 'subtitulo' }>; base: number; pagina: number; columna: number } | null
