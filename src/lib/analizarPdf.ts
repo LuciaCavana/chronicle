@@ -44,9 +44,13 @@ function armarRenglones(p: PaginaPdf): Omit<Renglon, 'columna' | 'sangria' | 'r'
   for (const f of frs) {
     const destino = renglones.find(r => {
       const h = Math.min(mediana(r.hs), f.h)
-      // Nunca se une a través del espacio entre columnas.
-      const cruza = (r.x1 <= mitad) !== (f.x0 <= mitad) && f.x0 - r.x1 > h * 0.6
-      return !cruza && Math.abs(r.base - f.base) < h * 0.5 && f.x0 - r.x1 < h * 2 && f.x0 > r.x0 - h
+      // No mezclar palabras de columnas opuestas aunque compartan la misma altura.
+      // Un fragmento que cruza el centro se considera ancho y solo se une con
+      // otros fragmentos anchos; así no arrastra texto de una columna.
+      const lado = (x0: number, x1: number) =>
+        x1 <= mitad ? 0 : x0 >= mitad ? 1 : 2
+      if (lado(r.x0, r.x1) !== lado(f.x0, f.x1)) return false
+      return Math.abs(r.base - f.base) < h * 0.5 && f.x0 - r.x1 < h * 2 && f.x0 > r.x0 - h
     })
     if (destino) {
       destino.partes.push(f); destino.hs.push(f.h)
