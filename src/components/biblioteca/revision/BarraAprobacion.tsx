@@ -11,5 +11,5 @@ export default function BarraAprobacion({total,revisados,notas,ocupado,onAprobar
  {enParte && resumen && <p className="rev-barra__resumen">{resumen.aplicados} {t('review.applied')} · {resumen.parciales} {t('review.partialCount')} · {resumen.descartados} {t('review.discardedCount')}</p>}
  <progress className="rev-barra__progreso" max={Math.max(1,total)} value={revisados} aria-label={t('review.reviewed')}/></div>
  {nadaParaAplicar && <p className="rev-barra__aviso" role="status">{t('review.allDiscarded')}</p>}
- <div className="rev__acciones"><button type="button" disabled={ocupado} onClick={onRechazar} className="rev__boton rev__boton--negativo">{t('review.reject')}</button><button type="button" disabled={ocupado||total===0||nadaParaAplicar} onClick={onAprobar} className="rev__boton rev__boton--positivo">{enParte?t('review.approveAccepted'):t('review.approve')}</button></div></footer>
+ <div className="rev__acciones"><button type="button" disabled={ocupado} onClick={onRechazar} className="rev__boton rev__boton--negativo">{t('review.reject')}</button><button type="button" disabled={ocupado||total===0||nadaParaAplicar} onClick={onAprobar} className="rev__boton rev__boton--primario">{enParte?t('review.approveAccepted'):t('review.approve')}</button></div></footer>
 }

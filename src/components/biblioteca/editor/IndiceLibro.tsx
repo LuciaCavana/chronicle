@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BookOpen, ChevronDown, ChevronRight, ClipboardCheck, Plus } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, ClipboardCheck, Plus, ScrollText } from 'lucide-react'
 import type { ElementoActivo, SeccionLibro } from './tipos'
 
 type Props = {
@@ -8,6 +8,9 @@ type Props = {
   activo: ElementoActivo
   problemas: number
   onDatos: () => void
+  /** Capítulos del libro (texto y ubicación de las fichas). */
+  onCapitulos: () => void
+  capitulos: number
   onContenido: () => void
   onRevisar: () => void
   onCategoria: (id: string) => void
@@ -19,7 +22,7 @@ type Props = {
 }
 
 /** Índice del libro: datos, categorías activas con sus elementos y revisión. */
-export default function IndiceLibro({ secciones, vista, activo, problemas, onDatos, onContenido, onRevisar, onCategoria, onElemento, onAgregar, disponibles, onAgregarCategoria }: Props) {
+export default function IndiceLibro({ secciones, vista, activo, problemas, onDatos, onCapitulos, capitulos, onContenido, onRevisar, onCategoria, onElemento, onAgregar, disponibles, onAgregarCategoria }: Props) {
   const [eligiendoCategoria, setEligiendoCategoria] = useState(false)
   const categoriaActual = vista.startsWith('cat:') ? vista.slice(4) : null
   const [abiertas, setAbiertas] = useState<Set<string>>(() => new Set(categoriaActual ? [categoriaActual] : []))
@@ -34,6 +37,9 @@ export default function IndiceLibro({ secciones, vista, activo, problemas, onDat
     <nav className="indice-libro" aria-label="Índice del libro">
       <button type="button" className={`indice-libro__entrada${vista === 'datos' ? ' indice-libro__entrada--activa' : ''}`} aria-current={vista === 'datos' ? 'page' : undefined} onClick={onDatos}>
         <BookOpen size={18} aria-hidden="true" />Datos del libro
+      </button>
+      <button type="button" className={`indice-libro__entrada${vista === 'capitulos' ? ' indice-libro__entrada--activa' : ''}`} aria-current={vista === 'capitulos' ? 'page' : undefined} onClick={onCapitulos}>
+        <ScrollText size={18} aria-hidden="true" />Capítulos<span className="indice-libro__cantidad">{capitulos}</span>
       </button>
 
       <button type="button" className={`indice-libro__grupo indice-libro__grupo--boton${vista === 'contenido' ? ' indice-libro__grupo--activo' : ''}`} aria-current={vista === 'contenido' ? 'page' : undefined} onClick={onContenido}>

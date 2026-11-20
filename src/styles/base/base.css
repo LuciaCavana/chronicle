@@ -12,6 +12,17 @@ body {
   text-size-adjust: 100%;
 }
 
+
+/* La aplicación gestiona su propio scroll; evitamos un segundo scroll del documento. */
+html, body, #root {
+  height: 100%;
+}
+
+html {
+  overflow: hidden;
+  background: var(--color-fondo-app);
+}
+
 /* Títulos con la serifa de Chronicle; el texto de interfaz, sin serifa (más legible en pantallas chicas). */
 h1, h2, h3 {
   font-family: var(--fuente-serif);

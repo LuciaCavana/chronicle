@@ -37,7 +37,14 @@ import {
   guardarElementosCompartidos,
   retirarDeAprobacion,
   enviarBorradorAprobacion,
+  vincularLibroOriginal,
+  crearPropuestaCorreccion,
 } from '../services/libros'
+import BasadoEnLibro from '../components/biblioteca/BasadoEnLibro'
+import EditorCapitulos, { type FichasDisponibles } from '../components/biblioteca/capitulos/EditorCapitulos'
+import type { CambioFicha } from '../components/biblioteca/capitulos/ImportarPdf'
+import type { Existentes } from '../lib/conciliarFichas'
+import { leerCapitulos, type Capitulo } from '../types/capitulo'
 
 import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
@@ -104,6 +111,14 @@ export default function NuevaPropuesta() {
   // Tipo de propuesta
   const [tipoPropuesta, setTipoPropuesta] = useState<TipoPropuesta>('nuevo')
   const [libroOriginalId, setLibroOriginalId] = useState('')
+  // Libro nuevo: libro publicado en el que se basa (opcional), para que el administrador lo compare.
+  const [basadoEn, setBasadoEn] = useState('')
+  const basadoEnGuardado = useRef('')
+  const [puedeBasarse, setPuedeBasarse] = useState(true)
+  // Versión publicada que salió de este borrador (un libro no puede basarse en sí mismo).
+  const [versionPropia, setVersionPropia] = useState<string | null>(null)
+  const [libroPropio, setLibroPropio] = useState<string | null>(null)
+  const [abriendoCorreccion, setAbriendoCorreccion] = useState(false)
   const [versionesPublicadas, setVersionesPublicadas] = useState<VersionPublicada[]>([])
   const [errorVersiones, setErrorVersiones] = useState('')
 
@@ -137,6 +152,7 @@ export default function NuevaPropuesta() {
     setSubclases((origen.subclases ?? []) as Elemento[])
     setObjetos(objetosOrigen)
     setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
+    setCapitulos(leerCapitulos((origen.contenido_extra as { capitulos?: unknown } | null | undefined)?.capitulos))
     setDotes([])
     setTrasfondos([])
     setCriaturas([])
@@ -192,6 +208,8 @@ export default function NuevaPropuesta() {
   const claseValidaSubclase = (claseId: string) => clasesDisponiblesSubclase.some(clase => clase.id === claseId)
 
   const [caracteristicas, setCaracteristicas] = useState<CaracteristicaLibro[]>([])
+  // Capítulos: texto del libro por bloques, con las fichas ubicadas adentro.
+  const [capitulos, setCapitulos] = useState<Capitulo[]>([])
   const [editingCaracteristicaId, setEditingCaracteristicaId] = useState<string | null>(null)
   const [editingObjectId, setEditingObjectId] = useState<string | null>(null)
   const [editingSubclassId, setEditingSubclassId] = useState<string | null>(null)
@@ -300,6 +318,7 @@ export default function NuevaPropuesta() {
         subclases?: Elemento[]
         objetos?: Elemento[]
         caracteristicas?: CaracteristicaLibro[]
+        capitulos?: unknown
       }
 
       setTitle(propuesta.titulo ?? '')
@@ -320,6 +339,7 @@ export default function NuevaPropuesta() {
       setSubclases(contenido.subclases ?? [])
       setObjetos(objetosBorrador)
       setCaracteristicas(contenido.caracteristicas ?? [])
+      setCapitulos(leerCapitulos(contenido.capitulos))
       baseColaborativa.current = {
         row_version: propuesta.row_version,
         titulo: propuesta.titulo ?? '',
@@ -332,6 +352,19 @@ export default function NuevaPropuesta() {
       setRowVersion(propuesta.row_version)
       setPendienteAprobacion(Boolean(propuesta.pendiente_aprobacion))
       setTipoPropuesta('nuevo')
+      // Solo un libro nuevo que todavía no se publicó puede indicar un libro original.
+      setPuedeBasarse(propuesta.tipo === 'libro_nuevo' || propuesta.tipo === 'modificacion')
+      setVersionPropia(propuesta.revision_resultante_id ?? null)
+      setLibroPropio(propuesta.tipo === 'modificacion' ? propuesta.libro_id ?? null : null)
+      // En una corrección, si el borrador no lo indica, se muestra el que ya tiene el libro.
+      let original: string = propuesta.libro_original_id ?? ''
+      if (!original && propuesta.tipo === 'modificacion' && propuesta.libro_id) {
+        const { data: libroBase } = await supabase.from('libros').select('libro_original_id').eq('id', propuesta.libro_id).maybeSingle()
+        original = libroBase?.libro_original_id ?? ''
+      }
+      if (cancelado) return
+      setBasadoEn(original)
+      basadoEnGuardado.current = original
 
       return
     }
@@ -371,6 +404,7 @@ export default function NuevaPropuesta() {
         setObjetos(objetosVersion)
         setCaracteristicas([]) // Las versiones publicadas aún no almacenan características.
         setTipoPropuesta('nuevo')
+        setPuedeBasarse(false)
       } catch (error) {
         if (cancelado) return
 
@@ -532,7 +566,10 @@ export default function NuevaPropuesta() {
         idioma,
         titulo: title.trim(),
         descripcion: description.trim(),
-        categorias: selectedCategories,
+        // "capitulos" se publica como una categoría más, si el libro tiene capítulos.
+        categorias: capitulos.length
+          ? [...selectedCategories.filter(c => c !== 'capitulos'), 'capitulos']
+          : selectedCategories.filter(c => c !== 'capitulos'),
         especies,
         conjuros,
         dotes,
@@ -542,6 +579,7 @@ export default function NuevaPropuesta() {
         subclases,
         objetos,
         caracteristicas,
+        capitulos,
       }
 
       let idGuardado: string | null = propuestaId ?? null
@@ -553,7 +591,7 @@ export default function NuevaPropuesta() {
           idioma: datos.idioma,
           categorias: datos.categorias,
           metadatos_libro: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
-          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas },
+          contenido: { especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas, capitulos },
         }
         const nuevaVersion = await guardarElementosCompartidos(propuestaId, baseColaborativa.current, { row_version: rowVersion, ...guardado })
         // Lo guardado pasa a ser la base para el próximo guardado por elementos.
@@ -567,12 +605,31 @@ export default function NuevaPropuesta() {
         if (tipoPropuesta === 'traduccion' && !origen) throw new Error('Seleccioná una versión publicada como origen.')
         idGuardado = await guardarPropuesta(datos, origen ? { libroId: origen.libroId, versionId: origen.id } : undefined)
       }
+      // null: el libro original no cambió; true: ya quedó en el libro publicado; false: queda en el borrador.
+      let vinculoAplicado: boolean | null = null
+      if (idGuardado && puedeBasarse && tipoPropuesta === 'nuevo' && basadoEn !== basadoEnGuardado.current) {
+        vinculoAplicado = await vincularLibroOriginal(idGuardado, basadoEn || null)
+        basadoEnGuardado.current = basadoEn
+      }
       instantaneaInicial.current = instantanea()
       // Ya está en el servidor: la copia local deja de hacer falta.
       respaldoLocal.descartar()
 
       if (opciones.enviar && idGuardado) {
-        await enviarBorradorAprobacion(idGuardado)
+        try {
+          await enviarBorradorAprobacion(idGuardado)
+        } catch (error) {
+          // Si lo único que cambió es el libro original, no hay nada que aprobar.
+          const sinCambios = error instanceof Error && /no se detectaron cambios/i.test(error.message)
+          if (sinCambios && vinculoAplicado === true) {
+            setMensajeGuardado('Libro original guardado: ya figura en el libro publicado. No había otros cambios para enviar a aprobación.')
+            return
+          }
+          if (sinCambios && vinculoAplicado === false) {
+            throw new Error('Libro original guardado en el borrador. Se aplica al libro cuando se apruebe una corrección; por ahora no hay otros cambios para enviar.')
+          }
+          throw error
+        }
         navigate(destinoSalida)
         return
       }
@@ -673,6 +730,34 @@ export default function NuevaPropuesta() {
       ],
     },
   }
+  /** Fichas reconocidas al importar un PDF: las nuevas se agregan y las completadas se reemplazan. */
+  function aplicarFichasImportadas(cambios: CambioFicha[]) {
+    const aplicar = <T extends { id: string }>(categoria: CambioFicha['categoria'], actuales: T[]): T[] => {
+      const propios = cambios.filter(c => c.categoria === categoria)
+      if (!propios.length) return actuales
+      const porId = new Map(propios.map(c => [String(c.ficha.id), c.ficha as unknown as T]))
+      return [...actuales.map(a => porId.get(a.id) ?? a), ...propios.filter(c => c.nueva).map(c => c.ficha as unknown as T)]
+    }
+    setConjuros(a => aplicar('conjuros', a)); setDotes(a => aplicar('dotes', a)); setTrasfondos(a => aplicar('trasfondos', a))
+    setEspecies(a => aplicar('especies', a)); setCriaturas(a => aplicar('criaturas', a)); setClases(a => aplicar('clases', a))
+    setSubclases(a => aplicar('subclases', a)); setObjetos(a => aplicar('objetos', a))
+    // Las categorías con fichas nuevas pasan a estar activas en el libro.
+    const conNuevas = [...new Set(cambios.map(c => c.categoria))]
+    setSelectedCategories(actuales => [...new Set([...actuales, ...conNuevas])])
+  }
+
+  const fichasDisponibles: FichasDisponibles[] = [
+    { categoria: 'especies', titulo: 'Especies', elementos: especies },
+    { categoria: 'clases', titulo: 'Clases', elementos: clases },
+    { categoria: 'subclases', titulo: 'Subclases', elementos: subclases },
+    { categoria: 'trasfondos', titulo: 'Trasfondos', elementos: trasfondos },
+    { categoria: 'dotes', titulo: 'Dotes', elementos: dotes },
+    { categoria: 'objetos', titulo: 'Objetos y equipo', elementos: objetos },
+    { categoria: 'conjuros', titulo: 'Conjuros', elementos: conjuros },
+    { categoria: 'criaturas', titulo: 'Criaturas', elementos: criaturas },
+    { categoria: 'caracteristicas', titulo: 'Características y reglas', elementos: caracteristicas },
+  ].map(f => ({ ...f, elementos: (f.elementos as { id: string; nombre?: string }[]).map(e => ({ id: e.id, nombre: e.nombre ?? '' })) }))
+
   const secciones: SeccionLibro[] = activeCategories.map(categoria => {
     const datosSeccion = datosSecciones[categoria.id]
     return datosSeccion
@@ -720,7 +805,7 @@ export default function NuevaPropuesta() {
 
   // Cambios sin guardar: se compara el contenido actual con el que había al abrir el editor.
   const instantanea = () => JSON.stringify([title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
-    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas])
+    especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas, capitulos, basadoEn])
   const instantaneaInicial = useRef<string | null>(null)
   useEffect(() => {
     if (!cargandoLibro && instantaneaInicial.current === null) instantaneaInicial.current = instantanea()
@@ -749,7 +834,7 @@ export default function NuevaPropuesta() {
   const datosRespaldo = {
     title, bookCode, edition, publisher, bookType, description, idioma, selectedCategories,
     especies, conjuros, dotes, trasfondos, criaturas, clases, subclases, objetos, caracteristicas,
-    tipoPropuesta, libroOriginalId, formulario: formularioEnCurso,
+    capitulos, tipoPropuesta, libroOriginalId, basadoEn, formulario: formularioEnCurso,
   }
   const respaldoLocal = useRespaldoBorrador({
     clave: claveRespaldo,
@@ -782,7 +867,9 @@ export default function NuevaPropuesta() {
     setEspecies(d.especies); setConjuros(d.conjuros); setDotes(d.dotes); setTrasfondos(d.trasfondos)
     setCriaturas(d.criaturas); setClases(d.clases); setSubclases(d.subclases); setObjetos(d.objetos)
     setCaracteristicas(d.caracteristicas)
+    if (Array.isArray(d.capitulos)) setCapitulos(leerCapitulos(d.capitulos))
     if (!modoEdicion) { setTipoPropuesta(d.tipoPropuesta); setLibroOriginalId(d.libroOriginalId) }
+    if (puedeBasarse && typeof d.basadoEn === 'string') setBasadoEn(d.basadoEn)
     setMensajeGuardado('')
     // Reabre el formulario que estaba a medio escribir, con lo que tenía.
     const f = d.formulario
@@ -917,6 +1004,8 @@ export default function NuevaPropuesta() {
               activo={activo}
               problemas={problemas.length}
               onDatos={() => irA('datos')}
+              onCapitulos={() => irA('capitulos')}
+              capitulos={capitulos.length}
               onContenido={() => irA('contenido')}
               onRevisar={() => irA('revisar')}
               onCategoria={id => irA(`cat:${id}`)}
@@ -1050,6 +1139,31 @@ export default function NuevaPropuesta() {
                 />
               </div>
 
+              {puedeBasarse && tipoPropuesta === 'nuevo' && (
+                <BasadoEnLibro
+                  titulo={title}
+                  codigo={bookCode}
+                  libros={versionesPublicadas
+                    .filter(v => v.libroId !== libroPropio && (!versionPropia || !versionesPublicadas.some(p => p.id === versionPropia && p.libroId === v.libroId)))
+                    .map(v => ({ libroId: v.libroId, versionId: v.id, titulo: v.titulo, codigo: v.codigo, idioma: v.idioma, derivado: !!v.libroOriginalDe }))}
+                  valor={basadoEn}
+                  onChange={setBasadoEn}
+                  deshabilitado={!puedeEditar}
+                  corrigiendo={abriendoCorreccion}
+                  // Recién empezado (sin contenido): conviene corregir el libro publicado en vez de duplicarlo.
+                  onCorregir={!modoEdicion && secciones.every(seccion => seccion.elementos.length === 0) ? async libro => {
+                    setAbriendoCorreccion(true); setErrorGuardado('')
+                    try {
+                      const nueva = await crearPropuestaCorreccion(libro.libroId, libro.versionId)
+                      respaldoLocal.descartar()
+                      navigate(`/biblioteca/libros/editar-borrador/${nueva}${origenEditor ? `?origen=${origenEditor}` : ''}`)
+                    } catch (error) {
+                      setErrorGuardado(error instanceof Error ? error.message : 'No se pudo abrir la corrección.')
+                    } finally { setAbriendoCorreccion(false) }
+                  } : undefined}
+                />
+              )}
+
               <div className="nueva-propuesta-fields-row">
                 <div className="nueva-propuesta-field">
                   <label htmlFor="book-edition">Edición</label>
@@ -1125,7 +1239,19 @@ export default function NuevaPropuesta() {
 
         {currentStep === 2 && (
           <>
-            {editingCaracteristicaId !== null ? (
+            {vista === 'capitulos' ? (
+              <>
+                <div className="editor-libro__encabezado">
+                  <div>
+                    <h2>Capítulos</h2>
+                    <p>El texto del libro, capítulo por capítulo, y dónde va cada ficha. Es opcional: sin capítulos, el libro se lee por categorías.</p>
+                  </div>
+                </div>
+                <EditorCapitulos capitulos={capitulos} onChange={setCapitulos} fichas={fichasDisponibles} soloLectura={!puedeEditar}
+                  existentes={{ conjuros, dotes, trasfondos, especies, criaturas, clases, subclases, objetos } as unknown as Existentes}
+                  onAplicarFichas={aplicarFichasImportadas} />
+              </>
+            ) : editingCaracteristicaId !== null ? (
               <section className="nueva-propuesta-panel">
                 <h3>Editar característica</h3>
                 {(() => {

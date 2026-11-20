@@ -1,11 +1,13 @@
 import type { CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { supabase } from '../lib/supabase'
+import { errorDeSupabase } from '../lib/erroresSupabase'
 import type { Especie } from '../types/especie'
 import type { Trasfondo } from '../types/trasfondo'
 import type { Criatura } from '../types/criatura'
 import type { Dote } from '../types/trasfondo'
 import type { Conjuro } from '../types/conjuro'
 import type { Elemento } from './chronicleLibros'
+import type { Capitulo } from '../types/capitulo'
 import { invalidarPendientesRevision } from '../hooks/usePendientesRevision'
 
 const ESTADO_PENDIENTE = 'pendiente'
@@ -28,6 +30,8 @@ export type NuevoLibro = {
   subclases: Elemento[]
   objetos: Elemento[]
   caracteristicas?: CaracteristicaLibro[]
+  /** Texto del libro por capítulos (opcional). */
+  capitulos?: Capitulo[]
 }
 
 export async function guardarLibro(datos: NuevoLibro) {
@@ -44,7 +48,7 @@ export async function guardarLibro(datos: NuevoLibro) {
     p_conjuros: datos.conjuros,
   })
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'guardar el libro')
 
   return data as string
 }
@@ -56,13 +60,13 @@ export type OrigenTraduccion = {
 
 export async function listarVersionesPublicadas() {
   const { data, error } = await supabase.from('libros')
-    .select('id, codigo, edicion, editorial, clasificacion, libro_versiones(id, idioma, titulo, descripcion, categorias, especies, conjuros, clases, subclases, objetos)')
+    .select('id, codigo, edicion, editorial, clasificacion, libro_original_id, libro_versiones(id, idioma, titulo, descripcion, categorias, especies, conjuros, clases, subclases, objetos, contenido_extra)')
     .eq('estado', 'publicado')
     .order('creado_en', { ascending: false })
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'cargar los libros publicados')
   return (data ?? []).flatMap(libro => (libro.libro_versiones ?? []).map(version => ({
     libroId: libro.id, codigo: libro.codigo, edicion: libro.edicion,
-    editorial: libro.editorial, clasificacion: libro.clasificacion, ...version,
+    editorial: libro.editorial, clasificacion: libro.clasificacion, libroOriginalDe: libro.libro_original_id as string | null, ...version,
   })))
 }
 
@@ -70,7 +74,7 @@ export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraducc
   const { data: usuarioData, error: usuarioError } =
     await supabase.auth.getUser()
 
-  if (usuarioError) throw usuarioError
+  if (usuarioError) throw errorDeSupabase(usuarioError, 'guardar el borrador')
 
   const usuarioId = usuarioData.user?.id
 
@@ -101,6 +105,7 @@ export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraducc
         subclases: datos.subclases,
         objetos: datos.objetos,
         caracteristicas: datos.caracteristicas ?? [],
+        capitulos: datos.capitulos ?? [],
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -112,7 +117,7 @@ export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraducc
     .select('id')
     .single()
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'guardar el borrador')
 
   return data.id as string
 }
@@ -143,7 +148,7 @@ export async function obtenerLibros() {
     )
     .order('creado_en', { ascending: false })
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'cargar los libros')
 
   return data ?? []
 }
@@ -176,7 +181,7 @@ export async function obtenerLibroParaEditar(libroId: string) {
     .eq('id', libroId)
     .single()
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'cargar el libro')
 
   if (!data) {
     throw new Error('No se encontró la propuesta.')
@@ -221,7 +226,7 @@ export async function actualizarLibro(
     }
   )
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'actualizar el libro')
 
   return (data as string | null) ?? libroId
 }
@@ -233,7 +238,7 @@ export async function obtenerPropuestaParaEditar(
   const { data: usuarioData, error: usuarioError } =
     await supabase.auth.getUser()
 
-  if (usuarioError) throw usuarioError
+  if (usuarioError) throw errorDeSupabase(usuarioError, 'cargar el borrador')
 
   const usuarioId = usuarioData.user?.id
 
@@ -257,13 +262,15 @@ export async function obtenerPropuestaParaEditar(
       contenido,
       metadatos_libro,
       row_version,
-      pendiente_aprobacion
+      pendiente_aprobacion,
+      libro_original_id,
+      revision_resultante_id
     `)
     .eq('id', propuestaId)
     .eq('estado', 'borrador')
     .single()
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'cargar el borrador')
 
   return data
 }
@@ -277,7 +284,7 @@ export async function actualizarPropuesta(
   const { data: usuarioData, error: usuarioError } =
     await supabase.auth.getUser()
 
-  if (usuarioError) throw usuarioError
+  if (usuarioError) throw errorDeSupabase(usuarioError, 'guardar el borrador')
 
   const usuarioId = usuarioData.user?.id
 
@@ -292,7 +299,7 @@ export async function actualizarPropuesta(
       p_propuesta_id: propuestaId, p_version: versionActual,
       p_idioma: datos.idioma, p_titulo: datos.titulo, p_descripcion: datos.descripcion,
       p_categorias: datos.categorias,
-      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos, caracteristicas: datos.caracteristicas ?? [] },
+      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos, caracteristicas: datos.caracteristicas ?? [], capitulos: datos.capitulos ?? [] },
       p_metadatos: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
     })
     if (errorCompartido) throw errorCompartido
@@ -316,6 +323,7 @@ export async function actualizarPropuesta(
         subclases: datos.subclases,
         objetos: datos.objetos,
         caracteristicas: datos.caracteristicas ?? [],
+        capitulos: datos.capitulos ?? [],
       },
       metadatos_libro: {
         codigo: datos.codigo,
@@ -334,7 +342,7 @@ export async function actualizarPropuesta(
     .select('id, row_version')
     .maybeSingle()
 
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'guardar el borrador')
 
   if (!data) {
     throw new Error(
@@ -353,7 +361,7 @@ export async function guardarElementosCompartidos(propuestaId: string, base: Rec
   const { data, error } = await supabase.rpc('chronicle_guardar_borrador_elementos', {
     p_propuesta_id: propuestaId, p_base: base, p_nuevo: nuevo,
   })
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'guardar el borrador')
   return data as number
 }
 
@@ -362,7 +370,7 @@ export async function enviarBorradorAprobacion(propuestaId: string) {
   const { error } = await supabase.rpc('chronicle_enviar_propuesta_automatica', {
     p_propuesta_id: propuestaId,
   })
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'enviar el borrador a aprobación')
   invalidarPendientesRevision()
 }
 
@@ -373,7 +381,7 @@ export async function retirarDeAprobacion(propuestaId: string) {
   const { error } = await supabase.rpc('chronicle_retirar_aprobacion', {
     p_propuesta_id: propuestaId,
   })
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'retirar el borrador de aprobación')
   invalidarPendientesRevision()
 }
 
@@ -382,7 +390,18 @@ export async function crearPropuestaCorreccion(libroId: string, versionId: strin
     p_libro_id: libroId,
     p_version_id: versionId,
   })
-  if (error) throw error
+  if (error) throw errorDeSupabase(error, 'crear la corrección')
   if (typeof data !== 'string') throw new Error('No se pudo crear la propuesta de corrección.')
   return data
+}
+
+/** Libro publicado en el que se basa un libro nuevo (null para quitarlo). */
+/** Devuelve true si el vínculo ya quedó en el libro publicado (no necesita aprobación). */
+export async function vincularLibroOriginal(propuestaId: string, libroId: string | null): Promise<boolean> {
+  const { data, error } = await supabase.rpc('chronicle_vincular_libro_original', {
+    p_propuesta_id: propuestaId,
+    p_libro_id: libroId,
+  })
+  if (error) throw errorDeSupabase(error, 'vincular el libro original')
+  return data === true
 }
