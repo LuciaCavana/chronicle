@@ -85,7 +85,7 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   const [campoAMarcar, setCampoAMarcar] = useState<{ zona: string; campo: CampoRevision } | null>(null)
   const [vistaMovil, setVistaMovil] = useState<'pagina' | 'libro'>('pagina')
   const [menuFicha, setMenuFicha] = useState(false)
-  const [rango, setRango] = useState<{ desde: number; hasta: number } | null>(null)
+  const [rango, setRango] = useState<{ desde: string; hasta: string } | null>(null)
   const raiz = useRef<HTMLDivElement>(null)
   // Cómo se reparte la pantalla (se recuerda en este navegador).
   const [vista, setVista] = useState<Vista>(leerVista)
@@ -248,7 +248,7 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   }
   const cambiarRango = () => {
     if (!rango) return
-    const desde = Math.max(1, Math.min(pdf.total, rango.desde)), hasta = Math.max(desde, Math.min(pdf.total, rango.hasta))
+    const desde = Math.max(1, Math.min(pdf.total, Math.round(Number(rango.desde)) || 1)), hasta = Math.max(desde, Math.min(pdf.total, Math.round(Number(rango.hasta)) || pdf.total))
     cambiarEstado(cap.id, e => ({ ...e, desde, hasta, paginas: null, zonas: [], revisadas: new Set(), error: '' }))
     setPagina(desde); setZonaSel(null); setRango(null)
   }
@@ -381,15 +381,15 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
               </div>
               {rango
                 ? <div className="marcar__rango">
-                    <label>Desde<CampoNumero  min={1} max={pdf.total} value={rango.desde} onChange={x => setRango({ ...rango, desde: Number(x.target.value) || 1 })} /></label>
-                    <label>Hasta<CampoNumero  min={1} max={pdf.total} value={rango.hasta} onChange={x => setRango({ ...rango, hasta: Number(x.target.value) || 1 })} /></label>
+                    <label>Desde<CampoNumero  min={1} max={pdf.total} value={rango.desde} onChange={x => setRango({ ...rango, desde: x.target.value })} /></label>
+                    <label>Hasta<CampoNumero  min={1} max={pdf.total} value={rango.hasta} onChange={x => setRango({ ...rango, hasta: x.target.value })} /></label>
                     <p className="marcar__ayuda">Páginas del PDF. Se vuelven a leer y se pierden los cambios de este capítulo.</p>
                     <div className="marcar__fila">
                       <button type="button" className="marcar__boton marcar__boton--chico marcar__boton--primario" onClick={cambiarRango}>Volver a leer</button>
                       <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => setRango(null)}>Cancelar</button>
                     </div>
                   </div>
-                : <button type="button" className="marcar__enlace" onClick={() => setRango({ desde: e.desde, hasta: e.hasta })}><PencilLine size={13} aria-hidden="true" />Corregir dónde empieza y termina</button>}
+                : <button type="button" className="marcar__enlace" onClick={() => setRango({ desde: String(e.desde), hasta: String(e.hasta) })}><PencilLine size={13} aria-hidden="true" />Corregir dónde empieza y termina</button>}
               {faltan.length > 0 && <div className="marcar__faltan">
                 <h4><AlertTriangle size={13} aria-hidden="true" />Del índice, sin título en el capítulo</h4>
                 <ul>
