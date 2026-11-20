@@ -382,12 +382,9 @@ async function borrarPropuesta(
     setError('')
 
     try {
-      const { data, error: errorCambio } = await supabase
-        .from('libros')
-        .update({ estado: nuevoEstado })
-        .eq('id', libroId)
-        .select('id, estado')
-        .single()
+      // Solo se aprueba un libro pendiente; el cambio lo valida la base (chronicle_aprobar_libro).
+      if (nuevoEstado !== 'publicado') throw new Error('Ese cambio de estado se hace desde Ocultar, Mostrar o Borrar.')
+      const { data, error: errorCambio } = await supabase.rpc('chronicle_aprobar_libro', { p_libro_id: libroId })
 
       if (errorCambio) throw errorCambio
 
@@ -398,7 +395,7 @@ async function borrarPropuesta(
       setLibros((actuales) =>
         actuales.map((libro) =>
           libro.id === libroId
-            ? { ...libro, estado: data.estado as EstadoLibro }
+            ? { ...libro, estado: data as EstadoLibro }
             : libro
         )
       )
