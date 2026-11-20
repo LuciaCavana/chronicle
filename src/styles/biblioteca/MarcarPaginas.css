@@ -339,8 +339,26 @@
 .marcar__p-tabla table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
 .marcar__p-tabla th, .marcar__p-tabla td { padding: 3px 8px; border-bottom: 1px solid var(--color-borde-suave); text-align: left; vertical-align: top; }
 .marcar__p-tabla th { font-weight: 700; }
-.marcar__tarjeta { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 0; padding: 8px 10px; background: var(--color-zona-ficha-fondo); border-left: 3px solid var(--color-zona-ficha); border-radius: var(--radio-sm); font-size: 13px; line-height: 1.45; }
-.marcar__tarjeta div { display: grid; grid-template-columns: minmax(90px, 170px) 1fr; gap: 8px; }
+.marcar__tarjeta { display: grid; grid-template-columns: fit-content(38%) minmax(0, 1fr); gap: 6px 12px; margin: 4px 0 0; padding: 8px 10px; background: var(--color-zona-ficha-fondo); border-left: 3px solid var(--color-zona-ficha); border-radius: var(--radio-sm); font-size: 13px; line-height: 1.45; }
+.marcar__tarjeta div { display: contents; }
 .marcar__tarjeta dt { color: var(--color-texto-etiqueta); font-weight: 600; }
 .marcar__tarjeta dd { margin: 0; color: var(--color-texto-lectura); overflow-wrap: anywhere; }
 .marcar__tarjeta ul { margin: 0; padding-left: 16px; list-style: disc; display: flex; flex-direction: column; gap: 4px; }
+
+/* «Así queda»: subir, bajar y borrar cada zona (columna angosta a la derecha de cada tarjeta) */
+.marcar__previa-fila { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px; align-items: start; }
+.marcar__previa-acciones { display: flex; flex-direction: column; gap: 2px; padding: 2px; background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.marcar__previa-acciones button {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0;
+  background: transparent; border: 0; border-radius: var(--radio-sm); color: var(--color-texto-suave); cursor: pointer;
+}
+.marcar__previa-acciones button:hover:not(:disabled) { background: var(--color-fondo-activo); color: var(--color-texto); }
+.marcar__previa-acciones button:disabled { opacity: .3; cursor: not-allowed; }
+.marcar__previa-acciones .marcar__previa-borrar:hover:not(:disabled) { color: var(--color-peligro); }
+.marcar__previa-acciones .marcar__previa-borrar--armado, .marcar__previa-acciones .marcar__previa-borrar--armado:hover:not(:disabled) { background: var(--color-peligro); color: var(--color-texto-sobre-acento); }
+.marcar__previa-acciones .marcar__previa-borrar span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.marcar__previa-fila { position: relative; }
+.marcar__previa-fila:has(.marcar__previa-borrar--armado)::after {
+  content: 'Tocá de nuevo para borrar'; position: absolute; right: 40px; bottom: -4px; z-index: 2; padding: 3px 8px;
+  background: var(--color-peligro); color: var(--color-texto-sobre-acento); border-radius: var(--radio-sm); font-size: 12px; font-weight: 600; pointer-events: none;
+}
