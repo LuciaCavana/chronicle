@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
-import { Plus, Trash2 } from 'lucide-react'
+import { Bird, Footprints, Mountain, Plus, Shovel, Trash2, Waves } from 'lucide-react'
 
 import LinajesEspecie from './LinajesEspecie'
 import TransformacionesEspecie from './TransformacionesEspecie'
@@ -17,9 +17,11 @@ import type {
 } from '../../types/especie'
 import '../../styles/formularios/EspecieForm.css'
 import type { TipoVelocidadExtra, VelocidadExtra, VelocidadesExtra } from '../../types/especie'
+import CampoNumero from '../../components/shared/CampoNumero'
 
-const VELOCIDADES: { tipo: TipoVelocidadExtra; nombre: string }[] = [
-  { tipo: 'nado', nombre: 'Nado' }, { tipo: 'vuelo', nombre: 'Vuelo' }, { tipo: 'trepar', nombre: 'Trepar' }, { tipo: 'excavar', nombre: 'Excavar' },
+const VELOCIDADES: { tipo: TipoVelocidadExtra; nombre: string; Icono: typeof Waves }[] = [
+  { tipo: 'nado', nombre: 'Nado', Icono: Waves }, { tipo: 'vuelo', nombre: 'Vuelo', Icono: Bird },
+  { tipo: 'trepar', nombre: 'Trepar', Icono: Mountain }, { tipo: 'excavar', nombre: 'Excavar', Icono: Shovel },
 ]
 /** Solo las velocidades con un valor (igual a la velocidad o en pies). */
 function limpiarVelocidades(v: VelocidadesExtra): VelocidadesExtra | undefined {
@@ -285,8 +287,8 @@ export default function EspecieForm({
 
               <label className="especie-tamano-altura">
                 <span>Altura mín. (m)</span>
-                <input
-                  type="number"
+                <CampoNumero
+                  
                   min="0"
                   step="any"
                   value={tamano.alturaMinima ?? ''}
@@ -299,8 +301,8 @@ export default function EspecieForm({
 
               <label className="especie-tamano-altura">
                 <span>Altura máx. (m)</span>
-                <input
-                  type="number"
+                <CampoNumero
+                  
                   min="0"
                   step="any"
                   value={tamano.alturaMaxima ?? ''}
@@ -319,21 +321,10 @@ export default function EspecieForm({
 
       <div className="nueva-propuesta-fields-row">
         <div className="nueva-propuesta-field">
-          <label htmlFor="species-speed">Velocidad (pies)</label>
-          <input
-            id="species-speed"
-            type="number"
-            min="0"
-            value={velocidad}
-            onChange={(e) => setVelocidad(e.target.value)}
-          />
-        </div>
-
-        <div className="nueva-propuesta-field">
           <label htmlFor="species-page">Página del libro</label>
-          <input
+          <CampoNumero
             id="species-page"
-            type="number"
+            
             min="1"
             value={pagina}
             onChange={(e) => setPagina(e.target.value)}
@@ -341,28 +332,40 @@ export default function EspecieForm({
         </div>
       </div>
 
-      <fieldset className="especie-form-section especie-form__velocidades">
-        <legend>Otras velocidades</legend>
-        <p className="especie-form__ayuda">Marcá las que tiene la especie, además de caminar.</p>
-        {VELOCIDADES.map(({ tipo, nombre }) => {
-          const v = velocidadesExtra[tipo]
-          return <div key={tipo} className="especie-form__velocidad">
-            <label className="especie-form-checkbox">
-              <input type="checkbox" checked={!!v} onChange={(e) => cambiarVelocidad(tipo, e.target.checked ? { pies: '', igualAVelocidad: tipo === 'nado' || tipo === 'trepar' } : null)} />
-              {nombre}
-            </label>
-            {v && <>
-              <label className="especie-form-checkbox">
-                <input type="checkbox" checked={!!v.igualAVelocidad} onChange={(e) => cambiarVelocidad(tipo, { igualAVelocidad: e.target.checked })} />
-                Igual a su velocidad
-              </label>
-              {!v.igualAVelocidad && <div className="nueva-propuesta-field">
-                <label htmlFor={`species-speed-${tipo}`}>Pies</label>
-                <input id={`species-speed-${tipo}`} aria-label={`${nombre} (pies)`} type="number" min="0" value={v.pies} onChange={(e) => cambiarVelocidad(tipo, { pies: e.target.value })} />
-              </div>}
-            </>}
+      <fieldset className="especie-form-section especie-vel">
+        <legend>Velocidades</legend>
+        <p className="especie-form__ayuda">Caminar la tiene siempre. Tocá las otras para sumarlas.</p>
+        <div className="especie-vel__grilla">
+          <div className="especie-vel__tarjeta especie-vel__tarjeta--activa">
+            <div className="especie-vel__cabecera"><Footprints size={18} aria-hidden="true" /><span>Caminar</span></div>
+            <div className="especie-vel__valor">
+              <CampoNumero id="species-speed" aria-label="Velocidad caminando (pies)" min="0" step="5" value={velocidad} onChange={(e) => setVelocidad(e.target.value)} />
+              <span>pies</span>
+            </div>
           </div>
-        })}
+          {VELOCIDADES.map(({ tipo, nombre, Icono }) => {
+            const v = velocidadesExtra[tipo]
+            return <div key={tipo} className={`especie-vel__tarjeta${v ? ' especie-vel__tarjeta--activa' : ''}`}>
+              <label className="especie-vel__cabecera especie-vel__cabecera--interruptor">
+                <Icono size={18} aria-hidden="true" /><span>{nombre}</span>
+                <input type="checkbox" className="especie-vel__interruptor" role="switch" aria-checked={!!v} checked={!!v}
+                  onChange={(e) => cambiarVelocidad(tipo, e.target.checked ? { pies: '', igualAVelocidad: tipo === 'nado' || tipo === 'trepar' } : null)} />
+              </label>
+              {v ? <>
+                <div className="especie-vel__modo" role="group" aria-label={`${nombre}: cuánto`}>
+                  <button type="button" aria-pressed={!!v.igualAVelocidad} onClick={() => cambiarVelocidad(tipo, { igualAVelocidad: true })} title="Igual a la velocidad caminando">Igual</button>
+                  <button type="button" aria-pressed={!v.igualAVelocidad} onClick={() => cambiarVelocidad(tipo, { igualAVelocidad: false })}>Otra</button>
+                </div>
+                {v.igualAVelocidad
+                  ? <p className="especie-vel__igual">{velocidad || '—'} pies<small>como caminar</small></p>
+                  : <div className="especie-vel__valor">
+                      <CampoNumero id={`species-speed-${tipo}`} aria-label={`${nombre} (pies)`} min="0" step="5" value={v.pies} onChange={(e) => cambiarVelocidad(tipo, { pies: e.target.value })} />
+                      <span>pies</span>
+                    </div>}
+              </> : <p className="especie-vel__nada">No tiene</p>}
+            </div>
+          })}
+        </div>
       </fieldset>
 
       <div className="especie-form-section">
@@ -380,9 +383,9 @@ export default function EspecieForm({
             <label htmlFor="species-darkvision">
               Alcance de visión (pies)
             </label>
-            <input
+            <CampoNumero
               id="species-darkvision"
-              type="number"
+              
               min="1"
               value={alcanceVision}
               onChange={(e) => setAlcanceVision(e.target.value)}

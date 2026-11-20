@@ -6,6 +6,7 @@ import SeleccionConjurosDoteForm from './SeleccionConjurosDoteForm'
 import type { Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
 import '../../styles/formularios/EspecieForm.css'
 import '../../styles/formularios/DoteForm.css'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 type Props = {
   initialData?: Dote | null
@@ -111,7 +112,7 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     <SeleccionConjurosDoteForm value={seleccionConjuros} onChange={setSeleccionConjuros} clasesDisponibles={clasesDisponibles}/>
     <fieldset><legend>Fuente</legend>
       <div className="nueva-propuesta-field"><label htmlFor="dote-libro">Libro</label><input id="dote-libro" value={libro} onChange={e => setLibro(e.target.value)} placeholder="Ej.: PHB 2024"/></div>
-      <div className="nueva-propuesta-field"><label htmlFor="dote-pagina">Página</label><input id="dote-pagina" type="number" min={1} step={1} value={pagina} onChange={e => setPagina(e.target.value)}/></div>
+      <div className="nueva-propuesta-field"><label htmlFor="dote-pagina">Página</label><CampoNumero id="dote-pagina"  min={1} step={1} value={pagina} onChange={e => setPagina(e.target.value)}/></div>
     </fieldset>
     <fieldset><legend>Efectos para el motor (opcional)</legend>
       <p>Definí efectos declarativos. El motor deberá validar los atributos y eventos admitidos antes de aplicarlos.</p>
@@ -119,7 +120,7 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
         <div className="nueva-propuesta-field"><label>Evento</label><select value={efecto.evento} onChange={e => cambiarEfecto(efecto.id, { evento: e.target.value as EfectoDote['evento'] })}><option value="al_obtener">Al obtener la dote</option><option value="al_subir_nivel">Al subir de nivel</option><option value="pasivo">Pasivo</option></select></div>
         <div className="nueva-propuesta-field"><label>Atributo del motor</label><input value={efecto.atributo} onChange={e => cambiarEfecto(efecto.id, { atributo: e.target.value })} placeholder="Ej.: puntos_golpe_maximos"/></div>
         <div className="nueva-propuesta-field"><label>Operación</label><select value={efecto.operacion} onChange={e => cambiarEfecto(efecto.id, { operacion: e.target.value as EfectoDote['operacion'] })}><option value="sumar">Sumar</option><option value="establecer">Establecer</option></select></div>
-        <div className="nueva-propuesta-field"><label>Valor</label><input type="number" value={efecto.valor} onChange={e => cambiarEfecto(efecto.id, { valor: Number(e.target.value) })}/></div>
+        <div className="nueva-propuesta-field"><label>Valor</label><CampoNumero  value={efecto.valor} onChange={e => cambiarEfecto(efecto.id, { valor: Number(e.target.value) })}/></div>
         <div className="nueva-propuesta-field"><label>Escala</label><select value={efecto.escala ?? 'fijo'} onChange={e => cambiarEfecto(efecto.id, { escala: e.target.value as EfectoDote['escala'] })}><option value="fijo">Valor fijo</option><option value="nivel_personaje">Multiplicar por nivel del personaje</option></select></div>
         <button type="button" className="nueva-propuesta-cancel" onClick={() => setEfectos(actuales => actuales.filter(e => e.id !== efecto.id))}>Quitar efecto</button>
       </div>)}

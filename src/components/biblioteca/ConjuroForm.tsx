@@ -6,6 +6,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import '../../styles/formularios/EspecieForm.css'
 import '../../styles/formularios/ConjuroForm.css'
 import { useLanguage } from '../../i18n/useLanguage'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 type Props = {
   initialData?: Conjuro | null; conjuros: Conjuro[]; onSave: (conjuro: Conjuro) => void; onCancel: () => void
@@ -114,7 +115,7 @@ export default function ConjuroForm({ initialData, conjuros, onSave, onCancel, b
           <input id="conjuro-nivel-superior" value={nivelSuperior} placeholder={t('spell.higherLevelPlaceholder')} onChange={x => setNivelSuperior(x.target.value)} /></div>}
     <div className="nueva-propuesta-field"><label>{t('spell.classes')}</label><input value={clases} onChange={e => setClases(e.target.value)} /></div>
     <div className="nueva-propuesta-field"><label>{t('spell.source')}</label><input value={libroOrigen} onChange={e => setLibroOrigen(e.target.value)} placeholder={"Ej.: GH:PG'24"} /></div>
-    <div className="nueva-propuesta-field"><label>{t('spell.page')}</label><input type="number" min="1" step="1" value={paginaOrigen} onChange={e => setPaginaOrigen(e.target.value)} placeholder="Ej.: 186" /></div>
+    <div className="nueva-propuesta-field"><label>{t('spell.page')}</label><CampoNumero  min="1" step="1" value={paginaOrigen} onChange={e => setPaginaOrigen(e.target.value)} placeholder="Ej.: 186" /></div>
     <div className="nueva-propuesta-field"><label>{t('spell.description')}</label><textarea rows={6} value={descripcion} onChange={e => setDescripcion(e.target.value)}/></div>
     {error && <p role="alert">{error}</p>}
     <div className="nueva-propuesta-actions"><button type="button" className="nueva-propuesta-cancel" onClick={onCancel}>{t('spell.cancel')}</button><button type="button" className="nueva-propuesta-next" onClick={guardar}>{t('spell.save')}</button></div>

@@ -3,6 +3,7 @@ import type { Elemento } from '../../services/chronicleLibros'
 import '../../styles/biblioteca/NuevaPropuesta.css'
 import '../../styles/formularios/ObjetoForm.css'
 import { useLanguage } from '../../i18n/useLanguage'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 type Datos = Record<string, unknown>
 type Props = { elemento: Elemento; objetos: Elemento[]; caracteristicas?: CaracteristicaLibro[]; onChange: (elemento: Elemento) => void }
@@ -30,7 +31,7 @@ export default function ObjetoForm({ elemento, objetos, caracteristicas = [], on
   const tipo = texto(datos.tipo) || 'equipo'
   const actualizar = (campo: string, valor: unknown) => onChange({ ...elemento, datos: { ...datos, [campo]: valor } })
   const campo = (nombre: string, clave: string, placeholder = '') => <label className="nueva-propuesta-field">{etiquetasObjeto[nombre] ? t(etiquetasObjeto[nombre]) : nombre}<input value={texto(datos[clave])} placeholder={etiquetasObjeto[placeholder] ? t(etiquetasObjeto[placeholder]) : placeholder} onChange={e => actualizar(clave, e.target.value)}/></label>
-  const numero = (nombre: string, clave: string, minimo = 0) => <label className="nueva-propuesta-field objeto-form__number">{etiquetasObjeto[nombre] ? t(etiquetasObjeto[nombre]) : nombre}<input type="number" min={minimo} step="any" value={datos[clave] == null ? '' : texto(datos[clave])} onChange={e => actualizar(clave, e.target.value === '' ? null : Number(e.target.value))}/></label>
+  const numero = (nombre: string, clave: string, minimo = 0) => <label className="nueva-propuesta-field objeto-form__number">{etiquetasObjeto[nombre] ? t(etiquetasObjeto[nombre]) : nombre}<CampoNumero  min={minimo} step="any" value={datos[clave] == null ? '' : texto(datos[clave])} onChange={e => actualizar(clave, e.target.value === '' ? null : Number(e.target.value))}/></label>
   const seleccionar = (nombre: string, clave: string, opciones: string[]) => <label className="nueva-propuesta-field">{etiquetasObjeto[nombre] ? t(etiquetasObjeto[nombre]) : nombre}<select value={texto(datos[clave])} onChange={e => actualizar(clave, e.target.value)}>{opciones.map(op => <option key={op} value={op}>{op ? (etiquetasObjeto[op] ? t(etiquetasObjeto[op]) : op) : t(etiquetasObjeto['Sin seleccionar'])}</option>)}</select></label>
   const seleccionarMaestria = () => <label className="nueva-propuesta-field">{t('weapon.mastery')}<select value={texto(datos.maestria)} onChange={e => actualizar('maestria', e.target.value)}>{maestrias.map(value => <option key={value} value={value}>{value ? t(('weapon.' + value.toLowerCase()) as 'weapon.cleave') : t('weapon.none')}</option>)}</select></label>
   const marcar = (nombre: string, clave: string) => <label className="objeto-form__checkbox"><input type="checkbox" checked={datos[clave] === true} onChange={e => actualizar(clave, e.target.checked)}/>{etiquetasObjeto[nombre] ? t(etiquetasObjeto[nombre]) : nombre}</label>
@@ -95,7 +96,7 @@ export default function ObjetoForm({ elemento, objetos, caracteristicas = [], on
         <select className="objeto-form__included-select" aria-label={t('object.41')} value={r.objetoId} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,objetoId:e.target.value}:x))}>
           <option value="">{t('object.42')}</option>{objetos.filter(o=>o.id!==elemento.id).map(o=><option key={o.id} value={o.id}>{o.nombre || 'Objeto sin nombre'}</option>)}
         </select>
-        <input className="objeto-form__included-quantity" aria-label={t('object.44')} type="number" min={1} value={r.cantidad} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,cantidad:Math.max(1,Number(e.target.value)||1)}:x))}/>
+        <CampoNumero className="objeto-form__included-quantity" aria-label={t('object.44')}  min={1} value={r.cantidad} onChange={e=>actualizar('contenido',relacionados.map((x,j)=>j===i?{...x,cantidad:Math.max(1,Number(e.target.value)||1)}:x))}/>
         <button className="objeto-form__remove" type="button" onClick={()=>actualizar('contenido',relacionados.filter((_,j)=>j!==i))}>{t('object.45')}</button>
       </div>)}
       <button className="objeto-form__add" type="button" onClick={()=>actualizar('contenido',[...relacionados,{objetoId:'',cantidad:1}])}>{t('object.46')}</button>

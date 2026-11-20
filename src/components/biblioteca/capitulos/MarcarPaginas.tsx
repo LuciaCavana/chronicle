@@ -17,6 +17,7 @@ import { centroColumnas } from '../../../lib/analizarPdf'
 import { nuevoId, textoBloque, type Bloque, type Capitulo } from '../../../types/capitulo'
 import { formatoEnLinea } from './TextoConFormato'
 import '../../../styles/biblioteca/MarcarPaginas.css'
+import CampoNumero from '../../../components/shared/CampoNumero'
 
 /** Un capítulo a importar: del índice (con sus secciones) o un rango de páginas. */
 export type CapituloImportar = { id: string; etiqueta: string; titulo: string; desde: number; hasta: number; secciones: EntradaIndice[] }
@@ -380,8 +381,8 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
               </div>
               {rango
                 ? <div className="marcar__rango">
-                    <label>Desde<input type="number" min={1} max={pdf.total} value={rango.desde} onChange={x => setRango({ ...rango, desde: Number(x.target.value) || 1 })} /></label>
-                    <label>Hasta<input type="number" min={1} max={pdf.total} value={rango.hasta} onChange={x => setRango({ ...rango, hasta: Number(x.target.value) || 1 })} /></label>
+                    <label>Desde<CampoNumero  min={1} max={pdf.total} value={rango.desde} onChange={x => setRango({ ...rango, desde: Number(x.target.value) || 1 })} /></label>
+                    <label>Hasta<CampoNumero  min={1} max={pdf.total} value={rango.hasta} onChange={x => setRango({ ...rango, hasta: Number(x.target.value) || 1 })} /></label>
                     <p className="marcar__ayuda">Páginas del PDF. Se vuelven a leer y se pierden los cambios de este capítulo.</p>
                     <div className="marcar__fila">
                       <button type="button" className="marcar__boton marcar__boton--chico marcar__boton--primario" onClick={cambiarRango}>Volver a leer</button>

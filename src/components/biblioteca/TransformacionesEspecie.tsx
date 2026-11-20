@@ -10,6 +10,7 @@ import type {
   TransformacionEspecie,
 } from '../../types/especie'
 import '../../styles/formularios/LinajesEspecie.css'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 type Props = {
   transformaciones: TransformacionEspecie[]
@@ -286,8 +287,8 @@ export default function TransformacionesEspecie({
 
           <label>
             Nivel requerido *
-            <input
-              type="number"
+            <CampoNumero
+              
               min={1}
               step={1}
               value={nivel}
@@ -337,8 +338,8 @@ export default function TransformacionesEspecie({
           {config.tipo === 'fijo' && (
             <label>
               Cantidad de usos *
-              <input
-                type="number"
+              <CampoNumero
+                
                 min={1}
                 step={1}
                 value={config.cantidad ?? ''}
@@ -512,8 +513,8 @@ export default function TransformacionesEspecie({
             <div className="linajes-especie-beneficio" key={beneficio.id}>
               <label>
                 Nivel *
-                <input
-                  type="number"
+                <CampoNumero
+                  
                   min={1}
                   step={1}
                   value={beneficio.nivel}

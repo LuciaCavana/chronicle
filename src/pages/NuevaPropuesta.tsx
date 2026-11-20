@@ -50,6 +50,7 @@ import type { Conjuro } from '../types/conjuro'
 import type { Especie } from '../types/especie'
 import { categoriasConObjetos, sumarObjetosDeClases } from '../lib/objetosDeClases'
 import ModalBorrador from '../components/biblioteca/ModalBorrador'
+import CampoNumero from '../components/shared/CampoNumero'
 
 type TipoPropuesta = 'nuevo' | 'traduccion'
 type VersionPublicada = Awaited<ReturnType<typeof listarVersionesPublicadas>>[number]
@@ -1266,8 +1267,8 @@ export default function NuevaPropuesta() {
                     <label>Código estable</label><input value={item.codigo ?? ''} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,codigo:e.target.value}:c))}/>
                     <label>Descripción</label><textarea rows={7} value={item.descripcion} onChange={e=>actualizar('descripcion',e.target.value)}/>
                     {item.tipo === 'moneda' && <>
-                      <label>Valor en piezas de oro</label><input type="number" min="0" step="any" value={valorCampoNumero(item.datos?.valorOro)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,valorOro:Number(e.target.value)}}:c))}/>
-                      <label>Peso por moneda (gramos)</label><input type="number" min="0" step="any" value={valorCampoNumero(item.datos?.pesoGramos)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,pesoGramos:Number(e.target.value)}}:c))}/>
+                      <label>Valor en piezas de oro</label><CampoNumero  min="0" step="any" value={valorCampoNumero(item.datos?.valorOro)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,valorOro:Number(e.target.value)}}:c))}/>
+                      <label>Peso por moneda (gramos)</label><CampoNumero  min="0" step="any" value={valorCampoNumero(item.datos?.pesoGramos)} onChange={e=>setCaracteristicas(actuales=>actuales.map(c=>c.id===item.id?{...c,datos:{...c.datos,pesoGramos:Number(e.target.value)}}:c))}/>
                     </>}
                   </div>
                 })()}
@@ -1390,7 +1391,7 @@ export default function NuevaPropuesta() {
     </AppLayout>
   )
 }
-/** Valor apto para un <input type="number">: los booleanos no se muestran. */
+/** Valor apto para un <CampoNumero >: los booleanos no se muestran. */
 function valorCampoNumero(valor: string | number | boolean | undefined) {
   return typeof valor === 'number' || typeof valor === 'string' ? valor : ''
 }
