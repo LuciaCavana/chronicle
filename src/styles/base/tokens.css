@@ -73,6 +73,22 @@
   --color-marca-alerta-fondo: rgba(229, 160, 168, .16);
   --color-marca-foco-fondo: rgba(229, 160, 168, .24);
   --color-marca-sombra: rgba(12, 13, 19, .45);
+  /* Zonas de la página según qué son (Marcar en la página) */
+  --color-zona-titulo: #d8b77b;
+  --color-zona-titulo-fondo: rgba(216, 183, 123, .16);
+  --color-zona-subtitulo: #e9cf9c;
+  --color-zona-subtitulo-fondo: rgba(233, 207, 156, .14);
+  --color-zona-texto: #9a97a8;
+  --color-zona-texto-fondo: rgba(154, 151, 168, .10);
+  --color-zona-recuadro: #7fb0dd;
+  --color-zona-recuadro-fondo: rgba(127, 176, 221, .14);
+  --color-zona-tabla: #6cc3b5;
+  --color-zona-tabla-fondo: rgba(108, 195, 181, .14);
+  --color-zona-ficha: #b79be8;
+  --color-zona-ficha-fondo: rgba(183, 155, 232, .14);
+  --color-zona-ignorar: #6b6878;
+  --color-zona-ignorar-fondo: rgba(107, 104, 120, .08);
+  --color-zona-texto-etiqueta: #171923;
 
   /* ---------- Tipografía ---------- */
   --fuente-serif: Georgia, serif;

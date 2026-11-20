@@ -1,27 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { FileUp, ListTree } from 'lucide-react'
-import { analizarPaginas } from '../../../lib/analizarPdf'
 import { abrirPdf, type PdfAbierto } from '../../../lib/importarPdf'
-import { ajustarConIndice, analizarIndice, paginasDeCapitulos, type EntradaIndice, type IndiceLibro } from '../../../lib/indicePdf'
-import { unirTexto, type Correccion } from '../../../lib/pegarDesdeLibro'
-import { nuevoId, textoBloque, type Bloque, type Capitulo } from '../../../types/capitulo'
-import { extraerFichasDeBloques } from '../../../lib/fichasEnCapitulos'
-import { copiarBloques, dudasDe, releerFicha, type CategoriaFicha, type FichaDetectada } from '../../../lib/fichasLibro'
-import { claveNombre, conciliar, fichaFinal, idFinal, unificar, type Existentes, type Registro } from '../../../lib/conciliarFichas'
-import { conCampo, eleccionVacia, repartirZonas, type Decision, type Eleccion } from '../../../lib/revisionImportacion'
-import type { Area } from '../../../lib/analizarPdf'
-import RevisarImportacion from './RevisarImportacion'
+import { analizarIndice, paginasDeCapitulos, type IndiceLibro } from '../../../lib/indicePdf'
+import { nuevoId, type Capitulo } from '../../../types/capitulo'
+import type { Existentes } from '../../../lib/conciliarFichas'
+import type { CambioFicha } from '../../../lib/zonasPdf'
+import MarcarPaginas, { type CapituloImportar } from './MarcarPaginas'
 
-/** Una ficha que se crea o se completa al importar. */
-export type CambioFicha = { categoria: CategoriaFicha; ficha: Registro; nueva: boolean }
+export type { CambioFicha } from '../../../lib/zonasPdf'
 type Props = {
   /** Fichas ya cargadas en el libro, para completar en vez de duplicar. */
   existentes: Existentes
   onAgregar: (capitulos: Capitulo[], fichas: CambioFicha[]) => void
   onCancelar: () => void
 }
-/** secciones: por capítulo, las secciones que dice el índice (para ver cuáles faltan mientras se revisa). */
-type Resultado = { capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; secciones: Record<string, EntradaIndice[]>; fichas: FichaDetectada[]; areas: Record<string, Area[]> }
 
 /** Páginas del comienzo donde se busca el índice. */
 const PAGINAS_INDICE = 30
@@ -29,6 +21,7 @@ const PAGINAS_INDICE = 30
 /**
  * Importar desde PDF: lee el libro escaneado en este navegador. Si encuentra el índice, se
  * importa por capítulos (cada uno con sus páginas y su nombre); si no, por rango de páginas.
+ * Cada capítulo se revisa marcando en la página (MarcarPaginas).
  */
 export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props) {
   const [pdf, setPdf] = useState<PdfAbierto | null>(null)
@@ -38,33 +31,26 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
   const [elegidosIndice, setElegidosIndice] = useState<Set<string>>(new Set())
   const [desde, setDesde] = useState(1)
   const [hasta, setHasta] = useState(1)
-  const [estado, setEstado] = useState<'inicio' | 'abriendo' | 'leyendo' | 'listo'>('inicio')
-  const [progreso, setProgreso] = useState({ hechas: 0, total: 0, texto: '' })
-  const [resultado, setResultado] = useState<Resultado | null>(null)
-  const [elegidos, setElegidos] = useState<Set<string>>(new Set())
+  const [estado, setEstado] = useState<'inicio' | 'abriendo'>('inicio')
+  const [progreso, setProgreso] = useState({ hechas: 0, total: 0 })
   const [error, setError] = useState('')
-  // Fichas únicas, a qué ficha quedó cada repetida y el texto original de cada aparición.
-  const [detectadas, setDetectadas] = useState<FichaDetectada[]>([])
-  const [alias, setAlias] = useState<Map<string, string>>(new Map())
-  const [originales, setOriginales] = useState<Map<string, FichaDetectada['original']>>(new Map())
-  const [eleccion, setEleccion] = useState<Eleccion>(eleccionVacia)
-  // Pantalla de revisión (a pantalla completa) abierta.
-  const [revisando, setRevisando] = useState(false)
-  const cancelado = useRef(false)
+  // Los capítulos que se están marcando (la herramienta sigue viva aunque se cierre, para retomar).
+  const [marcando, setMarcando] = useState<{ clave: string; capitulos: CapituloImportar[] } | null>(null)
+  const [abierta, setAbierta] = useState(false)
+  const cerrado = useRef(false)
 
-  useEffect(() => () => { cancelado.current = true; void pdf?.cerrar() }, [pdf])
+  useEffect(() => () => { cerrado.current = true; void pdf?.cerrar() }, [pdf])
 
   async function elegirArchivo(archivo: File | undefined) {
     if (!archivo) return
-    setError(''); setResultado(null); setIndice(null); setEstado('abriendo'); setNombre(archivo.name); setProgreso({ hechas: 0, total: 0, texto: '' })
+    setError(''); setIndice(null); setMarcando(null); setAbierta(false); setEstado('abriendo'); setNombre(archivo.name); setProgreso({ hechas: 0, total: 0 })
     try {
       if (archivo.type && archivo.type !== 'application/pdf') throw new Error('El archivo tiene que ser un PDF.')
       await pdf?.cerrar()
       const abierto = await abrirPdf(archivo)
       setPdf(abierto); setDesde(1); setHasta(abierto.total)
       // Busca el índice en las primeras páginas.
-      setProgreso({ hechas: 0, total: Math.min(PAGINAS_INDICE, abierto.total), texto: 'Buscando el índice' })
-      const primeras = await abierto.leer(1, Math.min(PAGINAS_INDICE, abierto.total), (hechas, total) => setProgreso({ hechas, total, texto: 'Buscando el índice' }))
+      const primeras = await abierto.leer(1, Math.min(PAGINAS_INDICE, abierto.total), (hechas, total) => setProgreso({ hechas, total }), () => cerrado.current)
       const encontrado = analizarIndice(primeras)
       setIndice(encontrado)
       setModo(encontrado ? 'indice' : 'paginas')
@@ -76,166 +62,25 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
     }
   }
 
-  async function importarPorIndice() {
+  function abrir(capitulos: CapituloImportar[]) {
+    const clave = capitulos.map(c => `${c.id}:${c.desde}-${c.hasta}`).join('|')
+    // Si son los mismos capítulos, se retoma lo marcado.
+    if (marcando?.clave !== clave) setMarcando({ clave, capitulos })
+    setAbierta(true)
+  }
+  function porIndice() {
     if (!pdf || !indice) return
-    setError(''); setEstado('leyendo'); cancelado.current = false
-    const rangos = paginasDeCapitulos(indice, pdf.total).filter(r => elegidosIndice.has(r.capitulo.id))
-    const total = rangos.reduce((n, r) => n + r.hasta - r.desde + 1, 0)
-    let hechas = 0
-    const capitulos: Capitulo[] = []
-    const correcciones: Correccion[] = []
-    const secciones: Record<string, EntradaIndice[]> = {}
-    const fichas: FichaDetectada[] = []
-    const areas: Record<string, Area[]> = {}
-    try {
-      for (const r of rangos) {
-        const nombreCap = [r.capitulo.etiqueta, r.capitulo.titulo].filter(Boolean).join(': ')
-        const paginas = await pdf.leer(r.desde, r.hasta, n => setProgreso({ hechas: hechas + n, total, texto: nombreCap }), () => cancelado.current)
-        if (cancelado.current) break
-        hechas += r.hasta - r.desde + 1
-        const leido = analizarPaginas(paginas)
-        correcciones.push(...leido.correcciones)
-        Object.assign(areas, leido.areas)
-        const { capitulo } = ajustarConIndice(leido.capitulos, r.capitulo)
-        // Un bloque partido en partes (un título pegado a un párrafo) reparte sus renglones de la
-        // página entre las partes: el bloque original y los nuevos que lo siguen sin zonas.
-        for (let k = 0; k < capitulo.bloques.length; k++) {
-          const b = capitulo.bloques[k]
-          const propias = leido.areas[b.id]
-          if (!propias?.length) continue
-          let fin = k + 1
-          while (fin < capitulo.bloques.length && !leido.areas[capitulo.bloques[fin].id]?.length) fin++
-          if (fin === k + 1) continue
-          const cadena = capitulo.bloques.slice(k, fin)
-          repartirZonas(propias, cadena.map(textoBloque)).forEach((z, n) => { leido.areas[cadena[n].id] = z.length ? z : propias })
-          k = fin - 1
-        }
-        fichas.push(...leido.fichas, ...extraerFichasDeBloques(capitulo))
-        capitulos.push(capitulo)
-        secciones[capitulo.id] = r.capitulo.secciones
-      }
-      if (cancelado.current && !capitulos.length) { setEstado('inicio'); return }
-      mostrar({ capitulos, correcciones: resumir(correcciones), paginas: hechas, secciones, fichas, areas })
-    } catch (e) {
-      setEstado('inicio')
-      setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
-    }
+    abrir(paginasDeCapitulos(indice, pdf.total).filter(r => elegidosIndice.has(r.capitulo.id)).map(r => ({
+      id: r.capitulo.id, etiqueta: r.capitulo.etiqueta, titulo: r.capitulo.titulo, desde: r.desde, hasta: r.hasta, secciones: r.capitulo.secciones,
+    })))
   }
-
-  async function importarPorPaginas() {
+  function porPaginas() {
     if (!pdf) return
-    setError(''); setEstado('leyendo'); cancelado.current = false
-    setProgreso({ hechas: 0, total: hasta - desde + 1, texto: 'Leyendo' })
-    try {
-      const paginas = await pdf.leer(desde, hasta, (hechas, total) => setProgreso({ hechas, total, texto: 'Leyendo' }), () => cancelado.current)
-      if (cancelado.current) { setEstado('inicio'); return }
-      const r = analizarPaginas(paginas)
-      const fichas = [...r.fichas, ...r.capitulos.flatMap(c => extraerFichasDeBloques(c))]
-      mostrar({ ...r, secciones: {}, fichas })
-    } catch (e) {
-      setEstado('inicio')
-      setError(e instanceof Error && e.message ? e.message : 'No se pudo leer el PDF.')
-    }
+    abrir([{ id: `paginas-${desde}-${hasta}-${nuevoId()}`, etiqueta: '', titulo: '', desde, hasta, secciones: [] }])
   }
 
-  function mostrar(r: Resultado) {
-    if (!r.capitulos.some(c => c.bloques.length)) {
-      setEstado('inicio')
-      setError('No se encontró texto en esas páginas. Si el PDF es solo imagen (sin texto reconocido), no se puede importar.')
-      return
-    }
-    // Las fichas repetidas en el libro se unen; cada aparición conserva su texto original.
-    setOriginales(new Map(r.fichas.map(f => [f.id, copiarBloques(f.original)])))
-    const { unicas, alias: aliasNuevo } = unificar(r.fichas)
-    setDetectadas(unicas)
-    setAlias(aliasNuevo)
-    // Por defecto: las seguras se cargan; las dudosas (Pendientes de revisión) y las subclases
-    // cuya clase no está ni se crea quedan como texto del capítulo.
-    const lista = conciliar(unicas, existentes)
-    const clases = new Set([...(existentes.clases ?? []).map(c => claveNombre(c.nombre)), ...lista.filter(p => p.ficha.categoria === 'clases' && !p.ficha.dudas.length).map(p => claveNombre(p.ficha.nombre))])
-    const decision: Record<string, Decision> = {}
-    for (const p of lista) {
-      const sinClase = p.ficha.categoria === 'subclases' && !p.existente && !clases.has(claveNombre(p.ficha.clase))
-      decision[p.ficha.id] = p.ficha.dudas.length || sinClase ? 'texto' : 'ficha'
-    }
-    setEleccion({ ...eleccionVacia(), decision })
-    setResultado(r)
-    // Lo que está antes del primer capítulo (créditos, índice) va sin marcar.
-    setElegidos(new Set(r.capitulos.filter(c => c.bloques.length && (c.etiqueta || c.titulo !== 'Antes del primer capítulo')).map(c => c.id)))
-    setEstado('listo')
-    setRevisando(true)
-  }
-
-  // Las correcciones de categoría y nombre de «Pendientes de revisión» vuelven a leer la ficha.
-  const propuestas = useMemo(() => conciliar(detectadas.map(f => {
-    const a = eleccion.ajustes[f.id]
-    const leida = a && (a.categoria !== f.categoria || a.nombre.trim() !== f.nombre) && (a.nombre.trim() || a.categoria !== f.categoria)
-      ? releerFicha(f, a.categoria, a.nombre.trim() || f.nombre) : f
-    // Los campos corregidos a mano en la revisión.
-    const ediciones = eleccion.ediciones[f.id]
-    if (!ediciones) return leida
-    const datos = Object.entries(ediciones).reduce((d, [ruta, valor]) => conCampo(d, ruta, valor), leida.datos)
-    return { ...leida, datos, dudas: dudasDe(leida.categoria, leida.nombre, datos) }
-  }), existentes), [detectadas, eleccion.ajustes, eleccion.ediciones, existentes])
-  const decisionDe = (id: string): Decision => eleccion.decision[id] ?? 'texto'
-
-  const elegidosLista = resultado?.capitulos.filter(c => elegidos.has(c.id)) ?? []
-  // Solo cuentan las fichas de los capítulos que se agregan.
-  const idsEnElegidos = new Set(elegidosLista.flatMap(c => c.bloques.flatMap(b => b.tipo === 'fichas' ? b.ids.map(id => alias.get(id) ?? id) : [])))
-  const fichasDeElegidos = propuestas.filter(p => idsEnElegidos.has(p.ficha.id))
-
-  function agregar() {
-    const aceptadas = fichasDeElegidos.filter(p => decisionDe(p.ficha.id) === 'ficha')
-    const finales = aceptadas.map(p => ({ p, ficha: fichaFinal(p, eleccion.delLibro[p.ficha.id] ?? new Set()) }))
-    // Subclases: se vinculan a su clase (cargada o nueva). Trasfondos: a su dote de origen.
-    const buscar = (categoria: CategoriaFicha, nombre: unknown) =>
-      finales.find(f => f.p.ficha.categoria === categoria && claveNombre(f.ficha.nombre) === claveNombre(nombre))?.ficha
-      ?? (existentes[categoria] ?? []).find(e => claveNombre(e.nombre) === claveNombre(nombre))
-    for (const { p, ficha } of finales) {
-      if (p.ficha.categoria === 'subclases' && !p.existente) {
-        const clase = buscar('clases', p.ficha.clase)
-        ficha.datos = { ...(ficha.datos as Registro), claseId: clase ? String(clase.id) : '' }
-      }
-      const doteTexto = (ficha.datosAdicionales as Registro | undefined)?.dote
-      if (p.ficha.categoria === 'trasfondos' && !ficha.doteOrigenId && doteTexto) {
-        const dote = buscar('dotes', doteTexto)
-        if (dote) ficha.doteOrigenId = String(dote.id)
-      }
-    }
-    // En los capítulos, cada ficha aceptada apunta a su id final. Las que quedan como texto
-    // vuelven a su texto original en el mismo lugar; solo «No incluir» las saca.
-    const destino = new Map(aceptadas.map(p => [p.ficha.id, { id: idFinal(p), categoria: p.ficha.categoria }]))
-    const capitulos = elegidosLista.map(c => ({
-      ...c,
-      bloques: unirTexto(c.bloques.flatMap((b): Bloque[] => {
-        if (b.tipo !== 'fichas') return [b]
-        const salida: Bloque[] = []
-        const vistos = new Set<string>()
-        for (const id of b.ids) {
-          const principal = alias.get(id) ?? id
-          const final = destino.get(principal)
-          if (final) {
-            // La categoría puede haberse corregido en «Pendientes de revisión».
-            if (vistos.has(final.id)) continue
-            vistos.add(final.id)
-            const ultimo = salida[salida.length - 1]
-            if (ultimo?.tipo === 'fichas' && ultimo.categoria === final.categoria) ultimo.ids.push(final.id)
-            else salida.push({ id: nuevoId(), tipo: 'fichas', categoria: final.categoria, ids: [final.id] })
-          } else if (decisionDe(principal) !== 'quitar') {
-            const texto = copiarBloques(originales.get(id) ?? [])
-            // Si el nombre no estaba en el texto y se escribió en la revisión, va como subtítulo.
-            const nombre = eleccion.ajustes[principal]?.nombre.trim()
-            if (nombre && texto[0]?.tipo !== 'subtitulo') texto.unshift({ id: nuevoId(), tipo: 'subtitulo', texto: nombre })
-            salida.push(...texto)
-          }
-        }
-        return salida
-      })),
-    }))
-    onAgregar(capitulos, finales.filter(f => f.p.estado !== 'igual').map(f => ({ categoria: f.p.ficha.categoria, ficha: f.ficha, nueva: !f.p.existente })))
-  }
   const rangosIndice = pdf && indice ? paginasDeCapitulos(indice, pdf.total) : []
-  const ocupado = estado === 'abriendo' || estado === 'leyendo'
+  const ocupado = estado === 'abriendo'
 
   return <section className="capitulos__capitulo capitulos__importar" aria-labelledby="importar-titulo">
     <h3 id="importar-titulo" className="capitulos__importar-titulo"><FileUp size={18} aria-hidden="true" />Importar desde PDF</h3>
@@ -267,7 +112,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
         </ul>
         <div className="capitulos__acciones">
           <button type="button" disabled={ocupado} onClick={() => setElegidosIndice(new Set(elegidosIndice.size ? [] : indice.capitulos.map(c => c.id)))}>{elegidosIndice.size ? 'Desmarcar todos' : 'Marcar todos'}</button>
-          <button type="button" className="capitulos__primario" disabled={ocupado || !elegidosIndice.size} onClick={() => void importarPorIndice()}>Leer {elegidosIndice.size} {elegidosIndice.size === 1 ? 'capítulo' : 'capítulos'}</button>
+          <button type="button" className="capitulos__primario" disabled={ocupado || !elegidosIndice.size} onClick={porIndice}>Revisar {elegidosIndice.size} {elegidosIndice.size === 1 ? 'capítulo' : 'capítulos'}</button>
         </div>
       </div>}
 
@@ -280,44 +125,28 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
           <span>a la</span>
           <label><span className="capitulos__oculto">Hasta la página</span>
             <input type="number" min={desde} max={pdf.total} value={hasta} disabled={ocupado} onChange={e => setHasta(Math.max(desde, Math.min(pdf.total, Number(e.target.value) || desde)))} /></label>
-          <button type="button" className="capitulos__primario" disabled={ocupado} onClick={() => void importarPorPaginas()}>Analizar</button>
+          <button type="button" className="capitulos__primario" disabled={ocupado} onClick={porPaginas}>Revisar</button>
         </div>
         <p className="capitulos__ayuda">Los créditos y el índice se saltean solos.</p>
       </>}
     </>}
 
     {ocupado && <div className="capitulos__progreso" role="status">
-      <span>{estado === 'abriendo' && !progreso.total ? 'Abriendo el PDF…' : `${progreso.texto}: página ${progreso.hechas} de ${progreso.total}…`}</span>
+      <span>{progreso.total ? `Buscando el índice: página ${progreso.hechas} de ${progreso.total}…` : 'Abriendo el PDF…'}</span>
       <progress max={Math.max(1, progreso.total)} value={progreso.hechas} aria-label="Páginas leídas" />
-      {estado === 'leyendo' && <button type="button" onClick={() => { cancelado.current = true }}>Detener</button>}
     </div>}
     {error && <p className="capitulos__error" role="alert">{error}</p>}
 
-    {resultado && estado === 'listo' && !revisando && <div className="capitulos__retomar" role="status">
-      <span>Ya se leyeron {resultado.capitulos.length} {resultado.capitulos.length === 1 ? 'capítulo' : 'capítulos'} de {resultado.paginas} páginas. Lo que corregiste se conserva.</span>
-      <button type="button" className="capitulos__primario" onClick={() => setRevisando(true)}>Seguir revisando</button>
+    {marcando && !abierta && <div className="capitulos__retomar" role="status">
+      <span>Lo que marcaste se conserva mientras no cierres la importación.</span>
+      <button type="button" className="capitulos__primario" onClick={() => setAbierta(true)}>Seguir revisando</button>
     </div>}
 
-    {resultado && estado === 'listo' && revisando && pdf && <RevisarImportacion
-      archivo={nombre} pdf={pdf} capitulos={resultado.capitulos} elegidos={elegidos} onElegidos={setElegidos}
-      onCapitulos={capitulos => setResultado({ ...resultado, capitulos })}
-      secciones={resultado.secciones} correcciones={resultado.correcciones} areas={resultado.areas}
-      propuestas={fichasDeElegidos} eleccion={eleccion} onEleccion={setEleccion} existentes={existentes}
-      onVolver={() => setRevisando(false)} onCancelar={() => { cancelado.current = true; onCancelar() }} onAgregar={agregar} />}
+    {marcando && pdf && <MarcarPaginas key={marcando.clave} oculta={!abierta} archivo={nombre} pdf={pdf} capitulos={marcando.capitulos}
+      desfase={indice?.desfase ?? null} existentes={existentes} onAgregar={onAgregar} onCerrar={() => setAbierta(false)} />}
 
     <div className="capitulos__acciones">
-      <button type="button" onClick={() => { cancelado.current = true; onCancelar() }}>Cancelar</button>
+      <button type="button" onClick={onCancelar}>Cerrar la importación</button>
     </div>
   </section>
-}
-
-function resumir(lista: Correccion[]): Correccion[] {
-  const mapa = new Map<string, Correccion>()
-  for (const c of lista) {
-    const clave = `${c.de}→${c.a}`
-    const previo = mapa.get(clave)
-    if (previo) previo.veces += c.veces
-    else mapa.set(clave, { ...c })
-  }
-  return [...mapa.values()].sort((a, b) => b.veces - a.veces)
 }

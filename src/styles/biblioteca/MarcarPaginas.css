@@ -1,0 +1,304 @@
+/* ==========================================================================
+   Importar desde PDF marcando en la página: capítulos y páginas a la izquierda,
+   la página real con las zonas en el centro y «Así queda» a la derecha.
+   ========================================================================== */
+
+.marcar {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-fondo-app);
+  color: var(--color-texto);
+  font-family: var(--fuente-sans);
+  font-size: 14px;
+}
+.marcar:focus { outline: none; }
+.marcar :focus-visible { outline: var(--foco); outline-offset: 2px; }
+/* Casillas y opciones de tamaño normal, pase lo que pase alrededor. */
+.marcar input[type="checkbox"], .marcar input[type="radio"] {
+  appearance: auto; flex: 0 0 auto; width: 16px; height: 16px; min-width: 0; min-height: 0; max-width: none;
+  margin: 0; padding: 0; border: 0; background: none; box-shadow: none; accent-color: var(--color-acento); cursor: pointer;
+}
+.marcar h2, .marcar h3, .marcar h4, .marcar p { margin: 0; }
+.marcar ul { margin: 0; padding: 0; list-style: none; }
+
+/* ---------- Cabecera ---------- */
+.marcar__cabecera {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; padding: 10px 20px;
+  background: var(--color-fondo-navegacion); border-bottom: 1px solid var(--color-borde-navegacion);
+}
+.marcar__titulo { display: flex; flex-direction: column; gap: 2px; flex: 1 1 260px; min-width: 0; }
+.marcar__antetitulo { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-texto-apagado); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.marcar__titulo h2 { font-family: var(--fuente-serif); font-weight: 500; font-size: 21px; color: var(--color-texto-titulo); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.marcar__progreso { font-size: 13px; color: var(--color-texto-suave); }
+
+/* ---------- Botones ---------- */
+.marcar__boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px;
+  background: var(--color-boton-fondo); color: var(--color-texto); border: 1px solid var(--color-acento-borde); border-radius: var(--radio-md);
+  font: inherit; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer;
+}
+.marcar__boton:hover { background: var(--color-boton-fondo-hover); }
+.marcar__boton:disabled { opacity: .55; cursor: not-allowed; }
+.marcar__boton--primario { background: var(--color-acento); border-color: var(--color-acento); color: var(--color-texto-sobre-acento); font-weight: 600; }
+.marcar__boton--primario:hover { background: var(--color-acento-claro); }
+.marcar__boton--chico { min-height: 34px; padding: 0 11px; font-size: 13px; }
+.marcar__boton--hecho { border-color: var(--color-exito-borde); color: var(--color-exito); background: var(--color-exito-fondo); }
+.marcar__boton--peligro { border-color: var(--color-peligro-borde); color: var(--color-peligro); background: transparent; }
+.marcar__boton--peligro:hover { background: var(--color-peligro-fondo); }
+.marcar__icono {
+  display: grid; place-items: center; width: 36px; height: 36px; padding: 0;
+  background: transparent; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); color: var(--color-texto); cursor: pointer;
+}
+.marcar__icono:hover { background: var(--color-fondo-activo); }
+.marcar__icono:disabled { opacity: .4; cursor: not-allowed; }
+.marcar__icono--sin-borde { border: 0; margin-left: auto; }
+.marcar__enlace {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 2px;
+  background: transparent; border: 0; font: inherit; font-size: 12.5px; color: var(--color-acento); text-align: left; cursor: pointer;
+}
+.marcar__enlace:hover { color: var(--color-acento-claro); text-decoration: underline; }
+.marcar__fila { display: flex; flex-wrap: wrap; gap: 8px; }
+.marcar__ayuda { font-size: 12.5px; line-height: 1.45; color: var(--color-texto-suave); }
+.marcar__ayuda--caja { padding: 12px 14px; border: 1px dashed var(--color-borde); border-radius: var(--radio-md); }
+.marcar__rotulo { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--color-texto-apagado); }
+
+/* ---------- Cuerpo ---------- */
+.marcar__cuerpo {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px;
+}
+.marcar__pestanias { display: none; }
+
+/* Navegador */
+.marcar__nav {
+  display: flex; flex-direction: column; gap: 10px; padding: 16px 14px; overflow-y: auto;
+  background: var(--color-fondo-navegacion); border-right: 1px solid var(--color-borde-navegacion);
+}
+.marcar__capitulos { display: flex; flex-direction: column; gap: 2px; }
+.marcar__capitulo {
+  display: flex; align-items: center; gap: 8px; width: 100%; min-height: 40px; padding: 6px 8px;
+  background: transparent; border: 0; border-radius: var(--radio-md); font: inherit; font-size: 13.5px; color: var(--color-texto-navegacion); text-align: left; cursor: pointer;
+}
+.marcar__capitulo:hover { background: var(--color-fondo-subactivo); }
+.marcar__capitulo[aria-current="true"] { background: var(--color-fondo-activo); color: var(--color-texto); font-weight: 600; }
+.marcar__capitulo-nombre { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.marcar__capitulo-paginas { font-size: 11.5px; font-weight: 400; color: var(--color-texto-apagado); }
+.marcar__estado { display: grid; place-items: center; width: 18px; height: 18px; flex: 0 0 auto; border: 1px solid var(--color-borde); border-radius: 50%; }
+.marcar__estado--ok { background: var(--color-exito-fondo); border-color: var(--color-exito-borde); color: var(--color-exito); }
+.marcar__paginas-cap { display: flex; flex-direction: column; gap: 8px; padding: 6px 4px 10px 12px; }
+.marcar__paginas { display: grid; grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 4px; }
+.marcar__pag {
+  min-height: 32px; padding: 0; background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-sm);
+  font: inherit; font-size: 12px; color: var(--color-texto-suave); cursor: pointer;
+}
+.marcar__pag:hover { border-color: var(--color-acento-borde); }
+.marcar__pag--ok { background: var(--color-exito-fondo); border-color: var(--color-exito-borde); color: var(--color-exito); }
+.marcar__pag--alerta { border-color: var(--color-peligro-borde); color: var(--color-peligro); }
+.marcar__pag--actual { background: var(--color-acento); border-color: var(--color-acento); color: var(--color-texto-sobre-acento); font-weight: 700; }
+.marcar__rango { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--color-fondo-seccion); border-radius: var(--radio-md); }
+.marcar__rango label { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--color-texto-suave); }
+.marcar__rango input {
+  width: 80px; min-height: 34px; padding: 4px 8px; box-sizing: border-box;
+  background: var(--color-fondo-campo); color: var(--color-texto); border: 1px solid var(--color-borde); border-radius: var(--radio-sm); font: inherit;
+}
+.marcar__faltan { display: flex; flex-direction: column; gap: 6px; padding: 10px; border: 1px solid var(--color-peligro-borde); border-radius: var(--radio-md); }
+.marcar__faltan h4 { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--color-peligro); }
+.marcar__faltan li { font-size: 12.5px; color: var(--color-texto-suave); }
+.marcar__leyenda { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; color: var(--color-texto-suave); }
+.marcar__leyenda li { display: flex; align-items: center; gap: 8px; }
+.marcar__muestra { width: 16px; height: 12px; border: 2px solid; border-radius: 2px; }
+
+/* Colores por tipo de zona */
+.marcar__muestra--titulo, .marcar__marco--titulo { border-color: var(--color-zona-titulo); background: var(--color-zona-titulo-fondo); }
+.marcar__muestra--subtitulo, .marcar__marco--subtitulo { border-color: var(--color-zona-subtitulo); background: var(--color-zona-subtitulo-fondo); }
+.marcar__muestra--texto, .marcar__marco--texto { border-color: var(--color-zona-texto); background: var(--color-zona-texto-fondo); }
+.marcar__muestra--recuadro, .marcar__marco--recuadro { border-color: var(--color-zona-recuadro); background: var(--color-zona-recuadro-fondo); }
+.marcar__muestra--tabla, .marcar__marco--tabla { border-color: var(--color-zona-tabla); background: var(--color-zona-tabla-fondo); }
+.marcar__muestra--ficha, .marcar__marco--ficha { border-color: var(--color-zona-ficha); background: var(--color-zona-ficha-fondo); }
+.marcar__muestra--ignorar, .marcar__marco--ignorar { border-color: var(--color-zona-ignorar); background: var(--color-zona-ignorar-fondo); border-style: dashed; }
+.marcar__etiqueta--titulo, .marcar__numero--titulo { background: var(--color-zona-titulo); }
+.marcar__etiqueta--subtitulo, .marcar__numero--subtitulo { background: var(--color-zona-subtitulo); }
+.marcar__etiqueta--texto, .marcar__numero--texto { background: var(--color-zona-texto); }
+.marcar__etiqueta--recuadro, .marcar__numero--recuadro { background: var(--color-zona-recuadro); }
+.marcar__etiqueta--tabla, .marcar__numero--tabla { background: var(--color-zona-tabla); }
+.marcar__etiqueta--ficha, .marcar__numero--ficha { background: var(--color-zona-ficha); }
+.marcar__etiqueta--ignorar, .marcar__numero--ignorar { background: var(--color-zona-ignorar); color: var(--color-texto) !important; }
+
+/* ---------- Centro: la página ---------- */
+.marcar__centro { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--color-fondo-visor); }
+.marcar__barra {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 8px 14px;
+  background: var(--color-fondo-seccion); border-bottom: 1px solid var(--color-borde-suave);
+}
+.marcar__grupo { display: flex; align-items: center; gap: 8px; }
+.marcar__pagina { font-size: 13.5px; font-weight: 600; white-space: nowrap; }
+.marcar__pista { display: inline-flex; align-items: center; gap: 6px; flex: 1; min-width: 180px; font-size: 12.5px; color: var(--color-texto-suave); }
+.marcar__tipos {
+  position: relative; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding: 8px 14px;
+  background: var(--color-fondo-panel); border-bottom: 1px solid var(--color-borde-suave);
+}
+.marcar__tipos-rotulo { font-size: 12.5px; color: var(--color-texto-suave); margin-right: 2px; }
+.marcar__tipo {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 0 10px;
+  background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: 999px;
+  font: inherit; font-size: 12.5px; color: var(--color-texto-suave); cursor: pointer;
+}
+.marcar__tipo:hover { color: var(--color-texto); border-color: var(--color-borde); }
+.marcar__tipo[aria-pressed="true"] { color: var(--color-zona-texto-etiqueta); font-weight: 600; }
+.marcar__tipo--titulo[aria-pressed="true"] { background: var(--color-zona-titulo); border-color: var(--color-zona-titulo); }
+.marcar__tipo--subtitulo[aria-pressed="true"] { background: var(--color-zona-subtitulo); border-color: var(--color-zona-subtitulo); }
+.marcar__tipo--texto[aria-pressed="true"] { background: var(--color-zona-texto); border-color: var(--color-zona-texto); }
+.marcar__tipo--recuadro[aria-pressed="true"] { background: var(--color-zona-recuadro); border-color: var(--color-zona-recuadro); }
+.marcar__tipo--tabla[aria-pressed="true"] { background: var(--color-zona-tabla); border-color: var(--color-zona-tabla); }
+.marcar__tipo--ficha[aria-pressed="true"] { background: var(--color-zona-ficha); border-color: var(--color-zona-ficha); }
+.marcar__tipo--ignorar[aria-pressed="true"] { background: var(--color-zona-ignorar); border-color: var(--color-zona-ignorar); color: var(--color-texto); }
+.marcar__separador { width: 1px; height: 22px; margin: 0 4px; background: var(--color-borde-suave); }
+.marcar__menu {
+  position: absolute; z-index: 5; top: calc(100% - 4px); left: 14px; display: grid; grid-template-columns: repeat(2, minmax(120px, 1fr)); gap: 2px; padding: 6px;
+  background: var(--color-fondo-menu); border: 1px solid var(--color-borde); border-radius: var(--radio-md); box-shadow: 0 8px 24px var(--color-marca-sombra);
+}
+.marcar__menu button {
+  width: 100%; min-height: 34px; padding: 0 10px; background: transparent; border: 0; border-radius: var(--radio-sm);
+  font: inherit; font-size: 13px; color: var(--color-texto); text-align: left; cursor: pointer;
+}
+.marcar__menu button:hover, .marcar__menu button[aria-pressed="true"] { background: var(--color-fondo-activo); }
+.marcar__aviso-campo {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 14px;
+  background: var(--color-zona-ficha-fondo); border-bottom: 1px solid var(--color-zona-ficha); font-size: 13px;
+}
+.marcar__vacio { margin: auto; padding: 40px; color: var(--color-texto-suave); }
+.marcar__vacio--error { color: var(--color-error-texto); }
+
+.marcar__visor { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.marcar__zoom {
+  position: absolute; z-index: 3; right: 14px; bottom: 14px; display: flex; align-items: center; gap: 6px; padding: 4px 6px;
+  background: var(--color-fondo-panel); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); font-size: 12.5px;
+}
+.marcar__area { flex: 1; min-height: 0; overflow: auto; padding: 20px; }
+.marcar__hoja { position: relative; margin: 0 auto; min-height: 300px; background: var(--color-fondo-hoja); box-shadow: 0 6px 30px var(--color-marca-sombra); }
+.marcar__hoja canvas { display: block; }
+.marcar__capa { position: absolute; inset: 0; cursor: crosshair; touch-action: none; }
+.marcar__capa--campo { box-shadow: inset 0 0 0 3px var(--color-zona-ficha); }
+.marcar__marco { position: absolute; box-sizing: border-box; border: 2px solid; border-radius: 2px; }
+.marcar__marco--elegido { border-width: 3px; box-shadow: 0 0 0 2px var(--color-marca-sombra); z-index: 2; }
+.marcar__marco-boton { position: absolute; inset: 0; width: 100%; height: 100%; padding: 0; background: transparent; border: 0; cursor: pointer; }
+.marcar__marco--elegido .marcar__marco-boton { cursor: default; }
+.marcar__etiqueta {
+  position: absolute; top: -2px; left: -2px; transform: translateY(-100%); padding: 1px 6px; border-radius: 3px 3px 0 0;
+  font-size: 11px; font-weight: 700; line-height: 1.5; color: var(--color-zona-texto-etiqueta); white-space: nowrap; pointer-events: none;
+}
+.marcar__alerta {
+  position: absolute; top: -10px; right: -10px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--color-marca-alerta); color: #fff; font-size: 12px; font-weight: 800; pointer-events: none;
+}
+.marcar__esquina {
+  position: absolute; width: 12px; height: 12px; background: var(--color-fondo-hoja); border: 2px solid var(--color-zona-texto-etiqueta); border-radius: 2px; touch-action: none;
+}
+.marcar__esquina--no { top: -7px; left: -7px; cursor: nwse-resize; }
+.marcar__esquina--ne { top: -7px; right: -7px; cursor: nesw-resize; }
+.marcar__esquina--so { bottom: -7px; left: -7px; cursor: nesw-resize; }
+.marcar__esquina--se { bottom: -7px; right: -7px; cursor: nwse-resize; }
+.marcar__corte { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--color-zona-tabla); }
+.marcar__corte-agarre { position: absolute; top: 0; bottom: 0; left: -8px; width: 14px; cursor: ew-resize; touch-action: none; }
+.marcar__corte-quitar {
+  position: absolute; top: -12px; left: -10px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0;
+  background: var(--color-zona-tabla); color: var(--color-zona-texto-etiqueta); border: 0; border-radius: 50%; font: inherit; font-size: 14px; font-weight: 700; line-height: 1; cursor: pointer;
+}
+.marcar__dibujo { position: absolute; border: 2px dashed var(--color-acento); background: var(--color-marca-fondo); pointer-events: none; }
+
+/* ---------- Derecha: zona elegida y «Así queda» ---------- */
+.marcar__derecha {
+  display: flex; flex-direction: column; gap: 14px; padding: 16px; overflow-y: auto;
+  background: var(--color-fondo-panel); border-left: 1px solid var(--color-borde-suave);
+}
+.marcar__zona { display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--color-fondo-seccion); border: 1px solid var(--color-borde-suave); border-left-width: 4px; border-radius: var(--radio-md); }
+.marcar__zona--titulo { border-left-color: var(--color-zona-titulo); }
+.marcar__zona--subtitulo { border-left-color: var(--color-zona-subtitulo); }
+.marcar__zona--texto { border-left-color: var(--color-zona-texto); }
+.marcar__zona--recuadro { border-left-color: var(--color-zona-recuadro); }
+.marcar__zona--tabla { border-left-color: var(--color-zona-tabla); }
+.marcar__zona--ficha { border-left-color: var(--color-zona-ficha); }
+.marcar__zona--ignorar { border-left-color: var(--color-zona-ignorar); }
+.marcar__zona-cabecera { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; }
+.marcar__numero {
+  display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 5px; flex: 0 0 auto; border-radius: 999px;
+  font-size: 11px; font-weight: 700; color: var(--color-zona-texto-etiqueta);
+}
+.marcar__avisos { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--color-peligro-fondo); border: 1px solid var(--color-peligro-borde); border-radius: var(--radio-md); }
+.marcar__avisos p { display: flex; gap: 7px; font-size: 13px; line-height: 1.4; color: var(--color-peligro-claro); }
+.marcar__avisos svg { flex: 0 0 auto; margin-top: 1px; }
+.marcar__campo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.marcar__campo label, .marcar__campo-cabecera label { font-size: 13px; color: var(--color-texto-etiqueta); }
+.marcar__campo-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.marcar__campo input, .marcar__campo textarea {
+  width: 100%; box-sizing: border-box; min-height: 40px; padding: 8px 11px;
+  background: var(--color-fondo-campo); color: var(--color-texto); border: 1px solid var(--color-borde); border-radius: var(--radio-sm);
+  font: inherit; font-size: 14px; line-height: 1.45;
+}
+.marcar__campo textarea { resize: vertical; font-family: var(--fuente-serif); }
+.marcar__falta { border: 2px solid var(--color-peligro) !important; }
+.marcar__solo-lectura { font-size: 13px; color: var(--color-texto-suave); }
+.marcar__casilla { display: flex; align-items: center; gap: 9px; min-height: 32px; font-size: 13.5px; cursor: pointer; }
+.marcar__casilla--destacada { padding: 10px 12px; background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.marcar__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.marcar__chip { padding: 3px 10px; border-radius: 999px; background: var(--color-fondo-elevado); font-size: 12px; color: var(--color-texto-suave); }
+.marcar__difs { display: flex; flex-direction: column; gap: 10px; }
+.marcar__difs h4 { font-size: 13px; font-weight: 600; }
+.marcar__difs fieldset { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 8px 10px; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md); }
+.marcar__difs legend { padding: 0 4px; font-size: 12.5px; color: var(--color-texto-etiqueta); }
+.marcar__difs label { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; padding: 6px; border-radius: var(--radio-sm); font-size: 13px; cursor: pointer; }
+.marcar__difs label span { grid-column: 2; font-size: 12.5px; color: var(--color-texto-suave); white-space: pre-wrap; }
+.marcar__elegida { background: var(--color-fondo-activo); }
+.marcar__tabla-caja { overflow-x: auto; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-sm); }
+.marcar__tabla { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+.marcar__tabla th, .marcar__tabla td { padding: 0; border: 1px solid var(--color-borde-suave); }
+.marcar__tabla input {
+  width: 100%; min-width: 70px; box-sizing: border-box; min-height: 32px; padding: 4px 7px;
+  background: transparent; color: var(--color-texto); border: 0; font: inherit;
+}
+.marcar__tabla th input { font-weight: 700; background: var(--color-zona-tabla-fondo); }
+
+.marcar__libro { display: flex; flex-direction: column; gap: 8px; }
+.marcar__previa {
+  display: flex; gap: 10px; width: 100%; padding: 10px; box-sizing: border-box;
+  background: var(--color-fondo-campo); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md);
+  font: inherit; color: var(--color-texto-lectura); text-align: left; cursor: pointer;
+}
+.marcar__previa:hover { border-color: var(--color-borde); }
+.marcar__previa--elegida { border-color: var(--color-acento); box-shadow: 0 0 0 1px var(--color-acento); }
+.marcar__previa--alerta { border-color: var(--color-peligro-borde); }
+.marcar__previa--ignorar { color: var(--color-texto-apagado); font-size: 12.5px; font-style: italic; }
+.marcar__previa--ficha { font-size: 13.5px; }
+.marcar__previa-cuerpo { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.marcar__p-titulo { font-family: var(--fuente-serif); font-size: 19px; color: var(--color-texto-titulo); }
+.marcar__p-subtitulo { font-family: var(--fuente-serif); font-size: 16px; font-weight: 600; color: var(--color-acento); }
+.marcar__p-texto { font-family: var(--fuente-serif); font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+.marcar__p-recuadro, .marcar__p-tabla { display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border-radius: var(--radio-sm); font-size: 13px; line-height: 1.45; }
+.marcar__p-recuadro { background: var(--color-zona-recuadro-fondo); border-left: 3px solid var(--color-zona-recuadro); }
+.marcar__p-tabla { background: var(--color-zona-tabla-fondo); border-left: 3px solid var(--color-zona-tabla); }
+.marcar__fichas-cap { padding: 10px 12px; background: var(--color-fondo-seccion); border-radius: var(--radio-md); }
+.marcar__fichas-cap summary { min-height: 30px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.marcar__fichas-cap ul { display: flex; flex-direction: column; gap: 2px; margin-top: 8px; max-height: 320px; overflow-y: auto; }
+.marcar__fichas-cap li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+
+/* ---------- Pantallas medianas y chicas ---------- */
+@media (max-width: 1180px) {
+  .marcar__cuerpo { grid-template-columns: 210px minmax(0, 1fr) 330px; }
+}
+@media (max-width: 900px) {
+  .marcar__cuerpo { display: flex; flex-direction: column; overflow-y: auto; }
+  .marcar__nav { flex: 0 0 auto; max-height: 34vh; border-right: 0; border-bottom: 1px solid var(--color-borde-navegacion); }
+  .marcar__pestanias { display: flex; gap: 4px; padding: 6px 10px; background: var(--color-fondo-seccion); }
+  .marcar__pestanias button {
+    flex: 1; min-height: 40px; background: transparent; border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md);
+    font: inherit; font-size: 13.5px; color: var(--color-texto-suave); cursor: pointer;
+  }
+  .marcar__pestanias button[aria-selected="true"] { background: var(--color-fondo-activo); color: var(--color-texto); border-color: var(--color-acento-borde); font-weight: 600; }
+  .marcar__centro { flex: 0 0 auto; min-height: 70vh; }
+  .marcar__derecha { flex: 0 0 auto; border-left: 0; }
+  .marcar__cuerpo--pagina .marcar__derecha, .marcar__cuerpo--libro .marcar__centro { display: none; }
+  .marcar__cabecera { padding: 10px 14px; }
+}

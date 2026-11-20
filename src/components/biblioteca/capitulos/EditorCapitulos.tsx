@@ -102,7 +102,7 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
     </aside>
 
     {importando && !soloLectura ? <ImportarPdf existentes={existentes} onCancelar={() => setImportando(false)}
-      onAgregar={(nuevos, cambios) => { if (cambios.length) onAplicarFichas(cambios); onChange([...capitulos, ...nuevos]); setImportando(false); if (nuevos[0]) setSeleccion(nuevos[0].id) }} />
+      onAgregar={(nuevos, cambios) => { if (cambios.length) onAplicarFichas(cambios); onChange([...capitulos, ...nuevos]); if (nuevos[0]) setSeleccion(nuevos[0].id) }} />
     : actual ? <section className="capitulos__capitulo" aria-label="Capítulo seleccionado">
       <div className="capitulos__campos">
         <label>Etiqueta<input value={actual.etiqueta} placeholder="Capítulo 1" disabled={soloLectura} maxLength={60}

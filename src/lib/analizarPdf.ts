@@ -20,7 +20,8 @@ import {
 
 /** Un trozo de texto del PDF, en puntos, con el origen arriba a la izquierda. */
 export type Fragmento = { x0: number; x1: number; base: number; h: number; texto: string }
-export type PaginaPdf = { numero: number; ancho: number; alto: number; fragmentos: Fragmento[] }
+/** centro: dónde está el espacio entre columnas, si ya se sabe (al leer solo una zona de la página). */
+export type PaginaPdf = { numero: number; ancho: number; alto: number; fragmentos: Fragmento[]; centro?: number }
 
 /** Trozos de un renglón separados por un espacio grande (celdas de una tabla). */
 type Celda = { x0: number; x1: number; texto: string }
@@ -43,6 +44,7 @@ const letras = (t: string) => t.replace(/[^\p{L}]/gu, '').length
  * No siempre es la mitad exacta (márgenes espejados, fichas con texto más ancho de un lado).
  */
 export function centroColumnas(p: PaginaPdf): number {
+  if (p.centro !== undefined) return p.centro
   const mitad = p.ancho / 2
   const desde = Math.floor(p.ancho * 0.35)
   const hasta = Math.ceil(p.ancho * 0.65)
@@ -187,15 +189,24 @@ const versalitas = (t: string) => {
  * Sirve para mostrar en la revisión de qué parte de la página salió cada bloque o ficha.
  */
 export type Area = { pagina: number; x0: number; y0: number; x1: number; y1: number; texto?: string }
+/** Medidas del texto de un capítulo: tamaño de la letra del cuerpo y margen de cada columna. */
+export type Medidas = { hCuerpo: number; bordes: Record<string, number> }
+/**
+ * minFragmentos: páginas con menos texto se toman como ilustraciones (por defecto 40).
+ * medidas: las del capítulo, para leer una zona chica con las mismas referencias.
+ * omitir: saltear créditos, índice y similares (por defecto sí).
+ */
+export type OpcionesAnalisis = { minFragmentos?: number; medidas?: Medidas; omitir?: boolean }
 export type ResultadoPdf = {
   capitulos: Capitulo[]; correcciones: Correccion[]; paginas: number; fichas: FichaDetectada[]
+  medidas: Medidas
   /** Por id de bloque o de ficha, los renglones de la página de donde salió. */
   areas: Record<string, Area[]>
 }
 const areaDe = (r: { pagina: number; x0: number; x1: number; base: number; h: number; texto: string }): Area =>
   ({ pagina: r.pagina, x0: r.x0, y0: r.base - r.h, x1: r.x1, y1: r.base + r.h * 0.25, texto: r.texto })
 
-export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
+export function analizarPaginas(paginas: PaginaPdf[], opciones: OpcionesAnalisis = {}): ResultadoPdf {
   // Las páginas con casi nada de texto son ilustraciones (solo tienen el pie de imagen).
   // Corrige los errores del escaneo renglón por renglón (antes de reconocer versalitas y términos).
   const todas: Correccion[] = []
@@ -204,13 +215,13 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     todas.push(...correcciones)
     return texto
   }
-  const porPagina = paginas.filter(p => p.fragmentos.length >= 40).map(p => {
+  const porPagina = paginas.filter(p => p.fragmentos.length >= (opciones.minFragmentos ?? 40)).map(p => {
     const mitad = centroColumnas(p)
     return { p, mitad, renglones: armarRenglones(p, mitad) }
   })
   const todos = porPagina.flatMap(x => x.renglones)
   // Tamaño de la letra del texto corrido: el de los renglones largos.
-  const hCuerpo = mediana(todos.filter(r => r.texto.length >= 25).map(r => r.h)) || 10
+  const hCuerpo = opciones.medidas?.hCuerpo ?? (mediana(todos.filter(r => r.texto.length >= 25).map(r => r.h)) || 10)
 
   // Bordes izquierdos de cada columna, separados por páginas pares e impares (márgenes espejados).
   const bordes: Record<string, number[]> = {}
@@ -255,7 +266,11 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     return { p, renglones: conColumna }
   })
   const borde = (pagina: number, col: 0 | 1 | 2, ancho: number) =>
-    col === 2 ? 0 : mediana(bordes[`${pagina % 2}-${col}`] ?? []) || (col === 0 ? ancho * 0.08 : ancho * 0.52)
+    col === 2 ? 0 : opciones.medidas?.bordes[`${pagina % 2}-${col}`] ?? (mediana(bordes[`${pagina % 2}-${col}`] ?? []) || (col === 0 ? ancho * 0.08 : ancho * 0.52))
+  const medidas: Medidas = {
+    hCuerpo,
+    bordes: opciones.medidas?.bordes ?? Object.fromEntries(Object.entries(bordes).map(([k, xs]) => [k, mediana(xs)])),
+  }
 
   // Orden de lectura. La página se divide en franjas separadas por un hueco grande sin texto en
   // ninguna columna (una ilustración que ocupa todo el ancho): en las fichas de trasfondo, por
@@ -312,7 +327,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     | { tipo: 'parrafo'; renglones: string[] }
     | { tipo: 'colgante'; renglones: string[] }
     | { tipo: 'recuadro'; titulo: string; base: number; parrafos: string[][] }
-    | { tipo: 'ficha'; categoria: CategoriaFicha; nombre: string; pagina?: number; renglones: RenglonFicha[]; tablas: Extract<Bloque, { tipo: 'tabla' }>[] }
+    | { tipo: 'ficha'; categoria: CategoriaFicha; nombre: string; pagina?: number; renglones: RenglonFicha[]; tablas: Extract<Bloque, { tipo: 'tabla' }>[]; zonasTablas: Area[] }
   let actual: Actual | null = null
   const fichas: FichaDetectada[] = []
   let ultimoTitulo: { bloque: Extract<Bloque, { tipo: 'titulo' | 'subtitulo' }>; base: number; pagina: number; columna: number } | null = null
@@ -327,6 +342,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
   let zonasActual: Area[] = []
   let zonasRenglon: Area[] = []
   let renglonUsado = false
+  let zonasEtiqueta: Area[] = []
   const sumarZonas = (id: string, z: Area[]) => { if (z.length) (areas[id] ??= []).push(...z) }
   /** Agrega un bloque al capítulo. Sin zonas, el bloque sale del renglón que se procesa ahora. */
   const agregar = (b: Bloque, z?: Area[]) => {
@@ -357,7 +373,7 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       if (ultimo?.tipo === 'fichas' && ultimo.categoria === a.categoria) { ultimo.ids.push(ficha.id); sumarZonas(ultimo.id, z) }
       else agregar({ id: nuevoId(), tipo: 'fichas', categoria: a.categoria, ids: [ficha.id] }, z)
       // Las tablas de la ficha (p. ej. «Fabricación rápida» de Fabricante) quedan justo después.
-      a.tablas.forEach(t => agregar(t, z))
+      a.tablas.forEach(t => agregar(t, a.zonasTablas))
       return
     }
     if (a.tipo === 'recuadro') {
@@ -509,17 +525,21 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     // Título del capítulo (letra muy grande).
     if (r.r >= 2.6) {
       cerrar(); ultimoTitulo = null
-      if (OMITIR.test(comoTitulo(r.texto))) { omitiendo = true; etiquetaPendiente = ''; return }
+      if (opciones.omitir !== false && OMITIR.test(comoTitulo(r.texto))) { omitiendo = true; etiquetaPendiente = ''; return }
       omitiendo = false
       const ultimoCap: Capitulo | null = capitulo
       if (ultimoCap && ultimoCap.bloques.length === 0 && anterior && anterior.r >= 2.6 && anterior.pagina === r.pagina) {
         ultimoCap.titulo = `${ultimoCap.titulo} ${comoTitulo(r.texto).toLocaleLowerCase('es')}`
+        sumarZonas(`titulo:${ultimoCap.id}`, zonasRenglon); renglonUsado = true
         return
       }
       const nuevo: Capitulo = { id: nuevoId(), etiqueta: etiquetaPendiente, titulo: comoTitulo(r.texto), bloques: [] }
       capitulo = nuevo
       capitulos.push(nuevo)
       etiquetaPendiente = ''
+      // Dónde está el título del capítulo (con su etiqueta) en la página.
+      sumarZonas(`titulo:${nuevo.id}`, [...zonasEtiqueta, ...zonasRenglon]); renglonUsado = true
+      zonasEtiqueta = []
       return
     }
     // "Capítulo 1", "Introducción", "Apéndice A": etiqueta del próximo capítulo.
@@ -527,12 +547,13 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (r.r >= 1.5 && ETIQUETA.test(sinSignos) && sinSignos.length < 40) {
       cerrar()
       omitiendo = false
+      zonasEtiqueta = [...zonasRenglon]; renglonUsado = true
       etiquetaPendiente = comoTitulo(sinSignos).replace(/^(\p{L}+)\s+(\p{L}{1,3}|\d+)$/u, (_m, a: string, b: string) => `${a} ${/^\d+$/.test(b) ? b : b.toUpperCase()}`)
       return
     }
     if (consumidos.has(i)) return
     // Un título "Créditos" o "Índice" empieza páginas que no son contenido.
-    if (r.r >= 1.22 && OMITIR.test(comoTitulo(r.texto))) { cerrar(); omitiendo = true; return }
+    if (opciones.omitir !== false && r.r >= 1.22 && OMITIR.test(comoTitulo(r.texto))) { cerrar(); omitiendo = true; return }
     if (omitiendo) return
     // Fichas impresas en el texto (conjuros, dotes, trasfondos, criaturas): se leen aparte.
     // Un trasfondo cuyo nombre no está en el texto (impreso sobre una ilustración, que el escaneo
@@ -544,13 +565,13 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       const siguientes = flujo.slice(i + 1, i + 8).filter(x => x.pagina === r.pagina && x.columna === r.columna)
       if (siguientes.some(x => /^(?:dote|competencias? en habilidades|competencias? con herramientas|equipo)\s*:/i.test(x.texto))) {
         cerrar()
-        actual = { tipo: 'ficha', categoria: 'trasfondos', nombre: '', pagina: r.pagina, renglones: [], tablas: [] }
+        actual = { tipo: 'ficha', categoria: 'trasfondos', nombre: '', pagina: r.pagina, renglones: [], tablas: [], zonasTablas: [] }
       }
     }
     const ficha = inicioFicha(i)
     if (ficha) {
       cerrar()
-      actual = { tipo: 'ficha', categoria: ficha, nombre: r.texto, renglones: [], tablas: [] }
+      actual = { tipo: 'ficha', categoria: ficha, nombre: r.texto, renglones: [], tablas: [], zonasTablas: [] }
       return
     }
     // Título en versalitas apenas más alto que el texto («DOTES DE DON ÉPICO»).
@@ -568,6 +589,8 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
       if (t) {
         sumarTabla(t.tabla, enFicha.tablas)
         for (let k = i + 1; k < t.hasta; k++) { consumidos.add(k); zonasRenglon.push(areaDe(flujo[k])) }
+        // La tabla tiene su propio lugar en la página (no se mezcla con el texto de la ficha).
+        enFicha.zonasTablas.push(...zonasRenglon); renglonUsado = true
         return
       }
       const seccionCriatura = enFicha.categoria === 'criaturas' && /^(rasgos|acciones|acciones adicionales|reacciones|acciones legendarias)$/i.test(r.texto.trim())
@@ -582,12 +605,13 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     const tabla = tablaDesde(i)
     if (tabla) {
       cerrar()
+      // Los renglones de la tabla van a su lugar en la página (antes de agregarla).
+      for (let k = i + 1; k < tabla.hasta; k++) { consumidos.add(k); zonasRenglon.push(areaDe(flujo[k])) }
       const ultimo = capitulo?.bloques[capitulo.bloques.length - 1]
       const destino = ultimo?.tipo === 'tabla' ? [ultimo] : []
       sumarTabla(tabla.tabla, destino)
       if (destino[destino.length - 1] !== ultimo) agregar(destino[destino.length - 1])
       else if (ultimo) { sumarZonas(ultimo.id, zonasRenglon); renglonUsado = true }
-      for (let k = i + 1; k < tabla.hasta; k++) { consumidos.add(k); zonasRenglon.push(areaDe(flujo[k])) }
       return
     }
     // Recuadro: título en mayúsculas metido hacia adentro (puede ocupar varios renglones),
@@ -709,5 +733,5 @@ export function analizarPaginas(paginas: PaginaPdf[]): ResultadoPdf {
     if (previo) previo.veces += c.veces
     else resumen.set(clave, { ...c })
   }
-  return { capitulos: capitulos.filter(c => c.bloques.length > 0 || c.titulo), correcciones: [...resumen.values()], paginas: paginas.length, fichas, areas }
+  return { capitulos: capitulos.filter(c => c.bloques.length > 0 || c.titulo), correcciones: [...resumen.values()], paginas: paginas.length, fichas, areas, medidas }
 }
