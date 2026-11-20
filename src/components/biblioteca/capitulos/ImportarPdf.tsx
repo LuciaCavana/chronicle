@@ -45,7 +45,11 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
   const [abierta, setAbierta] = useState(false)
   const cerrado = useRef(false)
 
-  useEffect(() => () => { cerrado.current = true; void pdf?.cerrar() }, [pdf])
+  // Al cerrar la importación se corta lo que se esté leyendo y se libera el PDF. (Ojo: esto va
+  // solo al desmontar; si dependiera de `pdf`, al abrir un PDF nuevo cortaba su propia lectura.)
+  const pdfActual = useRef<PdfAbierto | null>(null)
+  useEffect(() => { pdfActual.current = pdf }, [pdf])
+  useEffect(() => () => { cerrado.current = true; void pdfActual.current?.cerrar() }, [])
 
   async function elegirArchivo(archivo: File | undefined) {
     if (!archivo) return
