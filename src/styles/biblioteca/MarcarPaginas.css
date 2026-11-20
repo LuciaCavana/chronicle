@@ -71,6 +71,26 @@
   display: grid; grid-template-columns: 250px minmax(0, 1fr) 380px;
 }
 .marcar__pestanias { display: none; }
+.marcar__nav { grid-column: 1; }
+.marcar__centro { grid-column: 2; }
+.marcar__derecha { grid-column: 3; position: relative; }
+.marcar__derecha[hidden] { display: none; }
+.marcar__nav--oculta { display: none; }
+/* Borde del panel de la derecha para cambiarle el ancho. */
+.marcar__divisor { position: absolute; z-index: 2; top: 0; bottom: 0; left: -5px; width: 10px; cursor: ew-resize; touch-action: none; }
+.marcar__divisor::after { content: ''; position: absolute; top: 0; bottom: 0; left: 4px; width: 2px; background: transparent; transition: background .15s; }
+.marcar__divisor:hover::after, .marcar__divisor:focus-visible::after { background: var(--color-acento); }
+/* Panel encima de la página: la página usa todo el ancho. */
+.marcar__cuerpo--encima { position: relative; }
+.marcar__cuerpo--encima .marcar__centro { grid-column: 2 / 4; }
+.marcar__visor-caja { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.marcar__cuerpo--encima .marcar__derecha {
+  position: absolute; z-index: 6; top: 14px; right: 18px; bottom: 14px; max-width: calc(100% - 60px);
+  border: 1px solid var(--color-borde); border-radius: var(--radio-md); box-shadow: 0 12px 40px var(--color-marca-sombra);
+}
+.marcar__cerrar-panel { align-self: flex-end; margin: -6px -6px -6px auto; }
+.marcar__union { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; background: var(--color-fondo-campo); border: 1px dashed var(--color-borde); border-radius: var(--radio-md); }
+.marcar__union p { display: flex; align-items: center; gap: 7px; font-size: 13px; }
 
 /* Navegador */
 .marcar__nav {
@@ -301,4 +321,7 @@
   .marcar__derecha { flex: 0 0 auto; border-left: 0; }
   .marcar__cuerpo--pagina .marcar__derecha, .marcar__cuerpo--libro .marcar__centro { display: none; }
   .marcar__cabecera { padding: 10px 14px; }
+  .marcar__solo-escritorio, .marcar__divisor { display: none !important; }
+  .marcar__nav--oculta { display: flex; }
 }
+.marcar__cuerpo--encima .marcar__zoom { right: auto; left: 14px; }

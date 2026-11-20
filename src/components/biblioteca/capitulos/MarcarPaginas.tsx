@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as EventoPuntero, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Crosshair, FileText, Heading, LayoutPanelTop, Minus, PencilLine, Plus, RotateCcw, Table, Trash2, Type, X,
+  AlertTriangle, Check, ChevronLeft, ChevronRight, Crosshair, FileText, Heading, LayoutPanelTop, Link2, Minus, PanelLeftClose, PanelLeftOpen, PanelRight, PencilLine, Plus, RotateCcw, Table, Trash2, Type, Unlink, X,
 } from 'lucide-react'
 import type { Medidas, PaginaPdf } from '../../../lib/analizarPdf'
 import type { PdfAbierto } from '../../../lib/importarPdf'
@@ -54,6 +54,18 @@ type Estado = {
 const TIPOS: TipoZona[] = ['titulo', 'subtitulo', 'texto', 'recuadro', 'tabla', 'ficha', 'ignorar']
 const CATEGORIAS: CategoriaFicha[] = ['trasfondos', 'dotes', 'conjuros', 'criaturas', 'especies', 'clases', 'subclases', 'objetos']
 const ICONO: Record<TipoZona, typeof Type> = { titulo: Heading, subtitulo: Heading, texto: Type, recuadro: LayoutPanelTop, tabla: Table, ficha: FileText, ignorar: X }
+/** Capítulos a la izquierda (o no) y el panel de la derecha al costado o encima de la página. */
+type Vista = { capitulos: boolean; panel: 'costado' | 'encima'; ancho: number }
+const CLAVE_VISTA = 'chronicle.importar.vista'
+const ANCHO_MIN = 300, ANCHO_MAX = 760
+function leerVista(): Vista {
+  const base: Vista = { capitulos: true, panel: 'costado', ancho: 380 }
+  try {
+    const v = JSON.parse(localStorage.getItem(CLAVE_VISTA) ?? 'null') as Partial<Vista> | null
+    if (!v) return base
+    return { capitulos: v.capitulos !== false, panel: v.panel === 'encima' ? 'encima' : 'costado', ancho: Math.max(ANCHO_MIN, Math.min(ANCHO_MAX, Number(v.ancho) || base.ancho)) }
+  } catch { return base }
+}
 const claveFicha = (f: FichaDetectada) => `${f.categoria}:${f.nombre.toLowerCase()}`
 
 /**
@@ -74,6 +86,18 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   const [menuFicha, setMenuFicha] = useState(false)
   const [rango, setRango] = useState<{ desde: number; hasta: number } | null>(null)
   const raiz = useRef<HTMLDivElement>(null)
+  // Cómo se reparte la pantalla (se recuerda en este navegador).
+  const [vista, setVista] = useState<Vista>(leerVista)
+  const [verLibro, setVerLibro] = useState(false)
+  const [angosta, setAngosta] = useState(() => typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 900px)').matches)
+  useEffect(() => {
+    const mq = window.matchMedia?.('(max-width: 900px)')
+    if (!mq) return
+    const cambio = () => setAngosta(mq.matches)
+    mq.addEventListener('change', cambio)
+    return () => mq.removeEventListener('change', cambio)
+  }, [])
+  useEffect(() => { try { localStorage.setItem(CLAVE_VISTA, JSON.stringify(vista)) } catch { /* sin almacenamiento */ } }, [vista])
 
   const cap = capitulos.find(c => c.id === capId) ?? capitulos[0]
   const est = estados[cap.id]
@@ -167,7 +191,7 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
       const con = (x: Zona) => !!paginaPdf && !!textoDeRect(paginaPdf, x).trim()
       const arriba: Zona = { ...z, y1: r.y0 }
       const resto = (rect: Rect): Zona => ({ ...z, ...rect, id: nuevoId(), bloques: [], nombre: undefined, ediciones: undefined, cargar: undefined, tituloCapitulo: undefined,
-        continua: z.tipo === 'ficha' ? true : z.continua })
+        continua: z.tipo !== 'ignorar' })
       // Lo que queda al costado, en los mismos renglones (el resto de un renglón con un título pegado).
       const izquierda = resto({ x0: z.x0, y0: r.y0, x1: r.x0, y1: r.y1 })
       const derecha = resto({ x0: r.x1, y0: r.y0, x1: z.x1, y1: r.y1 })
@@ -233,6 +257,17 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   const nombreCap = [cap.etiqueta, cap.titulo].filter(Boolean).join(': ') || `Páginas ${est.desde}–${est.hasta}`
   const totalPaginas = est.hasta - est.desde + 1
 
+  // En pantallas angostas el panel siempre va en su pestaña.
+  const encima = vista.panel === 'encima' && !angosta
+  const panel = (
+      <aside className="marcar__derecha" aria-label="Así queda en el libro" hidden={encima && !zona && !verLibro ? true : undefined}
+        style={encima ? { width: vista.ancho } : undefined}>
+        {divisor()}
+        {encima && !zona && <button type="button" className="marcar__icono marcar__icono--sin-borde marcar__cerrar-panel" aria-label="Cerrar el panel" onClick={() => setVerLibro(false)}><X size={16} aria-hidden="true" /></button>}
+        {zona ? panelZona(zona) : <p className="marcar__ayuda marcar__ayuda--caja">Tocá una zona de la página para cambiar qué es o corregir lo leído. Arrastrá sobre la página para marcar una zona nueva.</p>}
+        {asiQueda()}
+      </aside>
+  )
   if (oculta) return null
   return createPortal(<div ref={raiz} className="marcar" role="dialog" aria-modal="true" aria-labelledby="marcar-titulo" tabIndex={-1} onKeyDown={teclas}>
     <header className="marcar__cabecera">
@@ -247,7 +282,8 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
       </button>
     </header>
 
-    <div className={`marcar__cuerpo marcar__cuerpo--${vistaMovil}`}>
+    <div className={`marcar__cuerpo marcar__cuerpo--${vistaMovil}${encima ? ' marcar__cuerpo--encima' : ''}`}
+      style={{ gridTemplateColumns: `${vista.capitulos ? '250px' : '0'} minmax(0, 1fr) ${encima ? '0' : `${vista.ancho}px`}` }}>
       {navegador()}
       <div className="marcar__pestanias" role="tablist" aria-label="Vista">
         <button type="button" role="tab" aria-selected={vistaMovil === 'pagina'} onClick={() => setVistaMovil('pagina')}>Página del PDF</button>
@@ -256,11 +292,21 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
       <section className="marcar__centro" aria-label="Página del PDF">
         <div className="marcar__barra">
           <div className="marcar__grupo">
+            <button type="button" className="marcar__icono marcar__solo-escritorio" aria-pressed={!vista.capitulos} aria-label={vista.capitulos ? 'Ocultar capítulos' : 'Mostrar capítulos'}
+              title={vista.capitulos ? 'Ocultar capítulos' : 'Mostrar capítulos'} onClick={() => setVista(v => ({ ...v, capitulos: !v.capitulos }))}>
+              {vista.capitulos ? <PanelLeftClose size={16} aria-hidden="true" /> : <PanelLeftOpen size={16} aria-hidden="true" />}
+            </button>
             <button type="button" className="marcar__icono" aria-label="Página anterior" disabled={pagina <= est.desde} onClick={() => irPagina(pagina - 1)}><ChevronLeft size={16} aria-hidden="true" /></button>
             <span className="marcar__pagina">Pág. {pagina} del PDF{desfase !== null ? ` · ${pagina - desfase} del libro` : ''}</span>
             <button type="button" className="marcar__icono" aria-label="Página siguiente" disabled={pagina >= est.hasta} onClick={() => irPagina(pagina + 1)}><ChevronRight size={16} aria-hidden="true" /></button>
           </div>
           <span className="marcar__pista"><PencilLine size={15} aria-hidden="true" />{campoAMarcar ? `Marcá en la página dónde está «${campoAMarcar.campo.etiqueta}»` : zona ? 'Arrastrá adentro de la zona elegida para marcar otra encima (un subtítulo pegado, por ejemplo)' : 'Arrastrá sobre la página para marcar una zona nueva'}</span>
+          <button type="button" className="marcar__boton marcar__boton--chico marcar__solo-escritorio" aria-pressed={vista.panel === 'encima'}
+            title="El panel de la derecha al costado de la página o encima (la página usa todo el ancho)"
+            onClick={() => { setVista(v => ({ ...v, panel: v.panel === 'costado' ? 'encima' : 'costado' })); setVerLibro(false) }}>
+            <PanelRight size={15} aria-hidden="true" />{vista.panel === 'costado' ? 'Panel encima' : 'Panel al costado'}
+          </button>
+          {encima && !zona && <button type="button" className="marcar__boton marcar__boton--chico marcar__solo-escritorio" aria-expanded={verLibro} onClick={() => setVerLibro(v => !v)}>Así queda</button>}
           <button type="button" className={`marcar__boton marcar__boton--chico${est.revisadas.has(pagina) ? ' marcar__boton--hecho' : ''}`} onClick={paginaRevisada}>
             <Check size={15} aria-hidden="true" />{est.revisadas.has(pagina) ? 'Revisada' : 'Página revisada'}
           </button>
@@ -272,20 +318,40 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
         </div>}
         {est.cargando && <p className="marcar__vacio" role="status">Leyendo las páginas del capítulo…</p>}
         {est.error && <p className="marcar__vacio marcar__vacio--error" role="alert">{est.error}</p>}
+        <div className="marcar__visor-caja">
         {!est.cargando && !est.error && <VisorZonas pdf={pdf} pagina={pagina} zonas={zonasPagina} seleccionada={zonaSel} avisos={avisos}
           dibujando={!!campoAMarcar} onElegir={id => { setZonaSel(id); setMenuFicha(false) }} onDibujar={dibujada}
           onRedimensionar={redimensionada} onCortes={cambiarCortes} />}
+        {encima && panel}
+        </div>
       </section>
-      <aside className="marcar__derecha" aria-label="Así queda en el libro">
-        {zona ? panelZona(zona) : <p className="marcar__ayuda marcar__ayuda--caja">Tocá una zona de la página para cambiar qué es o corregir lo leído. Arrastrá sobre la página para marcar una zona nueva.</p>}
-        {asiQueda()}
-      </aside>
+      {!encima && panel}
     </div>
   </div>, document.body)
 
   // ===================================================================================
+  /** Borde del panel de la derecha: se arrastra (o se usan las flechas) para cambiar su ancho. */
+  function divisor() {
+    const cambiar = (ancho: number) => setVista(v => ({ ...v, ancho: Math.round(Math.max(ANCHO_MIN, Math.min(ANCHO_MAX, ancho))) }))
+    return <div className="marcar__divisor" role="separator" aria-orientation="vertical" aria-label="Ancho del panel" tabIndex={0}
+      aria-valuemin={ANCHO_MIN} aria-valuemax={ANCHO_MAX} aria-valuenow={vista.ancho}
+      onPointerDown={e => {
+        const el = e.currentTarget
+        el.setPointerCapture(e.pointerId)
+        const borde = el.parentElement!.getBoundingClientRect().right
+        const mover = (m: PointerEvent) => cambiar(borde - m.clientX)
+        const soltar = () => { el.removeEventListener('pointermove', mover); el.removeEventListener('pointerup', soltar) }
+        el.addEventListener('pointermove', mover); el.addEventListener('pointerup', soltar)
+      }}
+      onKeyDown={e => {
+        e.stopPropagation()
+        if (e.key === 'ArrowLeft') { e.preventDefault(); cambiar(vista.ancho + 40) }
+        else if (e.key === 'ArrowRight') { e.preventDefault(); cambiar(vista.ancho - 40) }
+      }} />
+  }
+
   function navegador() {
-    return <nav className="marcar__nav" aria-label="Capítulos y páginas">
+    return <nav className={`marcar__nav${vista.capitulos ? '' : ' marcar__nav--oculta'}`} aria-label="Capítulos y páginas">
       <h3 className="marcar__rotulo">Capítulos</h3>
       <ul className="marcar__capitulos">
         {capitulos.map(c => {
@@ -380,6 +446,7 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
           {z.tipo !== 'ficha' && <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => reemplazar({ ...z, sinAvisos: true })}>Está bien así</button>}
         </div>
       </div>}
+      {unir(z)}
       {z.tipo === 'ignorar' && <p className="marcar__ayuda">{z.tituloCapitulo ? 'Es el título del capítulo: ya está arriba, no se repite en el texto.' : 'Lo que está acá no se agrega al libro (números de página, pies de imagen, adornos…).'}</p>}
       {(z.tipo === 'titulo' || z.tipo === 'subtitulo') && <TextoEditable etiqueta="Texto del título" valor={z.bloques[0] && 'texto' in z.bloques[0] ? z.bloques[0].texto : ''} filas={1}
         onCambiar={t => editarBloques(z, [{ id: z.bloques[0]?.id ?? nuevoId(), tipo: z.tipo === 'subtitulo' ? 'subtitulo' : 'titulo', texto: t }])} />}
@@ -400,6 +467,40 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
       {z.tipo === 'ficha' && panelFicha(z)}
       {z.editada && <p className="marcar__ayuda">Corregido a mano. «Volver a leer» lo reemplaza por lo que dice la página.</p>}
     </section>
+  }
+
+  /** Unir con la zona anterior o la siguiente: lo que sigue en otra columna o página es lo mismo. */
+  function unir(z: Zona) {
+    if (z.tipo === 'ignorar' || z.tituloCapitulo) return null
+    const i = est.zonas.findIndex(x => x.id === z.id)
+    const anterior = [...est.zonas.slice(0, i)].reverse().find(x => x.tipo !== 'ignorar')
+    const siguiente = est.zonas.slice(i + 1).find(x => x.tipo !== 'ignorar')
+    const ubicar = (x: Zona) => {
+      const n = est.zonas.filter(y => y.pagina === x.pagina).findIndex(y => y.id === x.id) + 1
+      return x.pagina === z.pagina ? `zona ${n}` : `zona ${n} de la pág. ${x.pagina}`
+    }
+    const describir = (x: Zona) => {
+      if (x.tipo !== 'ficha') return NOMBRE_TIPO[x.tipo].toLowerCase()
+      const f = fichaPorZona(x)
+      return f && !/^Sin nombre \(/.test(f.nombre) ? `ficha «${f.nombre}»` : 'ficha'
+    }
+    /** La zona b pasa a ser la continuación de a (toma su tipo). */
+    const unirZonas = (a: Zona, b: Zona) => reemplazar(leer({ ...b, tipo: a.tipo, categoria: a.categoria, continua: true, cortes: b.tipo === a.tipo ? b.cortes : undefined,
+      nombre: undefined, ediciones: undefined, cargar: undefined, sinAvisos: false }))
+    if (z.continua && anterior) return <div className="marcar__union">
+      <p><Link2 size={15} aria-hidden="true" />Sigue la {ubicar(anterior)} ({describir(anterior)}).</p>
+      <div className="marcar__fila">
+        <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => { setPagina(anterior.pagina); setZonaSel(anterior.id) }}>Ver la anterior</button>
+        <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => reemplazar(leer({ ...z, continua: false }))}><Unlink size={14} aria-hidden="true" />Separar</button>
+      </div>
+    </div>
+    if (!anterior && !siguiente) return null
+    return <div className="marcar__fila">
+      {anterior && <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => unirZonas(anterior, z)}
+        title={`Esta zona sigue la ${ubicar(anterior)} y toma su tipo`}><Link2 size={14} aria-hidden="true" />Unir con la anterior ({describir(anterior)})</button>}
+      {siguiente && !siguiente.continua && <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => unirZonas(z, siguiente)}
+        title={`La ${ubicar(siguiente)} sigue esta zona y toma su tipo`}><Link2 size={14} aria-hidden="true" />Unir con la siguiente</button>}
+    </div>
   }
 
   function panelTabla(z: Zona) {
@@ -428,8 +529,8 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
     const esPrimera = !!ficha && ficha.id === z.id
     if (!ficha) return <p className="marcar__ayuda">Leyendo…</p>
     if (!esPrimera) return <>
-      <p className="marcar__ayuda">Esta zona es la continuación de la ficha «{ficha.nombre}».</p>
-      <label className="marcar__casilla"><input type="checkbox" checked={!!z.continua} onChange={() => reemplazar({ ...z, continua: !z.continua })} />Sigue la ficha anterior</label>
+      <p className="marcar__ayuda">Esta zona es la continuación de la ficha «{/^Sin nombre \(/.test(ficha.nombre) ? 'sin nombre' : ficha.nombre}»: se edita desde su primera zona.</p>
+      <button type="button" className="marcar__enlace" onClick={() => { const primera = est.zonas.find(x => x.id === ficha.id); if (primera) { setPagina(primera.pagina); setZonaSel(primera.id) } }}>Ir a la primera zona de la ficha</button>
     </>
     const propuesta = conciliar([ficha], existentes)[0]
     const sinNombre = /^Sin nombre \(/.test(ficha.nombre)
@@ -447,7 +548,6 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
       </div>
       <TextoEditable etiqueta="Nombre" valor={sinNombre ? '' : ficha.nombre} filas={1} falta={sinNombre} placeholder="Escribí el nombre"
         onCambiar={t => reemplazar({ ...z, nombre: t })} />
-      <label className="marcar__casilla"><input type="checkbox" checked={!!z.continua} onChange={() => reemplazar({ ...z, continua: !z.continua })} />Sigue la ficha anterior (es su continuación)</label>
       {campos.map(c => <CampoFicha key={`${z.id}:${c.ruta}:${textoDeCampo(c)}`} campo={c}
         onCambiar={v => reemplazar({ ...z, ediciones: { ...(z.ediciones ?? {}), [c.ruta]: v } })}
         onMarcar={() => { setCampoAMarcar({ zona: z.id, campo: c }); setVistaMovil('pagina') }} />)}
@@ -484,7 +584,7 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
         }
         return <button key={z.id} type="button" className={clase} onClick={() => setZonaSel(z.id)}>
           {numero}
-          <span className="marcar__previa-cuerpo">{z.bloques.length ? z.bloques.map(b => <Previa key={b.id} b={b} />) : <span className="marcar__ayuda">(vacía)</span>}</span>
+          <span className="marcar__previa-cuerpo">{z.continua && <span className="marcar__ayuda">↳ Sigue la zona anterior</span>}{z.bloques.length ? z.bloques.map(b => <Previa key={b.id} b={b} />) : <span className="marcar__ayuda">(vacía)</span>}</span>
         </button>
       })}
       {fichasCapitulo.length > 0 && <details className="marcar__fichas-cap">
@@ -589,7 +689,7 @@ function VisorZonas({ pdf, pagina, zonas, seleccionada, avisos, dibujando, onEle
   useEffect(() => {
     const el = contenedor.current
     if (!el) return
-    const medir = () => setAncho(Math.max(260, Math.min(el.clientWidth - 40, 860)))
+    const medir = () => setAncho(Math.max(260, Math.min(el.clientWidth - 40, 1500)))
     medir()
     const observador = new ResizeObserver(medir)
     observador.observe(el)
@@ -667,7 +767,7 @@ function VisorZonas({ pdf, pagina, zonas, seleccionada, avisos, dibujando, onEle
             return <div key={z.id} className={`marcar__marco marcar__marco--${z.tipo}${elegida ? ' marcar__marco--elegido' : ''}`} style={estilo(rect)}>
               <button type="button" className="marcar__marco-boton" aria-label={`Zona ${i + 1}: ${NOMBRE_TIPO[z.tipo]}${hayAvisos ? ', con avisos' : ''}`}
                 onPointerDown={e => { e.stopPropagation(); if ((elegida || dibujando) && e.button === 0) empezar(e) }} onClick={() => onElegir(z.id)} />
-              <span className={`marcar__etiqueta marcar__etiqueta--${z.tipo}`}>{i + 1}{elegida ? ` · ${NOMBRE_TIPO[z.tipo]}` : ''}</span>
+              <span className={`marcar__etiqueta marcar__etiqueta--${z.tipo}`}>{z.continua ? '↳ ' : ''}{i + 1}{elegida ? ` · ${NOMBRE_TIPO[z.tipo]}${z.continua ? ' (sigue la anterior)' : ''}` : ''}</span>
               {hayAvisos && <span className="marcar__alerta" aria-hidden="true">!</span>}
               {elegida && (['no', 'ne', 'so', 'se'] as const).map(esq => <span key={esq} className={`marcar__esquina marcar__esquina--${esq}`} role="presentation"
                 onPointerDown={e => { e.stopPropagation(); capa.current!.setPointerCapture(e.pointerId); setArrastre({ tipo: 'esquina', zona: z, esquina: esq, rect: { x0: z.x0, y0: z.y0, x1: z.x1, y1: z.y1 } }) }} />)}

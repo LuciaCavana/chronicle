@@ -25,7 +25,7 @@ export type Zona = Rect & {
   tipo: TipoZona
   /** Ficha: de qué categoría es. */
   categoria?: CategoriaFicha
-  /** Ficha: sigue la ficha de la zona de ficha anterior (en otra columna o página). */
+  /** Sigue la zona anterior del mismo tipo (en otra columna o página): una ficha, un recuadro, una tabla o un párrafo partidos. */
   continua?: boolean
   /** Ficha: nombre escrito a mano (el escaneo no lo leyó o lo leyó mal). */
   nombre?: string
@@ -350,7 +350,11 @@ function grupos(areas: Area[]): Area[][] {
     }
     lista = unidos
   }
-  return lista.map(x => x.areas)
+  // En el orden de lectura (el de los renglones), no de arriba hacia abajo: una ficha que sigue
+  // en la otra columna empieza abajo a la izquierda.
+  const orden = new Map(areas.map((a, i) => [a, i]))
+  const primero = (g: Area[]) => Math.min(...g.map(a => orden.get(a) ?? 0))
+  return lista.map(x => x.areas).sort((a, b) => primero(a) - primero(b))
 }
 
 /**
@@ -383,11 +387,9 @@ export function proponerZonas(paginasPdf: PaginaPdf[], entrada?: { secciones: En
     if (b.tipo === 'fichas') {
       for (const id of b.ids) {
         const ficha = leido.fichas.find(f => f.id === id)
-        const propias = areas[id] ?? []
-        const paginas = [...new Set(propias.map(a => a.pagina))]
-        paginas.forEach((pag, n) => zonas.push({
-          id: nuevoId(), pagina: pag, tipo: 'ficha', categoria: ficha?.categoria, continua: n > 0, bloques: [],
-          ...rectDe(propias.filter(a => a.pagina === pag)),
+        // Una zona por columna y página: la ficha que sigue en otra columna la continúa.
+        grupos(areas[id] ?? []).forEach((g, n) => zonas.push({
+          id: nuevoId(), pagina: g[0].pagina, tipo: 'ficha', categoria: ficha?.categoria, continua: n > 0, bloques: [], ...rectDe(g),
         }))
       }
       continue
@@ -444,8 +446,13 @@ export function armarCapitulo(
       else bloques.push({ id: nuevoId(), tipo: 'fichas', categoria: ficha.categoria, ids: [ficha.id] })
       continue
     }
-    for (const b of z.bloques) {
+    for (const [n, b] of z.bloques.entries()) {
       const ultimo = bloques[bloques.length - 1]
+      // Zona unida a la anterior («Unir con la anterior»): su comienzo sigue el último bloque.
+      if (z.continua && n === 0 && ultimo) {
+        const unido = continuar(ultimo, b)
+        if (unido) { bloques[bloques.length - 1] = unido; continue }
+      }
       // Párrafo cortado por la columna o la página: sigue en la misma oración.
       if (b.tipo === 'parrafo' && ultimo?.tipo === 'parrafo' && !TERMINA.test(ultimo.texto) && /^\p{Ll}/u.test(b.texto)) {
         bloques[bloques.length - 1] = { ...ultimo, texto: `${ultimo.texto.replace(/-$/, '')}${/-$/.test(ultimo.texto) ? '' : ' '}${b.texto}` }
@@ -464,6 +471,25 @@ export function armarCapitulo(
   // Clases, subclases, especies y objetos se reconocen en el texto ya armado.
   fichas.push(...extraerFichasDeBloques(capitulo))
   return { capitulo, fichas, deZona }
+}
+
+/** Un bloque que sigue al anterior (misma ficha, recuadro, tabla o párrafo partido en dos zonas). */
+function continuar(ultimo: Bloque, b: Bloque): Bloque | null {
+  const pegar = (a: string, c: string) => (!c ? a : !a ? c : /-$/.test(a) && /^\p{Ll}/u.test(c) ? `${a.slice(0, -1)}${c}`
+    : TERMINA.test(a) ? `${a}\n\n${c}` : `${a} ${c}`)
+  if (ultimo.tipo === 'parrafo' && b.tipo === 'parrafo') return { ...ultimo, texto: pegar(ultimo.texto, b.texto) }
+  if (ultimo.tipo === 'recuadro' && (b.tipo === 'recuadro' || b.tipo === 'parrafo')) {
+    // Lo que se tomó como título de la continuación es parte del texto.
+    const texto = b.tipo === 'recuadro' ? [b.titulo, b.texto].filter(Boolean).join('\n\n') : b.texto
+    return { ...ultimo, texto: pegar(ultimo.texto, texto) }
+  }
+  if (ultimo.tipo === 'tabla' && b.tipo === 'tabla') {
+    const ancho = ultimo.columnas.length
+    const ajustar = (f: string[]) => (f.length <= ancho ? [...f, ...Array(ancho - f.length).fill('')] : [...f.slice(0, ancho - 1), f.slice(ancho - 1).join(' ')])
+    const repetido = b.columnas.join('|').toLowerCase() === ultimo.columnas.join('|').toLowerCase() || b.columnas[0]?.startsWith('Columna ')
+    return { ...ultimo, filas: [...ultimo.filas, ...(repetido ? [] : [b.columnas]), ...b.filas].map(ajustar) }
+  }
+  return null
 }
 
 /** Texto plano de lo que hay en una zona (para la vista previa y los avisos). */
