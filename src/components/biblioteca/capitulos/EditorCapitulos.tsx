@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ArrowDown, ArrowUp, ClipboardPaste, FileUp, Layers, Plus, Trash2, X } from 'lucide-react'
 import {
   CATEGORIAS_FICHAS, TIPOS_BLOQUE, convertirBloque, nuevoBloque, nuevoCapitulo, textoBloque,
@@ -36,7 +36,14 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
   const [seleccion, setSeleccion] = useState<string | null>(capitulos[0]?.id ?? null)
   const [pegando, setPegando] = useState(false)
   const [importando, setImportando] = useState(false)
+  // Borrar un capítulo pide dos toques: el primero arma el botón, el segundo borra.
   const [porBorrar, setPorBorrar] = useState<string | null>(null)
+  useEffect(() => {
+    if (!porBorrar) return
+    const t = window.setTimeout(() => setPorBorrar(null), 4000)
+    return () => window.clearTimeout(t)
+  }, [porBorrar])
+  const tocarBorrar = (id: string) => { if (porBorrar === id) { setPorBorrar(null); borrarCapitulo(id) } else setPorBorrar(id) }
   const actual = capitulos.find(c => c.id === seleccion) ?? capitulos[0] ?? null
 
   const cambiarCapitulo = (id: string, cambio: (c: Capitulo) => Capitulo) =>
@@ -84,13 +91,13 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
             {!soloLectura && <span className="capitulos__mover">
               <button type="button" aria-label={`Subir ${c.titulo || 'capítulo'}`} disabled={i === 0} onClick={() => onChange(mover(capitulos, i, i - 1))}><ArrowUp size={15} aria-hidden="true" /></button>
               <button type="button" aria-label={`Bajar ${c.titulo || 'capítulo'}`} disabled={i === capitulos.length - 1} onClick={() => onChange(mover(capitulos, i, i + 1))}><ArrowDown size={15} aria-hidden="true" /></button>
-              <button type="button" aria-label={`Eliminar ${c.titulo || c.etiqueta || 'capítulo'}`} title="Eliminar capítulo" className="capitulos__peligro" onClick={() => setPorBorrar(c.id)}><Trash2 size={15} aria-hidden="true" /></button>
+              <button type="button" className={`capitulos__peligro${porBorrar === c.id ? ' capitulos__peligro--armado' : ''}`}
+                aria-label={porBorrar === c.id ? `Tocá de nuevo para borrar ${c.titulo || c.etiqueta || 'el capítulo'} y sus ${c.bloques.length} bloques` : `Eliminar ${c.titulo || c.etiqueta || 'capítulo'}`}
+                title={porBorrar === c.id ? 'Tocá de nuevo para borrar (las fichas no se borran)' : 'Eliminar capítulo'}
+                onClick={() => tocarBorrar(c.id)} onBlur={() => { if (porBorrar === c.id) setPorBorrar(null) }}>
+                <Trash2 size={15} aria-hidden="true" />{porBorrar === c.id && <span>¿Borrar?</span>}
+              </button>
             </span>}
-            {!soloLectura && porBorrar === c.id && <div className="capitulos__confirmar-borrado">
-              <span>¿Eliminar este capítulo y sus {c.bloques.length} bloques? Las fichas no se borran.</span>
-              <button type="button" className="capitulos__peligro" onClick={() => borrarCapitulo(c.id)}>Eliminar</button>
-              <button type="button" onClick={() => setPorBorrar(null)}>Cancelar</button>
-            </div>}
           </li>
         })}
       </ol>
@@ -141,11 +148,10 @@ export default function EditorCapitulos({ capitulos, onChange, fichas, soloLectu
       </ol>
 
       {!soloLectura && <div className="capitulos__pie">
-        {porBorrar === actual.id
-          ? <><span>¿Borrar «{actual.titulo || 'este capítulo'}» y sus {actual.bloques.length} bloques? Las fichas no se borran.</span>
-            <button type="button" className="capitulos__peligro" onClick={() => borrarCapitulo(actual.id)}>Borrar capítulo</button>
-            <button type="button" onClick={() => setPorBorrar(null)}>Cancelar</button></>
-          : <button type="button" className="capitulos__peligro" onClick={() => setPorBorrar(actual.id)}><Trash2 size={15} aria-hidden="true" />Borrar capítulo</button>}
+        <button type="button" className={`capitulos__peligro${porBorrar === actual.id ? ' capitulos__peligro--armado' : ''}`}
+          onClick={() => tocarBorrar(actual.id)} onBlur={() => { if (porBorrar === actual.id) setPorBorrar(null) }}>
+          <Trash2 size={15} aria-hidden="true" />{porBorrar === actual.id ? `Tocá de nuevo para borrar (${actual.bloques.length} bloques; las fichas quedan)` : 'Borrar capítulo'}
+        </button>
       </div>}
     </section> : <section className="capitulos__capitulo"><p className="capitulos__vacio">Agregá un capítulo para empezar.</p></section>}
   </div>

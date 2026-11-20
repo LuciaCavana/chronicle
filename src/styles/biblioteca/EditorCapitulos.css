@@ -148,3 +148,6 @@
 /* Importación ya leída, con la pantalla de revisión cerrada. */
 .capitulos__retomar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 12px 14px; background: var(--color-fondo-activo); border: 1px solid var(--color-acento-borde); border-radius: var(--radio-md); font-size: 14px; }
 .capitulos__retomar > span { flex: 1 1 260px; }
+/* Borrar en dos toques: el primero lo arma (se pone rojo y pregunta), el segundo borra. */
+.capitulos .capitulos__peligro--armado { background: var(--color-peligro); border-color: var(--color-peligro); color: var(--color-texto-sobre-acento); font-weight: 600; }
+.capitulos .capitulos__mover .capitulos__peligro--armado { background: var(--color-peligro); border-color: var(--color-peligro); color: var(--color-texto-sobre-acento); font-weight: 600; width: auto; padding: 0 8px; gap: 4px; display: inline-flex; align-items: center; font-size: 12px; }
