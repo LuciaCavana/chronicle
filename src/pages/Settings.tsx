@@ -4,6 +4,7 @@ import AppLayout from '../components/layout/AppLayout'
 import { useAuth } from '../contexts/useAuth'
 import '../styles/paginas/Profile.css'
 import { useLanguage } from '../i18n/useLanguage'
+import { coberturaTraduccion } from '../i18n/cobertura'
 
 export default function Settings() {
   const { session } = useAuth()
@@ -43,6 +44,19 @@ export default function Settings() {
               <option value="en">{t('language.en')}</option>
             </select>
           </div>
+          <h3 className="profile-subtitulo">{t('profile.translation')}</h3>
+          <p className="profile-description">{t('profile.translationDescription')}</p>
+          <ul className="profile-traduccion">
+            <li>
+              <div className="profile-traduccion__fila"><strong>{t('language.es')}</strong><span>100 % · {t('profile.translationBase')}</span></div>
+              <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.es')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={100}><span style={{ width: '100%' }} /></div>
+            </li>
+            <li>
+              <div className="profile-traduccion__fila"><strong>{t('language.en')}</strong><span>{coberturaTraduccion.en.porcentaje.toLocaleString(language === 'es' ? 'es-AR' : 'en-US')} %</span></div>
+              <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.en')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={coberturaTraduccion.en.porcentaje}><span style={{ width: `${coberturaTraduccion.en.porcentaje}%` }} /></div>
+              <span className="profile-meta">{coberturaTraduccion.en.traducidos} {t('profile.translationOf')} {coberturaTraduccion.en.total} · {coberturaTraduccion.en.total - coberturaTraduccion.en.traducidos} {t('profile.translationMissing')}</span>
+            </li>
+          </ul>
         </section>
       </div>
     </AppLayout>
