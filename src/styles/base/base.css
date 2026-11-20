@@ -65,3 +65,9 @@ textarea {
     font-size: 16px !important;
   }
 }
+
+/* Las flechas del navegador en los campos de número no se pueden pintar (se ven blancas en modo
+   oscuro): se ocultan y CampoNumero pone las suyas. Con el teclado (↑ ↓) se sigue pudiendo. */
+input[type='number'] { -moz-appearance: textfield; appearance: textfield; }
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }

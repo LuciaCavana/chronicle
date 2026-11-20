@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { agruparConjuros, firmaRegla, nombreRegla, reglaRapida, reglasRapidas, resumenRegla, type Regla } from '../../lib/conjurosRasgo'
 import '../../styles/formularios/ConjurosRasgo.css'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 export type ConjuroDisponible = { id: string; nombre: string; nivel: number; libro?: string }
 export type ConjuroDeRasgo = {
@@ -146,7 +147,7 @@ export default function ConjurosRasgoEditor({ conjuros, disponibles, onChange, n
         ] as const).map(([valor, texto]) => <label className="conjuros-rasgo__segmento" key={valor}><input type="radio" name="modo-uso" checked={regla.modoUso === valor} onChange={() => actualizarRegla({ modoUso: valor })}/>{texto}</label>)}</div>
       </fieldset>
       {regla.modoUso !== 'normal' && <div className="conjuros-rasgo__usos">
-        <div className="conjuros-rasgo__frase"><span>Puede lanzarlo</span><div className="conjuros-rasgo__contador-usos"><button type="button" aria-label="Reducir usos" disabled={regla.usosGratuitos <= 1} onClick={() => actualizarRegla({ usosGratuitos: regla.usosGratuitos - 1 })}>−</button><input type="number" min={1} max={999} aria-label="Cantidad de usos" value={regla.usosGratuitos} onChange={e => actualizarRegla({ usosGratuitos: Number(e.target.value) || 1 })}/><button type="button" aria-label="Aumentar usos" disabled={regla.usosGratuitos >= 999} onClick={() => actualizarRegla({ usosGratuitos: regla.usosGratuitos + 1 })}>+</button></div><span>{regla.usosGratuitos === 1 ? 'vez' : 'veces'} sin gastar espacio</span></div>
+        <div className="conjuros-rasgo__frase"><span>Puede lanzarlo</span><div className="conjuros-rasgo__contador-usos"><button type="button" aria-label="Reducir usos" disabled={regla.usosGratuitos <= 1} onClick={() => actualizarRegla({ usosGratuitos: regla.usosGratuitos - 1 })}>−</button><CampoNumero  min={1} max={999} aria-label="Cantidad de usos" value={regla.usosGratuitos} onChange={e => actualizarRegla({ usosGratuitos: Number(e.target.value) || 1 })}/><button type="button" aria-label="Aumentar usos" disabled={regla.usosGratuitos >= 999} onClick={() => actualizarRegla({ usosGratuitos: regla.usosGratuitos + 1 })}>+</button></div><span>{regla.usosGratuitos === 1 ? 'vez' : 'veces'} sin gastar espacio</span></div>
         <fieldset className="conjuros-rasgo__paso"><legend>Se recupera tras</legend><div className="conjuros-rasgo__filtros">{([
           ['corto', 'descanso corto'], ['largo', 'descanso largo'], ['ambos', 'cualquiera']
         ] as const).map(([valor, texto]) => <label className="conjuros-rasgo__pildora" key={valor}><input type="radio" name="recuperacion" checked={regla.recuperacion === valor} onChange={() => actualizarRegla({ recuperacion: valor })}/>{texto}</label>)}</div></fieldset>

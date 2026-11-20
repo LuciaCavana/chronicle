@@ -5,6 +5,7 @@ import type { RasgoEspecie } from '../../types/especie'
 import '../../styles/formularios/RasgosEspecie.css'
 import SelectorConjuros from './SelectorConjuros'
 import type { Conjuro, ConjuroOtorgado } from '../../types/conjuro'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 type Props = {
   rasgos: RasgoEspecie[]
@@ -269,8 +270,8 @@ function desvincularConjuro(conjuroId: string) {
         <div className="rasgos-especie-conjuro-config">
           <label>
             Nivel requerido
-            <input
-              type="number"
+            <CampoNumero
+              
               min={1}
               max={20}
               value={vinculo.nivelRequerido}

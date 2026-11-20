@@ -1,0 +1,18 @@
+/* Campo de número con flechas propias (src/components/shared/CampoNumero.tsx). */
+.campo-numero { position: relative; display: block; min-width: 0; }
+.campo-numero--angosto { display: inline-block; vertical-align: middle; max-width: 100%; }
+.campo-numero .campo-numero__campo { padding-right: 32px !important; }
+.campo-numero__flechas {
+  position: absolute; top: 4px; right: 4px; bottom: 4px;
+  display: flex; flex-direction: column; width: 24px;
+  border-left: 1px solid var(--color-borde-suave);
+}
+.campo-numero__flechas button {
+  flex: 1; display: grid; place-items: center; min-height: 0; padding: 0;
+  background: transparent; border: 0; border-radius: 4px; color: var(--color-texto-suave); cursor: pointer;
+}
+.campo-numero__flechas button:hover:not(:disabled) { background: var(--color-fondo-activo); color: var(--color-acento); }
+.campo-numero__flechas button:active:not(:disabled) { background: var(--color-boton-fondo-hover); }
+.campo-numero__flechas button:disabled { opacity: .35; cursor: not-allowed; }
+.campo-numero--deshabilitado .campo-numero__flechas { opacity: .6; }
+.campo-numero > .campo-numero__campo { display: block; }

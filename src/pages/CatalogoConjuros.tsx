@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft, BookOpen, Search } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
+import { datosDeEfecto } from '../lib/efectosConjuro'
 import '../styles/paginas/CatalogoConjuros.css'
 
 type Conjuro = {
@@ -96,6 +97,7 @@ export default function CatalogoConjuros() {
               {c.alcance && <p><strong>Alcance:</strong> {c.alcance}</p>}
               {c.componentes && <p><strong>Componentes:</strong> {c.componentes}{c.componenteMaterial ? ` (${c.componenteMaterial})` : ''}</p>}
               {c.duracion && <p><strong>Duración:</strong> {c.concentracion?'Concentración, ':''}{c.duracion}</p>}
+              {datosDeEfecto(c as unknown as Record<string, unknown>).map(d => <p key={d.etiqueta + d.valor}><strong>{d.etiqueta}:</strong> {d.valor}</p>)}
             </div>
             {c.descripcion && <p className="catalogo-conjuros__descripcion">{textoSeguro(c.descripcion)}</p>}
             {Array.isArray(c.clases) && c.clases.length>0 && <p><strong>Clases:</strong> {c.clases.join(', ')}</p>}

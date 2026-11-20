@@ -6,6 +6,7 @@ import type {
   BeneficioNivel,
 } from '../../types/especie'
 import '../../styles/formularios/LinajesEspecie.css'
+import CampoNumero from '../../components/shared/CampoNumero'
 
 type Props = {
   linajes: LinajeEspecie[]
@@ -232,8 +233,8 @@ export default function LinajesEspecie({
               <div className="linajes-especie-beneficio-heading">
                 <label>
                   Nivel *
-                  <input
-                    type="number"
+                  <CampoNumero
+                    
                     min={1}
                     step={1}
                     value={beneficio.nivel}

@@ -6,6 +6,7 @@ import { nuevoId, type Capitulo } from '../../../types/capitulo'
 import type { Existentes } from '../../../lib/conciliarFichas'
 import type { CambioFicha } from '../../../lib/zonasPdf'
 import MarcarPaginas, { type CapituloImportar } from './MarcarPaginas'
+import CampoNumero from '../../../components/shared/CampoNumero'
 
 export type { CambioFicha } from '../../../lib/zonasPdf'
 type Props = {
@@ -121,10 +122,10 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
         <div className="capitulos__rango">
           <span>{pdf.total} páginas. Importar de la</span>
           <label><span className="capitulos__oculto">Desde la página</span>
-            <input type="number" min={1} max={pdf.total} value={desde} disabled={ocupado} onChange={e => setDesde(Math.max(1, Math.min(pdf.total, Number(e.target.value) || 1)))} /></label>
+            <CampoNumero  min={1} max={pdf.total} value={desde} disabled={ocupado} onChange={e => setDesde(Math.max(1, Math.min(pdf.total, Number(e.target.value) || 1)))} /></label>
           <span>a la</span>
           <label><span className="capitulos__oculto">Hasta la página</span>
-            <input type="number" min={desde} max={pdf.total} value={hasta} disabled={ocupado} onChange={e => setHasta(Math.max(desde, Math.min(pdf.total, Number(e.target.value) || desde)))} /></label>
+            <CampoNumero  min={desde} max={pdf.total} value={hasta} disabled={ocupado} onChange={e => setHasta(Math.max(desde, Math.min(pdf.total, Number(e.target.value) || desde)))} /></label>
           <button type="button" className="capitulos__primario" disabled={ocupado} onClick={porPaginas}>Revisar</button>
         </div>
         <p className="capitulos__ayuda">Los créditos y el índice se saltean solos.</p>

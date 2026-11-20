@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
+import { datosDeEfecto } from '../lib/efectosConjuro'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, WandSparkles, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
@@ -233,6 +234,7 @@ function ConjurosDesplegables({ seccion, sinEncabezado }: { seccion: Seccion; si
             {texto(conjuro.alcance) && <div className="lector-libro__conjuro-dato"><dt>Alcance</dt><dd>{texto(conjuro.alcance)}</dd></div>}
             {componentes && <div className="lector-libro__conjuro-dato"><dt>Componentes</dt><dd>{componentes}{material ? ` (${material})` : ''}</dd></div>}
             {texto(conjuro.duracion) && <div className="lector-libro__conjuro-dato"><dt>Duración</dt><dd>{conjuro.concentracion ? 'Concentración, ' : ''}{texto(conjuro.duracion)}</dd></div>}
+            {datosDeEfecto(conjuro).map(d => <div key={d.etiqueta + d.valor} className="lector-libro__conjuro-dato"><dt>{d.etiqueta}</dt><dd>{d.valor}</dd></div>)}
           </dl>
           <TextoSeguro valor={conjuro.descripcion}/>
           {clases.length>0 && <p className="lector-libro__conjuro-clases">Clases: {clases.map(c => <span key={c}>{c}</span>)}</p>}

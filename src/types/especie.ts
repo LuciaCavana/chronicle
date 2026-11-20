@@ -100,6 +100,8 @@ export type Especie = {
   tamanos: TamanoEspecie[]
   tiposCriatura: string[]
   velocidad: string
+  /** Velocidades además de caminar (nado, vuelo, trepar, excavar). */
+  velocidadesExtra?: VelocidadesExtra
   visionOscuridad: boolean
   alcanceVision: string
   pagina: string
@@ -108,3 +110,7 @@ export type Especie = {
   transformaciones: TransformacionEspecie[]
   camposAdicionales?: CampoAdicionalEspecie[]
 }
+export type TipoVelocidadExtra = 'nado' | 'vuelo' | 'trepar' | 'excavar'
+/** Una velocidad extra: en pies, o igual a la velocidad de la especie. */
+export type VelocidadExtra = { pies: string; igualAVelocidad?: boolean }
+export type VelocidadesExtra = Partial<Record<TipoVelocidadExtra, VelocidadExtra>>
