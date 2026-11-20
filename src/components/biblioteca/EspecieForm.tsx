@@ -16,6 +16,21 @@ import type {
   TransformacionEspecie,
 } from '../../types/especie'
 import '../../styles/formularios/EspecieForm.css'
+import type { TipoVelocidadExtra, VelocidadExtra, VelocidadesExtra } from '../../types/especie'
+
+const VELOCIDADES: { tipo: TipoVelocidadExtra; nombre: string }[] = [
+  { tipo: 'nado', nombre: 'Nado' }, { tipo: 'vuelo', nombre: 'Vuelo' }, { tipo: 'trepar', nombre: 'Trepar' }, { tipo: 'excavar', nombre: 'Excavar' },
+]
+/** Solo las velocidades con un valor (igual a la velocidad o en pies). */
+function limpiarVelocidades(v: VelocidadesExtra): VelocidadesExtra | undefined {
+  const salida: VelocidadesExtra = {}
+  for (const { tipo } of VELOCIDADES) {
+    const x = v[tipo]
+    if (x?.igualAVelocidad) salida[tipo] = { pies: '', igualAVelocidad: true }
+    else if (x?.pies.trim()) salida[tipo] = { pies: x.pies.trim() }
+  }
+  return Object.keys(salida).length ? salida : undefined
+}
 
 type Props = {
   bookTitle: string
@@ -86,6 +101,13 @@ export default function EspecieForm({
     fuente?.tiposCriatura ?? ['Humanoide']
   )
   const [velocidad, setVelocidad] = useState(fuente?.velocidad ?? '30')
+  const [velocidadesExtra, setVelocidadesExtra] = useState<VelocidadesExtra>(fuente?.velocidadesExtra ?? {})
+  const cambiarVelocidad = (tipo: TipoVelocidadExtra, cambio: Partial<VelocidadExtra> | null) => setVelocidadesExtra(actuales => {
+    const nuevas = { ...actuales }
+    if (cambio === null) delete nuevas[tipo]
+    else nuevas[tipo] = { pies: '', ...actuales[tipo], ...cambio }
+    return nuevas
+  })
   const [visionOscuridad, setVisionOscuridad] = useState(
     fuente?.visionOscuridad ?? false
   )
@@ -107,7 +129,7 @@ export default function EspecieForm({
     CampoAdicionalEspecie[]
   >(fuente?.camposAdicionales ?? [])
   useReportarBorrador<Especie>({
-    id: initialData?.id ?? idNuevo, nombre, descripcion, tamanos, tiposCriatura, velocidad,
+    id: initialData?.id ?? idNuevo, nombre, descripcion, tamanos, tiposCriatura, velocidad, velocidadesExtra,
     visionOscuridad, alcanceVision, pagina, rasgos, linajes, camposAdicionales, transformaciones,
   }, onCambioBorrador, Boolean(borrador))
 
@@ -173,6 +195,7 @@ export default function EspecieForm({
       tamanos,
       tiposCriatura: normalizarTiposCriatura(tiposCriatura),
       velocidad,
+      velocidadesExtra: limpiarVelocidades(velocidadesExtra),
       visionOscuridad,
       alcanceVision: visionOscuridad ? alcanceVision : '',
       pagina,
@@ -317,6 +340,30 @@ export default function EspecieForm({
           />
         </div>
       </div>
+
+      <fieldset className="especie-form-section especie-form__velocidades">
+        <legend>Otras velocidades</legend>
+        <p className="especie-form__ayuda">Marcá las que tiene la especie, además de caminar.</p>
+        {VELOCIDADES.map(({ tipo, nombre }) => {
+          const v = velocidadesExtra[tipo]
+          return <div key={tipo} className="especie-form__velocidad">
+            <label className="especie-form-checkbox">
+              <input type="checkbox" checked={!!v} onChange={(e) => cambiarVelocidad(tipo, e.target.checked ? { pies: '', igualAVelocidad: tipo === 'nado' || tipo === 'trepar' } : null)} />
+              {nombre}
+            </label>
+            {v && <>
+              <label className="especie-form-checkbox">
+                <input type="checkbox" checked={!!v.igualAVelocidad} onChange={(e) => cambiarVelocidad(tipo, { igualAVelocidad: e.target.checked })} />
+                Igual a su velocidad
+              </label>
+              {!v.igualAVelocidad && <div className="nueva-propuesta-field">
+                <label htmlFor={`species-speed-${tipo}`}>Pies</label>
+                <input id={`species-speed-${tipo}`} aria-label={`${nombre} (pies)`} type="number" min="0" value={v.pies} onChange={(e) => cambiarVelocidad(tipo, { pies: e.target.value })} />
+              </div>}
+            </>}
+          </div>
+        })}
+      </fieldset>
 
       <div className="especie-form-section">
         <label className="especie-form-checkbox">

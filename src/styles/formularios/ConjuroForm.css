@@ -3,3 +3,26 @@
 .conjuro-form__grupo { min-width: 0; margin: 0 0 20px; padding: 0; border: 0; }
 .conjuro-form__grupo legend { margin-bottom: 9px; padding: 0; font-size: 13px; color: var(--color-texto-etiqueta); }
 .conjuro-form__opciones { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+
+/* Efecto del conjuro: una fila por efecto (tipo, dados y lo que corresponda). */
+.conjuro-form__ayuda { margin: -2px 0 12px; font-size: 13px; color: var(--color-texto-suave); }
+.conjuro-form__efecto {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0 12px; margin-bottom: 12px; padding: 12px 12px 0;
+  background: var(--color-fondo-seccion); border: 1px solid var(--color-borde-suave); border-radius: var(--radio-md);
+}
+.conjuro-form__efecto > .nueva-propuesta-field { flex: 1 1 150px; }
+.conjuro-form__efecto > .conjuro-form__efecto-texto { flex: 3 1 260px; }
+.conjuro-form__quitar {
+  display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 20px; padding: 0;
+  background: transparent; border: 1px solid var(--color-peligro-borde); border-radius: var(--radio-md); color: var(--color-peligro); cursor: pointer;
+}
+.conjuro-form__quitar:hover { background: var(--color-peligro-fondo); }
+.conjuro-form__agregar { display: flex; flex-wrap: wrap; gap: 8px; }
+.conjuro-form__agregar button {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px;
+  background: var(--color-boton-fondo); border: 1px solid var(--color-acento-borde); border-radius: var(--radio-pildora, 999px);
+  color: var(--color-texto); font: inherit; font-size: 13.5px; cursor: pointer;
+}
+.conjuro-form__agregar button:hover { background: var(--color-boton-fondo-hover); }
+.conjuro-form__mejora { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 12px; }
+@media (max-width: 560px) { .conjuro-form__mejora { grid-template-columns: 1fr; } }

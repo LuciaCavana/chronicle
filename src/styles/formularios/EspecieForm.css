@@ -301,3 +301,11 @@
     grid-template-columns: 1fr;
   }
 }
+/* Otras velocidades (nado, vuelo, trepar, excavar) */
+.especie-form__velocidades { min-width: 0; margin-left: 0; margin-right: 0; border: 0; padding-left: 0; padding-right: 0; }
+.especie-form__velocidades legend { padding: 0; margin-bottom: 6px; font-size: 13px; color: var(--color-texto-etiqueta); }
+.especie-form__ayuda { margin: 0 0 10px; font-size: 13px; color: var(--color-texto-suave); }
+.especie-form__velocidad { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 20px; min-height: 44px; }
+.especie-form__velocidad > .especie-form-checkbox:first-child { width: 130px; }
+.especie-form__velocidad .nueva-propuesta-field { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 0; }
+.especie-form__velocidad .nueva-propuesta-field input { width: 90px; }

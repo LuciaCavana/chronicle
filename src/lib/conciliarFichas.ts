@@ -49,6 +49,7 @@ const ETIQUETAS: Record<string, string> = {
   inmunidadesDano: 'Inmunidades', sentidos: 'Sentidos', idiomas: 'Idiomas', desafio: 'Desafío', experiencia: 'Experiencia',
   competencia: 'Bonificador por competencia', secciones: 'Rasgos y acciones', dadoGolpe: 'Dado de golpe', caracteristicasPrincipales: 'Característica principal',
   salvaciones: 'Salvaciones', armas: 'Armas', armaduras: 'Armaduras', herramientas: 'Herramientas', equipoInicial: 'Equipo inicial',
+  efectos: 'Efecto', mejoraTruco: 'Mejora de truco', nivelSuperior: 'Con un espacio de nivel superior', velocidadesExtra: 'Otras velocidades',
   precio: 'Precio', moneda: 'Moneda', peso: 'Peso', dadosDanio: 'Daño', tipoDanio: 'Tipo de daño', propiedadesTexto: 'Propiedades', maestria: 'Maestría',
 }
 /** Nombre legible de un campo: el de la lista o, si no está, la ruta separada en palabras («doteOrigen» → «Dote origen»). */
