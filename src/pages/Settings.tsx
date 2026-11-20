@@ -46,17 +46,17 @@ export default function Settings() {
           </div>
           <h3 className="profile-subtitulo">{t('profile.translation')}</h3>
           <p className="profile-description">{t('profile.translationDescription')}</p>
-          <ul className="profile-traduccion">
-            <li>
-              <div className="profile-traduccion__fila"><strong>{t('language.es')}</strong><span>100 % · {t('profile.translationBase')}</span></div>
-              <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.es')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={100}><span style={{ width: '100%' }} /></div>
-            </li>
-            <li>
-              <div className="profile-traduccion__fila"><strong>{t('language.en')}</strong><span>{coberturaTraduccion.en.porcentaje.toLocaleString(language === 'es' ? 'es-AR' : 'en-US')} %</span></div>
-              <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.en')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={coberturaTraduccion.en.porcentaje}><span style={{ width: `${coberturaTraduccion.en.porcentaje}%` }} /></div>
-              <span className="profile-meta">{coberturaTraduccion.en.traducidos} {t('profile.translationOf')} {coberturaTraduccion.en.total} · {coberturaTraduccion.en.total - coberturaTraduccion.en.traducidos} {t('profile.translationMissing')}</span>
-            </li>
-          </ul>
+          {/* Solo el idioma elegido arriba. */}
+          {language === 'es'
+            ? <div className="profile-traduccion">
+                <div className="profile-traduccion__fila"><strong>{t('language.es')}</strong><span>100 % · {t('profile.translationBase')}</span></div>
+                <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.es')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={100}><span style={{ width: '100%' }} /></div>
+              </div>
+            : <div className="profile-traduccion">
+                <div className="profile-traduccion__fila"><strong>{t('language.en')}</strong><span>{coberturaTraduccion.en.porcentaje.toLocaleString('en-US')} %</span></div>
+                <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.en')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={coberturaTraduccion.en.porcentaje}><span style={{ width: `${coberturaTraduccion.en.porcentaje}%` }} /></div>
+                <span className="profile-meta">{coberturaTraduccion.en.traducidos} {t('profile.translationOf')} {coberturaTraduccion.en.total} · {coberturaTraduccion.en.total - coberturaTraduccion.en.traducidos} {t('profile.translationMissing')}</span>
+              </div>}
         </section>
       </div>
     </AppLayout>
