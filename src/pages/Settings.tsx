@@ -7,7 +7,9 @@ import { useLanguage } from '../i18n/useLanguage'
 import { coberturaTraduccion } from '../i18n/cobertura'
 
 export default function Settings() {
-  const { session } = useAuth()
+  const { session, role } = useAuth()
+  // El detalle de cuántos textos faltan traducir es para quienes administran la página.
+  const esAdmin = role === 'creator' || role === 'admin'
   const { language, setLanguage, t } = useLanguage()
   return (
     <AppLayout title={t('settings.title')} subtitle={t('settings.subtitle')}>
@@ -55,7 +57,7 @@ export default function Settings() {
             : <div className="profile-traduccion">
                 <div className="profile-traduccion__fila"><strong>{t('language.en')}</strong><span>{coberturaTraduccion.en.porcentaje.toLocaleString('en-US')} %</span></div>
                 <div className="profile-traduccion__barra" role="progressbar" aria-label={t('language.en')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={coberturaTraduccion.en.porcentaje}><span style={{ width: `${coberturaTraduccion.en.porcentaje}%` }} /></div>
-                <span className="profile-meta">{coberturaTraduccion.en.traducidos} {t('profile.translationOf')} {coberturaTraduccion.en.total} · {coberturaTraduccion.en.total - coberturaTraduccion.en.traducidos} {t('profile.translationMissing')}</span>
+                {esAdmin && <span className="profile-meta">{coberturaTraduccion.en.traducidos} {t('profile.translationOf')} {coberturaTraduccion.en.total} · {coberturaTraduccion.en.total - coberturaTraduccion.en.traducidos} {t('profile.translationMissing')}</span>}
               </div>}
         </section>
       </div>
