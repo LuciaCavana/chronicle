@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-
 
 import AppLayout from '../components/layout/AppLayout'
 import { useAuth } from '../contexts/useAuth'
+import { eliminarPorId, reemplazarOAgregar } from '../lib/listas'
 import { borrarRespaldoBorrador, useAvisoAntesDeSalir, useRespaldoBorrador } from '../hooks/useRespaldoBorrador'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
@@ -450,41 +451,35 @@ export default function NuevaPropuesta() {
   }
 
   function guardarEspecie(especie: Especie) {
-    setEspecies((actuales) => {
-      const existe = actuales.some((item) => item.id === especie.id)
-
-      return existe
-        ? actuales.map((item) => (item.id === especie.id ? especie : item))
-        : [...actuales, especie]
-    })
+    setEspecies(actuales => reemplazarOAgregar(actuales, especie))
 
     cerrarFormularioEspecie()
   }
 
   function eliminarEspecie(id: string) {
-    setEspecies((actuales) => actuales.filter((especie) => especie.id !== id))
+    setEspecies(actuales => eliminarPorId(actuales, id))
   }
 
   function guardarCriatura(criatura: Criatura) {
-    setCriaturas(actuales => actuales.some(c => c.id === criatura.id) ? actuales.map(c => c.id === criatura.id ? criatura : c) : [...actuales, criatura])
+    setCriaturas(actuales => reemplazarOAgregar(actuales, criatura))
     setShowCriaturaForm(false)
     setEditingCriaturaId(null)
   }
 
   function guardarTrasfondo(trasfondo: Trasfondo) {
-    setTrasfondos(actuales => actuales.some(t => t.id === trasfondo.id) ? actuales.map(t => t.id === trasfondo.id ? trasfondo : t) : [...actuales, trasfondo])
+    setTrasfondos(actuales => reemplazarOAgregar(actuales, trasfondo))
     setShowTrasfondoForm(false)
     setEditingTrasfondoId(null)
   }
 
   function guardarDote(dote: Dote) {
-    setDotes(actuales => actuales.some(d => d.id === dote.id) ? actuales.map(d => d.id === dote.id ? dote : d) : [...actuales, dote])
+    setDotes(actuales => reemplazarOAgregar(actuales, dote))
     setShowDoteForm(false)
     setEditingDoteId(null)
   }
 
   function guardarConjuro(conjuro: Conjuro) {
-    setConjuros(actuales => actuales.some(c => c.id === conjuro.id) ? actuales.map(c => c.id === conjuro.id ? conjuro : c) : [...actuales, conjuro])
+    setConjuros(actuales => reemplazarOAgregar(actuales, conjuro))
     setShowConjuroForm(false)
     setEditingConjuroId(null)
   }
@@ -703,26 +698,26 @@ export default function NuevaPropuesta() {
     clases: {
       elementos: clases.map(c => ({ id: c.id, nombre: c.nombre, incompleto: !c.nombre.trim() })),
       agregar: () => { const nueva: Elemento = { id: crypto.randomUUID(), tipo: 'clase', nombre: '', descripcion: '', datos: {} }; setClases(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'clases', id: nueva.id, json: JSON.stringify(nueva) }; setEditingClassId(nueva.id) },
-      editar: setEditingClassId, eliminar: id => setClases(actuales => actuales.filter(c => c.id !== id)),
+      editar: setEditingClassId, eliminar: id => setClases(actuales => eliminarPorId(actuales, id)),
     },
     subclases: {
       elementos: subclases.map(s => ({ id: s.id, nombre: s.nombre, detalle: clasesDisponiblesSubclase.find(c => c.id === (s.datos as { claseId?: string }).claseId)?.nombre ?? 'Sin clase principal', incompleto: subclaseIncompleta(s) })),
       agregar: () => { const nueva: Elemento = { id: crypto.randomUUID(), tipo: 'subclase', nombre: '', descripcion: '', datos: { claseId: '', rasgos: [], recursos: [] } }; setSubclases(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'subclases', id: nueva.id, json: JSON.stringify(nueva) }; setEditingSubclassId(nueva.id) },
-      editar: setEditingSubclassId, eliminar: id => setSubclases(actuales => actuales.filter(s => s.id !== id)),
+      editar: setEditingSubclassId, eliminar: id => setSubclases(actuales => eliminarPorId(actuales, id)),
     },
-    trasfondos: { elementos: trasfondos.map(t => ({ id: t.id, nombre: t.nombre })), agregar: () => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }, editar: id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }, eliminar: id => setTrasfondos(actuales => actuales.filter(t => t.id !== id)) },
-    criaturas: { elementos: criaturas.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo })), agregar: () => { setEditingCriaturaId(null); setShowCriaturaForm(true) }, editar: id => { setEditingCriaturaId(id); setShowCriaturaForm(true) }, eliminar: id => setCriaturas(actuales => actuales.filter(c => c.id !== id)) },
-    dotes: { elementos: dotes.map(d => ({ id: d.id, nombre: d.nombre, detalle: d.categoria })), agregar: () => { setEditingDoteId(null); setShowDoteForm(true) }, editar: id => { setEditingDoteId(id); setShowDoteForm(true) }, eliminar: id => setDotes(actuales => actuales.filter(d => d.id !== id)) },
-    conjuros: { elementos: conjuros.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo === 'truco' ? 'Truco' : `Nivel ${c.nivel}` })), agregar: () => { setEditingConjuroId(null); setShowConjuroForm(true) }, editar: id => { setEditingConjuroId(id); setShowConjuroForm(true) }, eliminar: id => setConjuros(actuales => actuales.filter(c => c.id !== id)) },
+    trasfondos: { elementos: trasfondos.map(t => ({ id: t.id, nombre: t.nombre })), agregar: () => { setEditingTrasfondoId(null); setShowTrasfondoForm(true) }, editar: id => { setEditingTrasfondoId(id); setShowTrasfondoForm(true) }, eliminar: id => setTrasfondos(actuales => eliminarPorId(actuales, id)) },
+    criaturas: { elementos: criaturas.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo })), agregar: () => { setEditingCriaturaId(null); setShowCriaturaForm(true) }, editar: id => { setEditingCriaturaId(id); setShowCriaturaForm(true) }, eliminar: id => setCriaturas(actuales => eliminarPorId(actuales, id)) },
+    dotes: { elementos: dotes.map(d => ({ id: d.id, nombre: d.nombre, detalle: d.categoria })), agregar: () => { setEditingDoteId(null); setShowDoteForm(true) }, editar: id => { setEditingDoteId(id); setShowDoteForm(true) }, eliminar: id => setDotes(actuales => eliminarPorId(actuales, id)) },
+    conjuros: { elementos: conjuros.map(c => ({ id: c.id, nombre: c.nombre, detalle: c.tipo === 'truco' ? 'Truco' : `Nivel ${c.nivel}` })), agregar: () => { setEditingConjuroId(null); setShowConjuroForm(true) }, editar: id => { setEditingConjuroId(id); setShowConjuroForm(true) }, eliminar: id => setConjuros(actuales => eliminarPorId(actuales, id)) },
     objetos: {
       elementos: objetos.map(o => ({ id: o.id, nombre: o.nombre, detalle: String(o.datos?.tipo ?? 'equipo'), incompleto: !o.nombre.trim() })),
       agregar: () => { const nuevo: Elemento = { id: crypto.randomUUID(), tipo: 'objeto', nombre: '', descripcion: '', datos: { tipo: 'equipo', rareza: 'Sin rareza', moneda: 'PO', magico: false } }; setObjetos(actuales => [...actuales, nuevo]); recienCreado.current = { categoria: 'objetos', id: nuevo.id, json: JSON.stringify(nuevo) }; setEditingObjectId(nuevo.id) },
-      editar: setEditingObjectId, eliminar: id => setObjetos(actuales => actuales.filter(o => o.id !== id)),
+      editar: setEditingObjectId, eliminar: id => setObjetos(actuales => eliminarPorId(actuales, id)),
     },
     otras: {
       elementos: caracteristicas.map(c => ({ id: c.id, nombre: c.nombre, detalle: etiquetasCaracteristica[c.tipo] ?? c.tipo })),
       agregar: () => { const nueva: CaracteristicaLibro = { id: crypto.randomUUID(), tipo: 'otra', nombre: '', descripcion: '' }; setCaracteristicas(actuales => [...actuales, nueva]); recienCreado.current = { categoria: 'otras', id: nueva.id, json: JSON.stringify(nueva) }; setEditingCaracteristicaId(nueva.id) },
-      editar: setEditingCaracteristicaId, eliminar: id => setCaracteristicas(actuales => actuales.filter(c => c.id !== id)),
+      editar: setEditingCaracteristicaId, eliminar: id => setCaracteristicas(actuales => eliminarPorId(actuales, id)),
       extras: [
         { etiqueta: 'Agregar propiedades de armas', accion: () => setCaracteristicas(actuales => [...actuales, ...crearPropiedadesArma().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))]) },
         { etiqueta: 'Agregar monedas', accion: () => setCaracteristicas(actuales => [...actuales, ...crearMonedas().filter(item => !actuales.some(c => c.tipo === item.tipo && c.codigo === item.codigo))]) },

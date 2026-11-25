@@ -1,6 +1,8 @@
 import type { CaracteristicaLibro } from '../types/caracteristicaLibro'
 import { supabase } from '../lib/supabase'
 import { errorDeSupabase } from '../lib/erroresSupabase'
+import { contenidoDeLibro, metadatosDeLibro } from '../lib/libroMapper'
+import { requerirUsuarioId } from './sesion'
 import type { Especie } from '../types/especie'
 import type { Trasfondo } from '../types/trasfondo'
 import type { Criatura } from '../types/criatura'
@@ -71,16 +73,7 @@ export async function listarVersionesPublicadas() {
 }
 
 export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraduccion) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw errorDeSupabase(usuarioError, 'guardar el borrador')
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  const usuarioId = await requerirUsuarioId('guardar el borrador')
 
   const { data, error } = await supabase
     .from('propuestas')
@@ -95,24 +88,8 @@ export async function guardarPropuesta(datos: NuevoLibro, origen?: OrigenTraducc
       titulo: datos.titulo,
       descripcion: datos.descripcion,
       categorias: datos.categorias,
-      contenido: {
-        especies: datos.especies,
-        conjuros: datos.conjuros,
-        dotes: datos.dotes,
-        trasfondos: datos.trasfondos,
-        criaturas: datos.criaturas,
-        clases: datos.clases,
-        subclases: datos.subclases,
-        objetos: datos.objetos,
-        caracteristicas: datos.caracteristicas ?? [],
-        capitulos: datos.capitulos ?? [],
-      },
-      metadatos_libro: {
-        codigo: datos.codigo,
-        edicion: datos.edicion,
-        editorial: datos.editorial,
-        clasificacion: datos.clasificacion,
-      },
+      contenido: contenidoDeLibro(datos),
+      metadatos_libro: metadatosDeLibro(datos),
     })
     .select('id')
     .single()
@@ -235,16 +212,7 @@ export async function actualizarLibro(
 export async function obtenerPropuestaParaEditar(
   propuestaId: string
 ) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw errorDeSupabase(usuarioError, 'cargar el borrador')
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  await requerirUsuarioId('cargar el borrador')
 
   const { data, error } = await supabase
     .from('propuestas')
@@ -281,16 +249,7 @@ export async function actualizarPropuesta(
   datos: NuevoLibro,
   versionActual: number
 ) {
-  const { data: usuarioData, error: usuarioError } =
-    await supabase.auth.getUser()
-
-  if (usuarioError) throw errorDeSupabase(usuarioError, 'guardar el borrador')
-
-  const usuarioId = usuarioData.user?.id
-
-  if (!usuarioId) {
-    throw new Error('Tenés que iniciar sesión.')
-  }
+  const usuarioId = await requerirUsuarioId('guardar el borrador')
 
   const { data: permiso, error: errorPermiso } = await supabase.from('propuestas').select('autor_id').eq('id', propuestaId).single()
   if (errorPermiso) throw errorPermiso
@@ -299,8 +258,8 @@ export async function actualizarPropuesta(
       p_propuesta_id: propuestaId, p_version: versionActual,
       p_idioma: datos.idioma, p_titulo: datos.titulo, p_descripcion: datos.descripcion,
       p_categorias: datos.categorias,
-      p_contenido: { especies: datos.especies, conjuros: datos.conjuros, dotes: datos.dotes, trasfondos: datos.trasfondos, criaturas: datos.criaturas, clases: datos.clases, subclases: datos.subclases, objetos: datos.objetos, caracteristicas: datos.caracteristicas ?? [], capitulos: datos.capitulos ?? [] },
-      p_metadatos: { codigo: datos.codigo, edicion: datos.edicion, editorial: datos.editorial, clasificacion: datos.clasificacion },
+      p_contenido: contenidoDeLibro(datos),
+      p_metadatos: metadatosDeLibro(datos),
     })
     if (errorCompartido) throw errorCompartido
     return { id: propuestaId, row_version: version as number }
@@ -313,24 +272,8 @@ export async function actualizarPropuesta(
       titulo: datos.titulo,
       descripcion: datos.descripcion,
       categorias: datos.categorias,
-      contenido: {
-        especies: datos.especies,
-        conjuros: datos.conjuros,
-        dotes: datos.dotes,
-        trasfondos: datos.trasfondos,
-        criaturas: datos.criaturas,
-        clases: datos.clases,
-        subclases: datos.subclases,
-        objetos: datos.objetos,
-        caracteristicas: datos.caracteristicas ?? [],
-        capitulos: datos.capitulos ?? [],
-      },
-      metadatos_libro: {
-        codigo: datos.codigo,
-        edicion: datos.edicion,
-        editorial: datos.editorial,
-        clasificacion: datos.clasificacion,
-      },
+      contenido: contenidoDeLibro(datos),
+      metadatos_libro: metadatosDeLibro(datos),
       pendiente_aprobacion: false,
       row_version: versionActual + 1,
       actualizado_en: new Date().toISOString(),
