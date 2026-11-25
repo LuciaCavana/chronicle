@@ -146,6 +146,46 @@ export function leerConjuro(nombre: string, renglones: RenglonFicha[]): Record<s
     return t && /niveles superiores|mejora de truco/i.test(t.nombre) ? `**${t.nombre}.** ${t.texto}` : p
   })
   if (parrafos.length) datos.descripcion = aHtml(parrafos)
+  Object.assign(datos, efectosDelTexto(parrafosDe(resto)))
+  return datos
+}
+
+const TIPOS_DANO_LIBRO = ['Ácido', 'Contundente', 'Cortante', 'Frío', 'Fuego', 'Fuerza', 'Necrótico', 'Perforante', 'Psíquico', 'Radiante', 'Relámpago', 'Trueno', 'Veneno']
+/**
+ * Efecto, mejora de truco y nivel superior a partir del texto del conjuro:
+ * «…recibe 8d6 de daño de fuego…», «…recupera 2d8 más tu modificador por característica de
+ * lanzamiento…», «Mejora de truco. … niveles 5 (2d10), 11 (3d10) y 17 (4d10)».
+ */
+export function efectosDelTexto(parrafos: string[]): Record<string, unknown> {
+  const datos: Record<string, unknown> = {}
+  const efectos: Record<string, unknown>[] = []
+  const vistos = new Set<string>()
+  for (const p of parrafos) {
+    const plano = p.replace(/\*\*/g, '')
+    const t = conTermino(plano)
+    if (t && /mejora de truco/i.test(t.nombre)) {
+      const m = t.texto.match(/\b5\s*\((\d+d\d+)\)[\s\S]*?\b11\s*\((\d+d\d+)\)[\s\S]*?\b17\s*\((\d+d\d+)\)/i)
+      if (m) datos.mejoraTruco = { nivel5: m[1], nivel11: m[2], nivel17: m[3] }
+      continue
+    }
+    const superior = plano.match(/^(?:usando un espacio de conjuro de nivel superior|con un espacio de nivel superior|a niveles superiores)[.:]\s*(.+)$/is)
+    if (superior) { datos.nivelSuperior = superior[1].trim(); continue }
+    if (t && /niveles? superior(?:es)?/i.test(t.nombre)) { datos.nivelSuperior = t.texto.trim(); continue }
+    for (const m of plano.matchAll(/(\d+d\d+(?:\s*\+\s*\d+)?)\s+de\s+da[ñn]o\s+(?:de\s+)?(\p{L}+)/giu)) {
+      const tipoDano = TIPOS_DANO_LIBRO.find(d => sinTildes(m[2]).startsWith(sinTildes(d).slice(0, 5)))
+      const clave = `dano:${m[1]}:${tipoDano ?? ''}`
+      if (vistos.has(clave)) continue
+      vistos.add(clave)
+      efectos.push({ id: nuevoId(), tipo: 'dano', dados: m[1].replace(/\s+/g, ''), ...(tipoDano ? { tipoDano } : {}) })
+    }
+    const cura = plano.match(/recupera\p{L}*\b[^.]*?(\d+d\d+)(\s+m[áa]s\s+tu\s+modificador\s+(?:por|de)\s+(?:caracter[íi]stica\s+de\s+)?(\p{L}+(?:\s+de\s+conjuros)?))?/iu)
+    if (cura && !vistos.has(`cura:${cura[1]}`)) {
+      vistos.add(`cura:${cura[1]}`)
+      const car = cura[3] ? (/lanzamiento/i.test(cura[3]) ? 'lanzamiento' : CARACTERISTICAS.find(c => sinTildes(c) === sinTildes(cura[3]))) : undefined
+      efectos.push({ id: nuevoId(), tipo: 'curacion', dados: cura[1], ...(car ? { caracteristica: car } : {}) })
+    }
+  }
+  if (efectos.length) datos.efectos = efectos.slice(0, 4)
   return datos
 }
 
@@ -263,6 +303,12 @@ export function leerCriatura(nombre: string, renglones: RenglonFicha[]): Record<
 // ---------------------------------------------------------------------------------------------
 // Especie (texto ya armado del capítulo): descripción, "Rasgos de X", tipo, tamaño, velocidad
 // ---------------------------------------------------------------------------------------------
+/** «9 m» → «30» (pies, de a 5). Si ya está en pies, el número. */
+function aPies(t: string): string {
+  const n = Number(t.replace(/[^\d,]/g, '').replace(',', '.'))
+  if (!n) return t.trim()
+  return /pies/i.test(t) ? String(n) : String(Math.round(n / 0.3 / 5) * 5)
+}
 export function leerEspecie(nombre: string, antes: string[], despues: string[]): Record<string, unknown> {
   const datos: Record<string, unknown> = { nombre }
   if (antes.length) datos.descripcion = aHtml(antes)
@@ -275,7 +321,15 @@ export function leerEspecie(nombre: string, antes: string[], despues: string[]):
     if (nombres.length) datos.tamanos = nombres.map(n => ({ id: n, nombre: n, alturaMinima: null, alturaMaxima: null }))
   }
   const vel = texto.match(/velocidad\s*:\s*([\d,]+\s*(?:m|metros|pies))/i)
-  if (vel) datos.velocidad = vel[1]
+  if (vel) datos.velocidad = aPies(vel[1])
+  // «velocidad de nado igual a tu velocidad», «velocidad de vuelo de 18 m»
+  const extra: Record<string, { pies: string; igualAVelocidad?: boolean }> = {}
+  for (const m of texto.matchAll(/velocidad (?:de |para )?(nado|nadar|vuelo|volar|trepar|escalar|excavar|excavaci[óo]n)\s+(igual a tu velocidad|(?:de\s+)?[\d,]+\s*(?:m|metros|pies))/giu)) {
+    const tipo = /^nad/i.test(m[1]) ? 'nado' : /^vol|^vue/i.test(m[1]) ? 'vuelo' : /^trep|^esca/i.test(m[1]) ? 'trepar' : 'excavar'
+    if (extra[tipo]) continue
+    extra[tipo] = /igual/i.test(m[2]) ? { pies: '', igualAVelocidad: true } : { pies: aPies(m[2].replace(/^de\s+/i, '')) }
+  }
+  if (Object.keys(extra).length) datos.velocidadesExtra = extra
   const rasgos: { id: string; nombre: string; descripcion: string }[] = []
   for (const p of despues) {
     const t = conTermino(p.replace(/^\*\*([^*]+)\*\*/, '$1'))

@@ -601,3 +601,4 @@
 }
 /* Términos en negrita al comienzo del párrafo: sin sangría y con sangría francesa, como en el libro. */
 .lector-capitulo__texto p.con-termino { text-indent: -1.2em; padding-left: 1.2em; }
+.lector-libro__rasgos h4 { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--color-texto-apagado); }

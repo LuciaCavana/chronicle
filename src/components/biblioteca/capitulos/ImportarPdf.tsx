@@ -16,6 +16,13 @@ type Props = {
   onCancelar: () => void
 }
 
+/** Un rango de páginas a partir de lo escrito: dentro del PDF y con «hasta» no menor que «desde». */
+function rango(desdeTxt: string, hastaTxt: string, total: number) {
+  const acotar = (t: string, porDefecto: number) => Math.max(1, Math.min(total, Math.round(Number(t)) || porDefecto))
+  const desde = acotar(desdeTxt, 1)
+  return { desde, hasta: Math.max(desde, acotar(hastaTxt, total)) }
+}
+
 /** Páginas del comienzo donde se busca el índice. */
 const PAGINAS_INDICE = 30
 
@@ -30,17 +37,31 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
   const [indice, setIndice] = useState<IndiceLibro | null>(null)
   const [modo, setModo] = useState<'indice' | 'paginas'>('indice')
   const [elegidosIndice, setElegidosIndice] = useState<Set<string>>(new Set())
-  const [desde, setDesde] = useState(1)
-  const [hasta, setHasta] = useState(1)
+  // Los números de página se guardan como se escriben (así se puede borrar y tipear «199»
+  // sin que se corrija a cada tecla) y se acomodan al usarlos o al salir del campo.
+  const [desdeTxt, setDesdeTxt] = useState('1')
+  const [hastaTxt, setHastaTxt] = useState('1')
   const [estado, setEstado] = useState<'inicio' | 'abriendo'>('inicio')
   const [progreso, setProgreso] = useState({ hechas: 0, total: 0 })
   const [error, setError] = useState('')
+  // Índice indicado a mano (cuando no se encuentra solo en las primeras páginas).
+  const [indiceDesdeTxt, setIndiceDesdeTxt] = useState('1')
+  const [indiceHastaTxt, setIndiceHastaTxt] = useState('1')
+  const total = pdf?.total ?? 1
+  const { desde, hasta } = rango(desdeTxt, hastaTxt, total)
+  const { desde: indiceDesde, hasta: indiceHasta } = rango(indiceDesdeTxt, indiceHastaTxt, total)
+  const [avisoIndice, setAvisoIndice] = useState('')
+  const [sinTexto, setSinTexto] = useState(false)
   // Los capítulos que se están marcando (la herramienta sigue viva aunque se cierre, para retomar).
   const [marcando, setMarcando] = useState<{ clave: string; capitulos: CapituloImportar[] } | null>(null)
   const [abierta, setAbierta] = useState(false)
   const cerrado = useRef(false)
 
-  useEffect(() => () => { cerrado.current = true; void pdf?.cerrar() }, [pdf])
+  // Al cerrar la importación se corta lo que se esté leyendo y se libera el PDF. (Ojo: esto va
+  // solo al desmontar; si dependiera de `pdf`, al abrir un PDF nuevo cortaba su propia lectura.)
+  const pdfActual = useRef<PdfAbierto | null>(null)
+  useEffect(() => { pdfActual.current = pdf }, [pdf])
+  useEffect(() => () => { cerrado.current = true; void pdfActual.current?.cerrar() }, [])
 
   async function elegirArchivo(archivo: File | undefined) {
     if (!archivo) return
@@ -49,10 +70,13 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
       if (archivo.type && archivo.type !== 'application/pdf') throw new Error('El archivo tiene que ser un PDF.')
       await pdf?.cerrar()
       const abierto = await abrirPdf(archivo)
-      setPdf(abierto); setDesde(1); setHasta(abierto.total)
+      setPdf(abierto); setDesdeTxt('1'); setHastaTxt(String(abierto.total))
       // Busca el índice en las primeras páginas.
       const primeras = await abierto.leer(1, Math.min(PAGINAS_INDICE, abierto.total), (hechas, total) => setProgreso({ hechas, total }), () => cerrado.current)
       const encontrado = analizarIndice(primeras)
+      // Un escaneo sin texto (solo imágenes) no se puede leer: hay que pasarle OCR antes.
+      setSinTexto(primeras.reduce((n, p) => n + p.fragmentos.length, 0) < primeras.length * 3)
+      setAvisoIndice('')
       setIndice(encontrado)
       setModo(encontrado ? 'indice' : 'paginas')
       setElegidosIndice(new Set(encontrado?.capitulos.map(c => c.id) ?? []))
@@ -60,6 +84,30 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
     } catch (e) {
       setPdf(null); setEstado('inicio')
       setError(e instanceof Error && e.message ? e.message : 'No se pudo abrir el PDF.')
+    }
+  }
+
+  /** Busca el índice en las páginas que dice la usuaria (y las siguientes, para ubicar los capítulos). */
+  async function buscarIndice() {
+    if (!pdf) return
+    setAvisoIndice(''); setEstado('abriendo'); setProgreso({ hechas: 0, total: 0 })
+    try {
+      const desdeI = indiceDesde, hastaI = indiceHasta
+      setIndiceDesdeTxt(String(desdeI)); setIndiceHastaTxt(String(hastaI))
+      const leidas = await pdf.leer(desdeI, Math.min(pdf.total, hastaI + PAGINAS_INDICE), (hechas, total) => setProgreso({ hechas, total }), () => cerrado.current)
+      const indicadas = leidas.filter(p => p.numero <= hastaI)
+      const encontrado = analizarIndice(leidas)
+      if (encontrado && encontrado.paginasPdf.some(n => n <= hastaI)) {
+        setIndice(encontrado); setModo('indice'); setElegidosIndice(new Set(encontrado.capitulos.map(c => c.id)))
+      } else if (indicadas.reduce((n, p) => n + p.fragmentos.length, 0) < indicadas.length * 3) {
+        setAvisoIndice(`Las páginas ${desdeI} a ${hastaI} no tienen texto: son imágenes. Hay que pasarle OCR al PDF (por ejemplo, con «Reconocer texto» de Adobe o con ocrmypdf) y volver a subirlo.`)
+      } else {
+        setAvisoIndice(`No reconocí un índice en las páginas ${desdeI} a ${hastaI}. Probá con otras páginas o importá por rango.`)
+      }
+    } catch {
+      setAvisoIndice('No se pudieron leer esas páginas.')
+    } finally {
+      setEstado('inicio')
     }
   }
 
@@ -77,6 +125,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
   }
   function porPaginas() {
     if (!pdf) return
+    setDesdeTxt(String(desde)); setHastaTxt(String(hasta))
     abrir([{ id: `paginas-${desde}-${hasta}-${nuevoId()}`, etiqueta: '', titulo: '', desde, hasta, secciones: [] }])
   }
 
@@ -94,10 +143,24 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
 
     {pdf && estado !== 'abriendo' && <>
       <div className="capitulos__modos" role="group" aria-label="Cómo importar">
-        <button type="button" aria-pressed={modo === 'indice'} disabled={!indice || ocupado} onClick={() => setModo('indice')}><ListTree size={15} aria-hidden="true" />Por el índice</button>
+        <button type="button" aria-pressed={modo === 'indice'} disabled={ocupado} onClick={() => setModo('indice')}><ListTree size={15} aria-hidden="true" />Por el índice</button>
         <button type="button" aria-pressed={modo === 'paginas'} disabled={ocupado} onClick={() => setModo('paginas')}>Por páginas</button>
       </div>
 
+      {sinTexto && <p className="capitulos__error" role="alert">Este PDF casi no tiene texto en sus primeras páginas: parece un escaneo de imágenes. Para importarlo hay que pasarle OCR (por ejemplo, «Reconocer texto» en Adobe o ocrmypdf) y volver a subirlo.</p>}
+      {modo === 'indice' && !indice && <div className="capitulos__indice">
+        <p className="capitulos__ayuda">No encontré el índice solo en las primeras {Math.min(PAGINAS_INDICE, pdf.total)} páginas. Decime en qué páginas del PDF está y lo leo desde ahí.</p>
+        <div className="capitulos__rango">
+          <span>El índice está de la página</span>
+          <label><span className="capitulos__oculto">Índice desde la página</span>
+            <CampoNumero min={1} max={pdf.total} value={indiceDesdeTxt} disabled={ocupado} onChange={e => setIndiceDesdeTxt(e.target.value)} onBlur={() => { setIndiceDesdeTxt(String(indiceDesde)); setIndiceHastaTxt(String(indiceHasta)) }} /></label>
+          <span>a la</span>
+          <label><span className="capitulos__oculto">Índice hasta la página</span>
+            <CampoNumero min={1} max={pdf.total} value={indiceHastaTxt} disabled={ocupado} onChange={e => setIndiceHastaTxt(e.target.value)} onBlur={() => setIndiceHastaTxt(String(indiceHasta))} /></label>
+          <button type="button" className="capitulos__primario" disabled={ocupado} onClick={() => void buscarIndice()}>Buscar índice</button>
+        </div>
+        {avisoIndice && <p className="capitulos__error" role="alert">{avisoIndice}</p>}
+      </div>}
       {modo === 'indice' && indice && <div className="capitulos__indice">
         <p className="capitulos__ayuda">
           Índice encontrado en la página {indice.paginasPdf.join(', ')} del PDF: {indice.capitulos.length} capítulos y {indice.capitulos.reduce((n, c) => n + c.secciones.length, 0)} secciones.
@@ -118,14 +181,14 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
       </div>}
 
       {modo === 'paginas' && <>
-        {!indice && <p className="capitulos__ayuda">No se encontró un índice en las primeras {Math.min(PAGINAS_INDICE, pdf.total)} páginas: elegí el rango a importar.</p>}
+        {!indice && <p className="capitulos__ayuda">No se encontró un índice en las primeras {Math.min(PAGINAS_INDICE, pdf.total)} páginas: elegí el rango a importar o indicá dónde está el índice en «Por el índice».</p>}
         <div className="capitulos__rango">
           <span>{pdf.total} páginas. Importar de la</span>
           <label><span className="capitulos__oculto">Desde la página</span>
-            <CampoNumero  min={1} max={pdf.total} value={desde} disabled={ocupado} onChange={e => setDesde(Math.max(1, Math.min(pdf.total, Number(e.target.value) || 1)))} /></label>
+            <CampoNumero min={1} max={pdf.total} value={desdeTxt} disabled={ocupado} onChange={e => setDesdeTxt(e.target.value)} onBlur={() => { setDesdeTxt(String(desde)); setHastaTxt(String(hasta)) }} /></label>
           <span>a la</span>
           <label><span className="capitulos__oculto">Hasta la página</span>
-            <CampoNumero  min={desde} max={pdf.total} value={hasta} disabled={ocupado} onChange={e => setHasta(Math.max(desde, Math.min(pdf.total, Number(e.target.value) || desde)))} /></label>
+            <CampoNumero min={1} max={pdf.total} value={hastaTxt} disabled={ocupado} onChange={e => setHastaTxt(e.target.value)} onBlur={() => setHastaTxt(String(hasta))} /></label>
           <button type="button" className="capitulos__primario" disabled={ocupado} onClick={porPaginas}>Revisar</button>
         </div>
         <p className="capitulos__ayuda">Los créditos y el índice se saltean solos.</p>
@@ -133,7 +196,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
     </>}
 
     {ocupado && <div className="capitulos__progreso" role="status">
-      <span>{progreso.total ? `Buscando el índice: página ${progreso.hechas} de ${progreso.total}…` : 'Abriendo el PDF…'}</span>
+      <span>{progreso.total ? `Leyendo: página ${progreso.hechas} de ${progreso.total}…` : 'Abriendo el PDF…'}</span>
       <progress max={Math.max(1, progreso.total)} value={progreso.hechas} aria-label="Páginas leídas" />
     </div>}
     {error && <p className="capitulos__error" role="alert">{error}</p>}

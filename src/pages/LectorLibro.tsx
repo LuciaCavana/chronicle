@@ -1,7 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { datosDeEfecto } from '../lib/efectosConjuro'
+import { tamanosEspecie, velocidadesEspecie, visionEspecie } from '../lib/datosEspecie'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { ArrowUp, BookOpen, ChevronRight, Feather, ScrollText, WandSparkles, X } from 'lucide-react'
+import { ArrowUp, BookOpen, ChevronRight, Feather, Footprints, ScrollText, WandSparkles, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
 import { supabase } from '../lib/supabase'
 import { calcularFormula } from '../lib/formulasProgresion'
@@ -210,6 +211,42 @@ function SeccionContenido({ seccion, sinEncabezado }: { seccion: Seccion; sinEnc
         <TextoSeguro valor={elemento.descripcion || elemento.texto || elemento.resumen}/>
         {Array.isArray(elemento.rasgos) && elemento.rasgos.length > 0 && <div className="lector-libro__rasgos">{lista(elemento.rasgos).map((rasgo,j)=><div key={texto(rasgo.id)||j}><strong>{tituloElemento(rasgo,j)}</strong><TextoSeguro valor={rasgo.descripcion}/></div>)}</div>}
       </article>)}</div>}
+  </section>
+}
+function EspeciesDesplegables({ seccion, sinEncabezado }: { seccion: Seccion; sinEncabezado?: boolean }) {
+  return <section className="lector-libro__seccion" id={seccion.id}>
+    {!sinEncabezado && <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>Especies</h2></div>}
+    <div className="lector-libro__clases">{seccion.elementos.map((especie, i) => {
+      const tipos = valoresTexto(especie.tiposCriatura).join(', ')
+      const datos: [string, string][] = ([
+        ['Tipo de criatura', tipos], ['Tamaño', tamanosEspecie(especie)], ['Velocidad', velocidadesEspecie(especie)], ['Visión en la oscuridad', visionEspecie(especie)],
+      ] as [string, string][]).filter(([, v]) => v)
+      const pagina = texto(especie.pagina)
+      return <details className="lector-libro__clase" key={texto(especie.id) || i}>
+        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><Footprints size={20} aria-hidden="true"/></span><span className="lector-libro__clase-titulo">{tituloElemento(especie, i)}{tipos && <span className="lector-libro__clase-detalle"> · {tipos}</span>}</span><ChevronRight className="lector-libro__clase-flecha" size={20} aria-hidden="true"/></summary>
+        <article className="lector-libro__conjuro" aria-label={tituloElemento(especie, i)}>
+          {pagina && <header className="lector-libro__conjuro-cabecera"><span className="lector-libro__conjuro-fuente">pág. {pagina}</span></header>}
+          {datos.length > 0 && <dl className="lector-libro__conjuro-datos">
+            {datos.map(([etiqueta, valor]) => <div key={etiqueta} className="lector-libro__conjuro-dato"><dt>{etiqueta}</dt><dd>{valor}</dd></div>)}
+          </dl>}
+          <TextoSeguro valor={especie.descripcion}/>
+          {lista(especie.rasgos).length > 0 && <div className="lector-libro__rasgos">
+            <h4>Rasgos</h4>
+            {lista(especie.rasgos).map((rasgo, j) => <div key={texto(rasgo.id) || j}><strong>{tituloElemento(rasgo, j)}</strong><TextoSeguro valor={rasgo.descripcion}/></div>)}
+          </div>}
+          {lista(especie.linajes).length > 0 && <div className="lector-libro__rasgos">
+            <h4>Linajes</h4>
+            {lista(especie.linajes).map((linaje, j) => <div key={texto(linaje.id) || j}><strong>{tituloElemento(linaje, j)}</strong><TextoSeguro valor={linaje.descripcion}/>
+              {lista(linaje.beneficios).map((b, k) => <p key={texto(b.id) || k} className="lector-libro__texto"><em>Nivel {texto(b.nivel) || '1'}.</em> {texto(b.descripcion).replace(/<[^>]*>/g, ' ')}</p>)}
+            </div>)}
+          </div>}
+          {lista(especie.transformaciones).length > 0 && <div className="lector-libro__rasgos">
+            <h4>Transformaciones</h4>
+            {lista(especie.transformaciones).map((tr, j) => <div key={texto(tr.id) || j}><strong>{tituloElemento(tr, j)}</strong><TextoSeguro valor={tr.descripcion}/></div>)}
+          </div>}
+        </article>
+      </details>
+    })}</div>
   </section>
 }
 function ConjurosDesplegables({ seccion, sinEncabezado }: { seccion: Seccion; sinEncabezado?: boolean }) {
@@ -501,6 +538,7 @@ function BloqueLector({ bloque, capitular, porCategoria }: { bloque: Bloque; cap
       if (bloque.categoria === 'clases') return <ClasesDesplegables seccion={seccion} conjuros={porCategoria.conjuros} sinEncabezado/>
       if (bloque.categoria === 'subclases') return <SubclasesDesplegables seccion={seccion} clases={porCategoria.clases ?? []} sinEncabezado/>
       if (bloque.categoria === 'conjuros') return <ConjurosDesplegables seccion={seccion} sinEncabezado/>
+      if (bloque.categoria === 'especies') return <EspeciesDesplegables seccion={seccion} sinEncabezado/>
       return <SeccionContenido seccion={seccion} sinEncabezado/>
     }
   }

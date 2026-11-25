@@ -38,8 +38,8 @@ export default function CampoNumero({ className, ...props }: Props) {
   return <span ref={caja} className={`campo-numero${angosto ? ' campo-numero--angosto' : ''}${props.disabled ? ' campo-numero--deshabilitado' : ''}`}>
     <input {...props} ref={campo} type="number" className={['campo-numero__campo', className].filter(Boolean).join(' ')} />
     <span className="campo-numero__flechas">
-      <button type="button" tabIndex={-1} aria-hidden="true" disabled={bloqueado} onMouseDown={e => e.preventDefault()} onClick={() => pasar(1)}><ChevronUp size={13} /></button>
-      <button type="button" tabIndex={-1} aria-hidden="true" disabled={bloqueado} onMouseDown={e => e.preventDefault()} onClick={() => pasar(-1)}><ChevronDown size={13} /></button>
+      <button type="button" className="campo-numero__flecha" tabIndex={-1} aria-hidden="true" disabled={bloqueado} onMouseDown={e => e.preventDefault()} onClick={() => pasar(1)}><ChevronUp size={13} /></button>
+      <button type="button" className="campo-numero__flecha" tabIndex={-1} aria-hidden="true" disabled={bloqueado} onMouseDown={e => e.preventDefault()} onClick={() => pasar(-1)}><ChevronDown size={13} /></button>
     </span>
   </span>
 }

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as EventoPuntero, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
-  AlertTriangle, Check, ChevronLeft, ChevronRight, Crosshair, FileText, Heading, LayoutPanelTop, Link2, Maximize2, Minimize2, Minus, PanelLeftClose, PanelLeftOpen, PanelRight, PencilLine, Plus, RotateCcw, Table, Trash2, Type, Unlink, X,
+  AlertTriangle, ArrowDown, ArrowUp, Check, ChevronLeft, ChevronRight, Crosshair, FileText, Heading, LayoutPanelTop, Link2, Maximize2, Minimize2, Minus, PanelLeftClose, PanelLeftOpen, PanelRight, PencilLine, Plus, RotateCcw, Table, Trash2, Type, Unlink, X,
 } from 'lucide-react'
 import type { Medidas, PaginaPdf } from '../../../lib/analizarPdf'
 import type { PdfAbierto } from '../../../lib/importarPdf'
@@ -85,7 +85,14 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   const [campoAMarcar, setCampoAMarcar] = useState<{ zona: string; campo: CampoRevision } | null>(null)
   const [vistaMovil, setVistaMovil] = useState<'pagina' | 'libro'>('pagina')
   const [menuFicha, setMenuFicha] = useState(false)
-  const [rango, setRango] = useState<{ desde: number; hasta: number } | null>(null)
+  // Borrar una zona desde «Así queda» pide dos toques.
+  const [porBorrarZona, setPorBorrarZona] = useState<string | null>(null)
+  useEffect(() => {
+    if (!porBorrarZona) return
+    const t = window.setTimeout(() => setPorBorrarZona(null), 4000)
+    return () => window.clearTimeout(t)
+  }, [porBorrarZona])
+  const [rango, setRango] = useState<{ desde: string; hasta: string } | null>(null)
   const raiz = useRef<HTMLDivElement>(null)
   // Cómo se reparte la pantalla (se recuerda en este navegador).
   const [vista, setVista] = useState<Vista>(leerVista)
@@ -174,6 +181,16 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
     setMenuFicha(false)
     reemplazar(leer({ ...z, tipo, categoria: tipo === 'ficha' ? categoria ?? z.categoria ?? 'dotes' : undefined, cortes: undefined, sinAvisos: false }))
   }
+  /** Cambia el orden de una zona con la de al lado en la misma página (así se lee el capítulo). */
+  const moverZona = (z: Zona, sentido: -1 | 1) => cambiarZonas(zs => {
+    const propias = zs.map((x, k) => [x, k] as const).filter(([x]) => x.pagina === z.pagina)
+    const j = propias.findIndex(([x]) => x.id === z.id)
+    const otra = propias[j + sentido]
+    if (!otra) return zs
+    const copia = [...zs]
+    copia[propias[j][1]] = otra[0]; copia[otra[1]] = z
+    return copia
+  })
   const borrar = (z: Zona) => { cambiarZonas(zs => zs.filter(x => x.id !== z.id)); setZonaSel(null) }
   const dibujada = (r: Rect) => {
     if (campoAMarcar && paginaPdf) {
@@ -248,7 +265,7 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   }
   const cambiarRango = () => {
     if (!rango) return
-    const desde = Math.max(1, Math.min(pdf.total, rango.desde)), hasta = Math.max(desde, Math.min(pdf.total, rango.hasta))
+    const desde = Math.max(1, Math.min(pdf.total, Math.round(Number(rango.desde)) || 1)), hasta = Math.max(desde, Math.min(pdf.total, Math.round(Number(rango.hasta)) || pdf.total))
     cambiarEstado(cap.id, e => ({ ...e, desde, hasta, paginas: null, zonas: [], revisadas: new Set(), error: '' }))
     setPagina(desde); setZonaSel(null); setRango(null)
   }
@@ -381,15 +398,15 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
               </div>
               {rango
                 ? <div className="marcar__rango">
-                    <label>Desde<CampoNumero  min={1} max={pdf.total} value={rango.desde} onChange={x => setRango({ ...rango, desde: Number(x.target.value) || 1 })} /></label>
-                    <label>Hasta<CampoNumero  min={1} max={pdf.total} value={rango.hasta} onChange={x => setRango({ ...rango, hasta: Number(x.target.value) || 1 })} /></label>
+                    <label>Desde<CampoNumero  min={1} max={pdf.total} value={rango.desde} onChange={x => setRango({ ...rango, desde: x.target.value })} /></label>
+                    <label>Hasta<CampoNumero  min={1} max={pdf.total} value={rango.hasta} onChange={x => setRango({ ...rango, hasta: x.target.value })} /></label>
                     <p className="marcar__ayuda">Páginas del PDF. Se vuelven a leer y se pierden los cambios de este capítulo.</p>
                     <div className="marcar__fila">
                       <button type="button" className="marcar__boton marcar__boton--chico marcar__boton--primario" onClick={cambiarRango}>Volver a leer</button>
                       <button type="button" className="marcar__boton marcar__boton--chico" onClick={() => setRango(null)}>Cancelar</button>
                     </div>
                   </div>
-                : <button type="button" className="marcar__enlace" onClick={() => setRango({ desde: e.desde, hasta: e.hasta })}><PencilLine size={13} aria-hidden="true" />Corregir dónde empieza y termina</button>}
+                : <button type="button" className="marcar__enlace" onClick={() => setRango({ desde: String(e.desde), hasta: String(e.hasta) })}><PencilLine size={13} aria-hidden="true" />Corregir dónde empieza y termina</button>}
               {faltan.length > 0 && <div className="marcar__faltan">
                 <h4><AlertTriangle size={13} aria-hidden="true" />Del índice, sin título en el capítulo</h4>
                 <ul>
@@ -575,29 +592,45 @@ export default function MarcarPaginas({ archivo, pdf, capitulos, desfase, existe
   }
 
   // ===================================================================================
+  /** La vista previa de una zona (se toca para elegirla). */
+  function tarjetaPrevia(z: Zona, i: number) {
+    const elegida = z.id === zonaSel
+    const clase = `marcar__previa${elegida ? ' marcar__previa--elegida' : ''}${avisos(z).length ? ' marcar__previa--alerta' : ''}`
+    const numero = <span className={`marcar__numero marcar__numero--${z.tipo}`}>{i + 1}</span>
+    if (z.tipo === 'ignorar') return <button type="button" className={`${clase} marcar__previa--ignorar`} onClick={() => setZonaSel(z.id)}>{numero}<span>{z.tituloCapitulo ? 'Título del capítulo' : 'No se agrega'}</span></button>
+    if (z.tipo === 'ficha') {
+      const f = fichaPorZona(z)
+      return <button type="button" className={`${clase} marcar__previa--ficha`} onClick={() => setZonaSel(z.id)}>
+        {numero}<span className="marcar__previa-cuerpo">
+          <span><b>{f && !/^Sin nombre \(/.test(f.nombre) ? f.nombre : 'Ficha sin nombre'}</b> · {z.categoria ? UNA[z.categoria] : 'Ficha'}{f && f.id !== z.id ? ' (continuación)' : ''}{f && f.id === z.id && !cargarFicha(f) ? ' · queda como texto' : ''}</span>
+          {f && f.id === z.id && <TarjetaFicha ficha={f} />}
+        </span>
+      </button>
+    }
+    return <button type="button" className={clase} onClick={() => setZonaSel(z.id)}>
+      {numero}
+      <span className="marcar__previa-cuerpo">{z.continua && <span className="marcar__ayuda">↳ Sigue la zona anterior</span>}{z.bloques.length ? z.bloques.map(b => <Previa key={b.id} b={b} />) : <span className="marcar__ayuda">(vacía)</span>}</span>
+    </button>
+  }
+
   function asiQueda() {
     return <section className="marcar__libro" aria-label="Así queda esta página">
       <h3 className="marcar__rotulo">Así queda esta página</h3>
       {zonasPagina.length === 0 && <p className="marcar__ayuda">No hay zonas en esta página. Si tiene texto para el libro, marcalo arrastrando sobre la página.</p>}
-      {zonasPagina.map((z, i) => {
-        const elegida = z.id === zonaSel
-        const clase = `marcar__previa${elegida ? ' marcar__previa--elegida' : ''}${avisos(z).length ? ' marcar__previa--alerta' : ''}`
-        const numero = <span className={`marcar__numero marcar__numero--${z.tipo}`}>{i + 1}</span>
-        if (z.tipo === 'ignorar') return <button key={z.id} type="button" className={`${clase} marcar__previa--ignorar`} onClick={() => setZonaSel(z.id)}>{numero}<span>{z.tituloCapitulo ? 'Título del capítulo' : 'No se agrega'}</span></button>
-        if (z.tipo === 'ficha') {
-          const f = fichaPorZona(z)
-          return <button key={z.id} type="button" className={`${clase} marcar__previa--ficha`} onClick={() => setZonaSel(z.id)}>
-            {numero}<span className="marcar__previa-cuerpo">
-              <span><b>{f && !/^Sin nombre \(/.test(f.nombre) ? f.nombre : 'Ficha sin nombre'}</b> · {z.categoria ? UNA[z.categoria] : 'Ficha'}{f && f.id !== z.id ? ' (continuación)' : ''}{f && f.id === z.id && !cargarFicha(f) ? ' · queda como texto' : ''}</span>
-              {f && f.id === z.id && <TarjetaFicha ficha={f} />}
-            </span>
+      {zonasPagina.map((z, i) => <div key={z.id} className="marcar__previa-fila">
+        {tarjetaPrevia(z, i)}
+        <div className="marcar__previa-acciones" role="group" aria-label={`Zona ${i + 1}`}>
+          <button type="button" aria-label={`Subir la zona ${i + 1}`} title="Subir" disabled={i === 0} onClick={() => moverZona(z, -1)}><ArrowUp size={14} aria-hidden="true" /></button>
+          <button type="button" aria-label={`Bajar la zona ${i + 1}`} title="Bajar" disabled={i === zonasPagina.length - 1} onClick={() => moverZona(z, 1)}><ArrowDown size={14} aria-hidden="true" /></button>
+          <button type="button" className={`marcar__previa-borrar${porBorrarZona === z.id ? ' marcar__previa-borrar--armado' : ''}`}
+            aria-label={porBorrarZona === z.id ? `Tocá de nuevo para borrar la zona ${i + 1}` : `Borrar la zona ${i + 1}`}
+            title={porBorrarZona === z.id ? 'Tocá de nuevo para borrar' : 'Borrar (no se agrega al libro)'}
+            onClick={() => { if (porBorrarZona === z.id) { setPorBorrarZona(null); borrar(z) } else setPorBorrarZona(z.id) }}
+            onBlur={() => { if (porBorrarZona === z.id) setPorBorrarZona(null) }}>
+            <Trash2 size={14} aria-hidden="true" />{porBorrarZona === z.id && <span>¿Borrar?</span>}
           </button>
-        }
-        return <button key={z.id} type="button" className={clase} onClick={() => setZonaSel(z.id)}>
-          {numero}
-          <span className="marcar__previa-cuerpo">{z.continua && <span className="marcar__ayuda">↳ Sigue la zona anterior</span>}{z.bloques.length ? z.bloques.map(b => <Previa key={b.id} b={b} />) : <span className="marcar__ayuda">(vacía)</span>}</span>
-        </button>
-      })}
+        </div>
+      </div>)}
       {fichasCapitulo.length > 0 && <details className="marcar__fichas-cap">
         <summary>Fichas de todo el capítulo ({cargadas} de {fichasCapitulo.length} se cargan)</summary>
         <ul>
