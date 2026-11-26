@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Conjuro } from '../../types/conjuro'
-import SelectorConjuros from './SelectorConjuros'
+import ConjurosOtorgadosCampos from './ConjurosOtorgadosCampos'
 import SelectorClases from './SelectorClases'
 import type { BeneficioDote, ConjurosBeneficio, Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
 import { conjurosVacios, normalizarDote, nuevoBeneficio, prepararDoteParaGuardar, resumenBeneficio, usaListaDeConjuros } from '../../lib/dotes'
@@ -26,7 +26,6 @@ type Props = {
 }
 
 const APTITUDES: [string, string][] = [['inteligencia', 'Inteligencia'], ['sabiduria', 'Sabiduría'], ['carisma', 'Carisma']]
-const NIVELES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 const listaInicial: SeleccionConjurosDote = {
   listasPermitidas: [], listaSegunOrigen: true, mismaLista: true, selecciones: [],
@@ -55,8 +54,6 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
   const [pagina, setPagina] = useState(fuente?.fuente?.pagina?.toString() ?? '')
   const [efectos, setEfectos] = useState<EfectoDote[]>(fuente?.efectos ?? [])
   const [selectorClasesAbierto, setSelectorClasesAbierto] = useState(false)
-  // Beneficio al que se le vincula un conjuro con el selector del catálogo.
-  const [vinculandoEn, setVinculandoEn] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   const id = initialData?.id ?? idNuevo
@@ -124,13 +121,6 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     }, lista))
   }
 
-  const beneficioVinculando = beneficios.find(b => b.id === vinculandoEn)
-  const idsVinculando = beneficioVinculando?.conjuros?.conjurosIds ?? []
-  const vincular = (conjuroId: string) => {
-    if (!beneficioVinculando) return
-    const actuales = beneficioVinculando.conjuros?.conjurosIds ?? []
-    if (!actuales.includes(conjuroId)) cambiarConjuros(beneficioVinculando, { modo: 'fijos', conjurosIds: [...actuales, conjuroId] })
-  }
   const hayCambioConjuro = beneficios.some(b => b.tipo === 'cambiar_conjuro')
 
   return <section className="nueva-propuesta-panel especie-form dote-form">
@@ -219,41 +209,8 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
           </div> : <>
             <label className="dote-casilla dote-da-conjuros"><input type="checkbox" checked={Boolean(c)} onChange={e => cambiarBeneficio(b.id, { conjuros: e.target.checked ? conjurosVacios() : undefined })} />
               <span>Este beneficio da conjuros</span></label>
-            {c && <div className="dote-opciones">
-              <div className="dote-modo" role="radiogroup" aria-label="De dónde salen los conjuros">
-                <label className="dote-casilla dote-casilla--chica"><input type="radio" name={`modo-${b.id}`} checked={c.modo === 'eleccion'} onChange={() => cambiarConjuros(b, { modo: 'eleccion', selecciones: c.selecciones.length ? c.selecciones : [{ nivel: 0, cantidad: 1 }] })} /><span>A elegir de la lista de la dote</span></label>
-                <label className="dote-casilla dote-casilla--chica"><input type="radio" name={`modo-${b.id}`} checked={c.modo === 'fijos'} onChange={() => cambiarConjuros(b, { modo: 'fijos' })} /><span>Conjuros puntuales del catálogo</span></label>
-              </div>
-              {c.modo === 'eleccion' ? <div className="dote-selecciones">
-                {c.selecciones.map((s, i) => <div className="dote-seleccion" key={i}>
-                  <div className="nueva-propuesta-field"><label htmlFor={`ben-nivel-${b.id}-${i}`}>Nivel</label>
-                    <select id={`ben-nivel-${b.id}-${i}`} value={s.nivel} onChange={e => cambiarConjuros(b, { selecciones: c.selecciones.map((x, j) => j === i ? { ...x, nivel: Number(e.target.value) } : x) })}>
-                      {NIVELES.map(n => <option key={n} value={n}>{n === 0 ? 'Truco' : `Nivel ${n}`}</option>)}
-                    </select></div>
-                  <div className="nueva-propuesta-field"><label htmlFor={`ben-cantidad-${b.id}-${i}`}>Cantidad</label>
-                    <CampoNumero id={`ben-cantidad-${b.id}-${i}`} min={1} value={s.cantidad} onChange={e => cambiarConjuros(b, { selecciones: c.selecciones.map((x, j) => j === i ? { ...x, cantidad: Number(e.target.value) } : x) })} /></div>
-                  {c.selecciones.length > 1 && <button type="button" className="dote-quitar" aria-label="Quitar este nivel" onClick={() => cambiarConjuros(b, { selecciones: c.selecciones.filter((_, j) => j !== i) })}><Trash2 size={15} /></button>}
-                </div>)}
-                <button type="button" className="dote-enlace" onClick={() => cambiarConjuros(b, { selecciones: [...c.selecciones, { nivel: 1, cantidad: 1 }] })}><Plus size={14} />Otro nivel</button>
-              </div> : <div className="dote-fijos">
-                {c.conjurosIds.length === 0 && <p className="dote-ayuda">Todavía no hay conjuros vinculados.</p>}
-                {c.conjurosIds.map(conjuroId => <div className="dote-conjuro-opcion" key={conjuroId}>
-                  <span>{nombreDeConjuro(conjuroId)}</span>
-                  <button type="button" className="dote-desvincular" onClick={() => cambiarConjuros(b, { conjurosIds: c.conjurosIds.filter(x => x !== conjuroId) })}>Desvincular</button>
-                </div>)}
-                <button type="button" className="dote-enlace" onClick={() => setVinculandoEn(b.id)}><Plus size={14} />Vincular conjuro</button>
-              </div>}
-              <label className="dote-casilla"><input type="checkbox" checked={Boolean(c.siemprePreparado)} onChange={e => cambiarConjuros(b, { siemprePreparado: e.target.checked })} /><span>Siempre preparado</span></label>
-              <label className="dote-casilla"><input type="checkbox" checked={Boolean(c.lanzamientoSinEspacio)} onChange={e => cambiarConjuros(b, { lanzamientoSinEspacio: e.target.checked ? { usos: 1, recuperacion: 'descanso_largo' } : undefined })} /><span>Se puede lanzar sin gastar espacio de conjuro</span></label>
-              {c.lanzamientoSinEspacio && <div className="dote-seleccion dote-sangria">
-                <div className="nueva-propuesta-field"><label htmlFor={`ben-usos-${b.id}`}>Veces</label>
-                  <CampoNumero id={`ben-usos-${b.id}`} min={1} value={c.lanzamientoSinEspacio.usos} onChange={e => cambiarConjuros(b, { lanzamientoSinEspacio: { ...c.lanzamientoSinEspacio!, usos: Number(e.target.value) } })} /></div>
-                <div className="nueva-propuesta-field"><label htmlFor={`ben-recupera-${b.id}`}>Se recupera tras</label>
-                  <select id={`ben-recupera-${b.id}`} value={c.lanzamientoSinEspacio.recuperacion} onChange={e => cambiarConjuros(b, { lanzamientoSinEspacio: { ...c.lanzamientoSinEspacio!, recuperacion: e.target.value as 'descanso_largo' | 'descanso_corto' } })}>
-                    <option value="descanso_largo">Descanso largo</option><option value="descanso_corto">Descanso corto</option></select></div>
-              </div>}
-              <label className="dote-casilla"><input type="checkbox" checked={Boolean(c.permiteUsarEspacios)} onChange={e => cambiarConjuros(b, { permiteUsarEspacios: e.target.checked })} /><span>También se puede lanzar con espacios de conjuro</span></label>
-            </div>}
+            {c && <ConjurosOtorgadosCampos idBase={b.id} valor={c} onChange={valor => cambiarConjuros(b, valor)} conjuros={conjuros}
+              onCrearConjuro={onCrearConjuro} clasesDisponibles={clasesDisponibles} />}
           </>}
           <div className="dote-beneficio-pie"><button type="button" className="dote-accion dote-accion--suave" onClick={() => cerrar(b.id)}>Listo</button></div>
         </article>
@@ -287,14 +244,6 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
 
     {selectorClasesAbierto && <SelectorClases abierto titulo="Clases de la lista de conjuros" clases={clasesDisponibles} elegidas={lista.listasPermitidas}
       onAceptar={elegidas => { setLista(l => ({ ...l, listasPermitidas: elegidas })); setError('') }} onCerrar={() => setSelectorClasesAbierto(false)} />}
-    <SelectorConjuros
-      abierto={vinculandoEn !== null}
-      conjuros={conjuros}
-      idsVinculados={idsVinculando}
-      onVincular={conjuro => vincular(conjuro.id)}
-      onCrear={conjuro => { onCrearConjuro(conjuro); vincular(conjuro.id) }}
-      onCerrar={() => setVinculandoEn(null)}
-    />
 
     {error && <p role="alert" className="dote-error">{error}</p>}
     <div className="nueva-propuesta-actions">

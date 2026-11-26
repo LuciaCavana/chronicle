@@ -9,6 +9,7 @@ import type { Conjuro } from '../../types/conjuro'
 import ConjurosOtorgadosEditor from './ConjurosOtorgadosEditor'
 import EfectosEspecieEditor from './EfectosEspecieEditor'
 import { leerEfectos, resumenEfecto } from '../../lib/efectosEspecie'
+import { leerConjurosDe, limpiarConjuros, problemaConjuros, resumenConjuros } from '../../lib/conjurosOtorgados'
 import '../../styles/formularios/LinajesEspecie.css'
 import CampoNumero from '../../components/shared/CampoNumero'
 
@@ -17,6 +18,7 @@ type Props = {
   onChange: (linajes: LinajeEspecie[]) => void
   conjuros: Conjuro[]
   onCrearConjuro: (conjuro: Conjuro) => void
+  clasesDisponibles?: string[]
 }
 
 function nuevoBeneficio(): BeneficioNivel {
@@ -32,6 +34,7 @@ export default function LinajesEspecie({
   onChange,
   conjuros,
   onCrearConjuro,
+  clasesDisponibles = [],
 }: Props) {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [formularioAbierto, setFormularioAbierto] = useState(false)
@@ -59,7 +62,11 @@ export default function LinajesEspecie({
     setEditandoId(linaje.id)
     setNombre(linaje.nombre)
     setDescripcion(linaje.descripcion)
-    setBeneficios(linaje.beneficios.map((beneficio) => ({ ...beneficio, efectos: leerEfectos(beneficio.efectos) })))
+    setBeneficios(linaje.beneficios.map((beneficio) => {
+      const copia: BeneficioNivel = { ...beneficio, efectos: leerEfectos(beneficio.efectos), conjuros: leerConjurosDe(beneficio) }
+      delete copia.conjurosOtorgados
+      return copia
+    }))
     setFormularioAbierto(true)
   }
 
@@ -125,6 +132,13 @@ export default function LinajesEspecie({
       return
     }
 
+    for (const beneficio of beneficios) {
+      for (const o of beneficio.conjuros ?? []) {
+        const problema = problemaConjuros(o, true)
+        if (problema) { setErrorForm(`Nivel ${beneficio.nivel}, conjuros otorgados: ${problema}.`); return }
+      }
+    }
+
     const linajeGuardado: LinajeEspecie = {
       id: editandoId ?? crypto.randomUUID(),
       nombre: nombreLimpio,
@@ -134,7 +148,7 @@ export default function LinajesEspecie({
           ...beneficio,
           descripcion: beneficio.descripcion.trim(),
           // Los conjuros del beneficio se obtienen al nivel del beneficio.
-          conjurosOtorgados: (beneficio.conjurosOtorgados ?? []).map((v) => ({ ...v, nivelRequerido: beneficio.nivel })),
+          conjuros: (beneficio.conjuros ?? []).map((o) => limpiarConjuros({ ...o, nivelRequerido: beneficio.nivel })),
           efectos: beneficio.efectos ?? [],
         }))
         .sort((a, b) => a.nivel - b.nivel),
@@ -160,8 +174,9 @@ export default function LinajesEspecie({
   }
 
   function resumenBeneficioLinaje(beneficio: BeneficioNivel): string {
-    const nombres = (beneficio.conjurosOtorgados ?? []).map((v) => conjuros.find((c) => c.id === v.conjuroId)?.nombre).filter(Boolean)
-    return [...leerEfectos(beneficio.efectos).map(resumenEfecto), nombres.length ? `Conjuros: ${nombres.join(', ')}` : ''].filter(Boolean).join(' · ')
+    const nombreDe = (id: string) => conjuros.find((c) => c.id === id)?.nombre ?? ''
+    const nivelDe = (id: string) => conjuros.find((c) => c.id === id)?.nivel
+    return [...leerEfectos(beneficio.efectos).map(resumenEfecto), ...leerConjurosDe(beneficio).map((o) => `Conjuros: ${resumenConjuros(o, nombreDe, nivelDe)}`)].filter(Boolean).join(' · ')
   }
 
   function alternarExpandido(id: string) {
@@ -299,10 +314,11 @@ export default function LinajesEspecie({
               <ConjurosOtorgadosEditor
                 titulo="Conjuros de este nivel"
                 nivelFijo={beneficio.nivel}
-                vinculos={beneficio.conjurosOtorgados ?? []}
-                onChange={(conjurosOtorgados) => cambiarBeneficio(beneficio.id, { conjurosOtorgados })}
+                otorgamientos={beneficio.conjuros ?? []}
+                onChange={(otorgamientos) => cambiarBeneficio(beneficio.id, { conjuros: otorgamientos })}
                 conjuros={conjuros}
                 onCrearConjuro={onCrearConjuro}
+                clasesDisponibles={clasesDisponibles}
               />
               <EfectosEspecieEditor
                 efectos={beneficio.efectos ?? []}

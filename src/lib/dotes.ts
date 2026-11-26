@@ -1,4 +1,5 @@
-import type { BeneficioDote, ConjurosBeneficio, Dote, SeleccionConjurosDote } from '../types/trasfondo'
+import type { BeneficioDote, Dote, SeleccionConjurosDote } from '../types/trasfondo'
+import { conjurosVacios, resumenConjuros } from './conjurosOtorgados'
 
 /**
  * Dotes: los beneficios pasaron de ser líneas de texto a tarjetas (título, texto y lo que dan).
@@ -23,9 +24,7 @@ export function nuevoBeneficio(cambios: Partial<BeneficioDote> = {}): BeneficioD
   return { id: nuevoId(), nombre: '', descripcion: '', tipo: 'normal', ...cambios }
 }
 
-export function conjurosVacios(modo: ConjurosBeneficio['modo'] = 'eleccion'): ConjurosBeneficio {
-  return { modo, selecciones: modo === 'eleccion' ? [{ nivel: 0, cantidad: 1 }] : [], conjurosIds: [] }
-}
+export { conjurosVacios }
 
 function comoBeneficio(valor: unknown): BeneficioDote | null {
   if (typeof valor === 'string') return valor.trim() ? nuevoBeneficio(separarTituloBeneficio(valor)) : null
@@ -129,21 +128,11 @@ export function prepararDoteParaGuardar(dote: Dote, lista: SeleccionConjurosDote
   return { ...resto, beneficios, repetible: Boolean(dote.repetible), conjurosIds: fijos, ...(seleccionConjuros ? { seleccionConjuros } : {}) }
 }
 
-const NOMBRE_NIVEL = (nivel: number, cantidad: number) => nivel === 0 ? `${cantidad} ${cantidad === 1 ? 'truco' : 'trucos'}` : `${cantidad} de nivel ${nivel}`
-
 /** Resumen corto de lo que da un beneficio, para listas y el lector («2 trucos · siempre preparado»). */
 export function resumenBeneficio(b: BeneficioDote, nombreConjuro: (id: string) => string = () => ''): string {
   if (b.tipo === 'cambiar_conjuro' && b.cambioConjuro) {
     const c = b.cambioConjuro
     return `Al subir de nivel cambia ${c.cantidad} ${c.cantidad === 1 ? 'conjuro' : 'conjuros'}${c.mismoNivel ? ' del mismo nivel' : ''}${c.mismaLista ? ' de la misma lista' : ''}`
   }
-  const c = b.conjuros
-  if (!c) return ''
-  const partes = c.modo === 'fijos'
-    ? [c.conjurosIds.map(nombreConjuro).filter(Boolean).join(', ') || 'Conjuros del catálogo']
-    : [c.selecciones.map(s => NOMBRE_NIVEL(s.nivel, s.cantidad)).join(' y ') + ' a elegir']
-  if (c.siemprePreparado) partes.push('siempre preparado')
-  if (c.lanzamientoSinEspacio) partes.push(`${c.lanzamientoSinEspacio.usos} sin espacio por ${c.lanzamientoSinEspacio.recuperacion === 'descanso_corto' ? 'descanso corto' : 'descanso largo'}`)
-  if (c.permiteUsarEspacios) partes.push('también con espacios')
-  return partes.join(' · ')
+  return b.conjuros ? resumenConjuros(b.conjuros, nombreConjuro) : ''
 }

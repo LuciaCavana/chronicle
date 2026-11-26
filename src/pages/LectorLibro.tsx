@@ -3,6 +3,7 @@ import { datosDeEfecto } from '../lib/efectosConjuro'
 import { tamanosEspecie, velocidadesEspecie, visionEspecie } from '../lib/datosEspecie'
 import { normalizarDote, resumenBeneficio } from '../lib/dotes'
 import { leerEfectos, resumenEfecto } from '../lib/efectosEspecie'
+import { leerConjurosDe, resumenConjuros } from '../lib/conjurosOtorgados'
 import type { Dote } from '../types/trasfondo'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, BookOpen, ChevronRight, Feather, Footprints, ScrollText, WandSparkles, X } from 'lucide-react'
@@ -218,8 +219,10 @@ function SeccionContenido({ seccion, sinEncabezado }: { seccion: Seccion; sinEnc
 }
 /** Lo que otorga un rasgo o beneficio de linaje: «Visión en la oscuridad: 120 pies · Conjuros: Fuego feérico». */
 function OtorgaEspecie({ elemento, conjuros }: { elemento: Registro; conjuros?: Registro[] }) {
-  const nombres = lista(elemento.conjurosOtorgados).map(v => texto((conjuros ?? []).find(c => texto(c.id) === texto(v.conjuroId))?.nombre)).filter(Boolean)
-  const partes = [...leerEfectos(elemento.efectos).map(resumenEfecto), nombres.length ? `Conjuros: ${nombres.join(', ')}` : ''].filter(Boolean)
+  const buscar = (id: string) => (conjuros ?? []).find(c => texto(c.id) === id)
+  const otorgamientos = leerConjurosDe(elemento)
+  const partes = [...leerEfectos(elemento.efectos).map(resumenEfecto),
+    ...otorgamientos.map(o => `Conjuros${o.nivelRequerido > 1 && !('nivel' in elemento) ? ` (nivel ${o.nivelRequerido})` : ''}: ${resumenConjuros(o, id => texto(buscar(id)?.nombre), id => { const n = Number(buscar(id)?.nivel); return Number.isFinite(n) ? n : undefined })}`)].filter(Boolean)
   return partes.length ? <p className="lector-libro__texto lector-libro__nota"><em>{partes.join(' · ')}</em></p> : null
 }
 function EspeciesDesplegables({ seccion, conjuros, sinEncabezado }: { seccion: Seccion; conjuros?: Registro[]; sinEncabezado?: boolean }) {

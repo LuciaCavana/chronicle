@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Search, X } from 'lucide-react'
 import { claveNombre } from '../../lib/listas'
 import '../../styles/formularios/SelectorConjuros.css'
+import '../../styles/formularios/SelectorClases.css'
 
 type Props = {
   abierto: boolean

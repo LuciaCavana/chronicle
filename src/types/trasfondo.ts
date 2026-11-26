@@ -1,3 +1,4 @@
+import type { ConjurosOtorgados } from './conjuro'
 /** Referencias estables a elementos del catálogo de un libro. */
 export type ReferenciaCatalogo = { id: string }
 
@@ -57,17 +58,8 @@ export type SeleccionConjurosDote = {
 /** Restricción de una dote al otorgarla desde un trasfondo u otra fuente. */
 export type RestriccionOrigenDote = { listaConjurosFijada?: string }
 
-/** Conjuros que da un beneficio: a elegir de la lista de la dote, o conjuros puntuales del catálogo. */
-export type ConjurosBeneficio = {
-  modo: 'eleccion' | 'fijos'
-  /** Modo «eleccion»: cuántos conjuros de cada nivel (0 = truco) se eligen de la lista de la dote. */
-  selecciones: Array<{ nivel: number; cantidad: number }>
-  /** Modo «fijos»: IDs de conjuros del catálogo. */
-  conjurosIds: string[]
-  siemprePreparado?: boolean
-  lanzamientoSinEspacio?: { usos: number; recuperacion: 'descanso_largo' | 'descanso_corto' }
-  permiteUsarEspacios?: boolean
-}
+/** Conjuros que da un beneficio de dote (misma forma que en especies; la lista y la aptitud son las de la dote). */
+export type ConjurosBeneficio = ConjurosOtorgados
 
 /** Un beneficio de la dote: título («Dos trucos»), texto y, si corresponde, lo que otorga. */
 export type BeneficioDote = {

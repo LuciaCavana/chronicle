@@ -6,13 +6,23 @@ import '../../styles/formularios/RasgosEspecie.css'
 import ConjurosOtorgadosEditor from './ConjurosOtorgadosEditor'
 import EfectosEspecieEditor from './EfectosEspecieEditor'
 import { leerEfectos, resumenEfecto } from '../../lib/efectosEspecie'
-import type { Conjuro, ConjuroOtorgado } from '../../types/conjuro'
+import type { Conjuro, OtorgamientoConjuros } from '../../types/conjuro'
+import { leerConjurosDe, limpiarConjuros, problemaConjuros, resumenConjuros } from '../../lib/conjurosOtorgados'
 
 type Props = {
   rasgos: RasgoEspecie[]
   onChange: (rasgos: RasgoEspecie[]) => void
   conjuros: Conjuro[]
   onCrearConjuro: (conjuro: Conjuro) => void
+  /** Nombres de clase para las listas de conjuros (popup). */
+  clasesDisponibles?: string[]
+}
+
+/** Quita el campo del formato anterior (ya convertido a `conjuros`). */
+function sinFormatoAnterior(rasgo: RasgoEspecie): RasgoEspecie {
+  const copia = { ...rasgo }
+  delete copia.conjurosOtorgados
+  return copia
 }
 
 export default function RasgosEspecie({ 
@@ -20,6 +30,7 @@ export default function RasgosEspecie({
   onChange,
   conjuros,
   onCrearConjuro,
+  clasesDisponibles = [],
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
@@ -27,7 +38,8 @@ export default function RasgosEspecie({
   const [descripcion, setDescripcion] = useState('')
   const [expandedIds, setExpandedIds] = useState<string[]>([])
   const [conjurosOtorgados, setConjurosOtorgados] =
-    useState<ConjuroOtorgado[]>([])
+    useState<OtorgamientoConjuros[]>([])
+  const [error, setError] = useState('')
   const [efectos, setEfectos] = useState<EfectoEspecie[]>([])
 
   function agregar() {
@@ -44,7 +56,7 @@ export default function RasgosEspecie({
     setNombre(rasgo.nombre)
     setDescripcion(rasgo.descripcion)
     setShowForm(true)
-    setConjurosOtorgados(rasgo.conjurosOtorgados ?? [])
+    setConjurosOtorgados(leerConjurosDe(rasgo))
     setEfectos(leerEfectos(rasgo.efectos))
   }
 
@@ -55,20 +67,26 @@ export default function RasgosEspecie({
     setDescripcion('')
     setConjurosOtorgados([])
     setEfectos([])
+    setError('')
   }
 
   function guardar() {
     if (!nombre.trim()) return
+    for (const o of conjurosOtorgados) {
+      const problema = problemaConjuros(o, true)
+      if (problema) { setError(`Conjuros otorgados: ${problema}.`); return }
+    }
+    const conjurosRasgo = conjurosOtorgados.map(limpiarConjuros)
 
     if (editingId) {
       onChange(
         rasgos.map((rasgo) =>
           rasgo.id === editingId
             ? {
-                ...rasgo,
+                ...sinFormatoAnterior(rasgo),
                 nombre: nombre.trim(),
                 descripcion,
-                conjurosOtorgados,
+                conjuros: conjurosRasgo,
                 efectos,
               }
             : rasgo
@@ -81,7 +99,7 @@ export default function RasgosEspecie({
           id: crypto.randomUUID(),
           nombre: nombre.trim(),
           descripcion,
-          conjurosOtorgados,
+          conjuros: conjurosRasgo,
           efectos,
         },
       ])
@@ -99,8 +117,8 @@ export default function RasgosEspecie({
 
   /** «Visión en la oscuridad: 60 pies · Conjuros: Luz» para la tarjeta del rasgo. */
   function resumenRasgo(rasgo: RasgoEspecie): string {
-    const nombres = (rasgo.conjurosOtorgados ?? []).map(v => conjuros.find(c => c.id === v.conjuroId)?.nombre).filter(Boolean)
-    return [...leerEfectos(rasgo.efectos).map(resumenEfecto), nombres.length ? `Conjuros: ${nombres.join(', ')}` : ''].filter(Boolean).join(' · ')
+    const nombreDe = (id: string) => conjuros.find(c => c.id === id)?.nombre ?? ''
+    return [...leerEfectos(rasgo.efectos).map(resumenEfecto), ...leerConjurosDe(rasgo).map(o => `Conjuros: ${resumenConjuros(o, nombreDe, id => conjuros.find(c => c.id === id)?.nivel)}`)].filter(Boolean).join(' · ')
   }
   function toggleExpanded(id: string) {
     setExpandedIds((current) =>
@@ -217,8 +235,9 @@ export default function RasgosEspecie({
               placeholder="Describí el funcionamiento del rasgo..."
             />
           </div>
-<ConjurosOtorgadosEditor vinculos={conjurosOtorgados} onChange={setConjurosOtorgados} conjuros={conjuros} onCrearConjuro={onCrearConjuro} />
+<ConjurosOtorgadosEditor otorgamientos={conjurosOtorgados} onChange={o => { setConjurosOtorgados(o); setError('') }} conjuros={conjuros} onCrearConjuro={onCrearConjuro} clasesDisponibles={clasesDisponibles} />
           <EfectosEspecieEditor efectos={efectos} onChange={setEfectos} />
+          {error && <p role="alert" className="linajes-especie-error">{error}</p>}
           <div className="rasgos-especie-editor-actions">
             <button
               type="button"

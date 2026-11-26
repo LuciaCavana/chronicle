@@ -1,75 +1,56 @@
 import { useState } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
-import SelectorConjuros from './SelectorConjuros'
-import type { Conjuro, ConjuroOtorgado } from '../../types/conjuro'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
+import type { Conjuro, OtorgamientoConjuros } from '../../types/conjuro'
+import { nuevoOtorgamiento, resumenConjuros } from '../../lib/conjurosOtorgados'
+import ConjurosOtorgadosCampos from './ConjurosOtorgadosCampos'
 import CampoNumero from '../../components/shared/CampoNumero'
-import '../../styles/formularios/RasgosEspecie.css'
+import '../../styles/formularios/ConjurosOtorgados.css'
 
 type Props = {
-  vinculos: ConjuroOtorgado[]
-  onChange: (vinculos: ConjuroOtorgado[]) => void
+  otorgamientos: OtorgamientoConjuros[]
+  onChange: (otorgamientos: OtorgamientoConjuros[]) => void
   conjuros: Conjuro[]
   onCrearConjuro: (conjuro: Conjuro) => void
+  clasesDisponibles: string[]
   /** Si se indica, el nivel requerido es ese (el del beneficio de linaje) y no se pregunta. */
   nivelFijo?: number
   titulo?: string
 }
 
-/** Conjuros y trucos que otorga un rasgo de especie o un beneficio de linaje. */
-export default function ConjurosOtorgadosEditor({ vinculos, onChange, conjuros, onCrearConjuro, nivelFijo, titulo = 'Conjuros y trucos otorgados' }: Props) {
-  const [selectorAbierto, setSelectorAbierto] = useState(false)
-  function vincular(conjuro: Conjuro) {
-    if (vinculos.some(v => v.conjuroId === conjuro.id)) return
-    onChange([...vinculos, { id: crypto.randomUUID(), conjuroId: conjuro.id, nivelRequerido: nivelFijo ?? 1, formaObtencion: 'aprendido', caracteristica: 'ninguna', reglasUso: '' }])
-  }
-  const actualizar = (id: string, cambios: Partial<ConjuroOtorgado>) => onChange(vinculos.map(v => v.id === id ? { ...v, ...cambios } : v))
+/** Conjuros que otorga un rasgo de especie o un beneficio de linaje: una tarjeta por otorgamiento. */
+export default function ConjurosOtorgadosEditor({ otorgamientos, onChange, conjuros, onCrearConjuro, clasesDisponibles, nivelFijo, titulo = 'Conjuros y trucos otorgados' }: Props) {
+  // Los ya cargados se ven cerrados (resumen); los nuevos, abiertos.
+  const [abiertos, setAbiertos] = useState<Set<string>>(() => new Set())
+  const alternar = (id: string, abrir: boolean) => setAbiertos(a => { const n = new Set(a); if (abrir) n.add(id); else n.delete(id); return n })
+  const actualizar = (id: string, cambio: Partial<OtorgamientoConjuros>) => onChange(otorgamientos.map(o => o.id === id ? { ...o, ...cambio } : o))
+  const nombreDe = (id: string) => conjuros.find(c => c.id === id)?.nombre ?? ''
+  const nivelDe = (id: string) => conjuros.find(c => c.id === id)?.nivel
 
-  return <div className="rasgos-especie-conjuros">
+  return <div className="co-editor">
     <h5>{titulo}</h5>
-    {vinculos.map(vinculo => {
-      const conjuro = conjuros.find(c => c.id === vinculo.conjuroId)
-      return <div key={vinculo.id} className="rasgos-especie-conjuro">
-        <div>
-          <strong>{conjuro?.nombre ?? 'Conjuro no disponible en el catálogo'}</strong>
-          {conjuro && <p>{conjuro.tipo === 'truco' ? 'Truco' : `Conjuro de nivel ${conjuro.nivel}`}</p>}
+    {otorgamientos.map(o => {
+      const abierto = abiertos.has(o.id)
+      return <div className="co-tarjeta" key={o.id}>
+        <div className="co-tarjeta-cabecera">
+          <button type="button" className="co-tarjeta-resumen" onClick={() => alternar(o.id, !abierto)} aria-expanded={abierto}>
+            {nivelFijo === undefined && <span className="co-nivel">Nivel {o.nivelRequerido}</span>}
+            <span>{resumenConjuros(o, nombreDe, nivelDe)}</span>
+          </button>
+          <div className="co-tarjeta-botones">
+            {!abierto && <button type="button" aria-label="Editar" onClick={() => alternar(o.id, true)}><Pencil size={15} /></button>}
+            <button type="button" aria-label="Quitar" className="co-quitar" onClick={() => onChange(otorgamientos.filter(x => x.id !== o.id))}><Trash2 size={15} /></button>
+          </div>
         </div>
-        <div className="rasgos-especie-conjuro-config">
-          {nivelFijo === undefined && <label>
-            Nivel requerido
-            <CampoNumero min={1} max={20} value={vinculo.nivelRequerido} onChange={e => actualizar(vinculo.id, { nivelRequerido: Number(e.target.value) })} />
-          </label>}
-          <label>
-            Forma de obtención
-            <select value={vinculo.formaObtencion} onChange={e => actualizar(vinculo.id, { formaObtencion: e.target.value as ConjuroOtorgado['formaObtencion'] })}>
-              <option value="aprendido">Aprendido</option>
-              <option value="preparado">Siempre preparado</option>
-              <option value="lanzamiento_especial">Lanzamiento especial</option>
-            </select>
-          </label>
-          <label>
-            Característica mágica
-            <select value={vinculo.caracteristica} onChange={e => actualizar(vinculo.id, { caracteristica: e.target.value as ConjuroOtorgado['caracteristica'] })}>
-              <option value="ninguna">Ninguna</option>
-              <option value="eleccion">A elección (Inteligencia, Sabiduría o Carisma)</option>
-              <option value="inteligencia">Inteligencia</option>
-              <option value="sabiduria">Sabiduría</option>
-              <option value="carisma">Carisma</option>
-              <option value="fuerza">Fuerza</option>
-              <option value="destreza">Destreza</option>
-              <option value="constitucion">Constitución</option>
-            </select>
-          </label>
-          <label>
-            Reglas de uso
-            <textarea rows={2} value={vinculo.reglasUso} onChange={e => actualizar(vinculo.id, { reglasUso: e.target.value })} placeholder="Ej. Una vez sin gastar espacio; se recupera tras un descanso largo." />
-          </label>
-        </div>
-        <button type="button" className="rasgos-especie-conjuro-eliminar" title="Desvincular conjuro" aria-label={`Desvincular ${conjuro?.nombre ?? 'conjuro'}`}
-          onClick={() => onChange(vinculos.filter(v => v.id !== vinculo.id))}><Trash2 size={16} /></button>
+        {abierto && <>
+          {nivelFijo === undefined && <div className="co-fila"><label>Se obtiene a nivel de personaje
+            <CampoNumero min={1} max={20} value={o.nivelRequerido} onChange={e => actualizar(o.id, { nivelRequerido: Number(e.target.value) })} /></label></div>}
+          <ConjurosOtorgadosCampos idBase={o.id} valor={o} onChange={v => actualizar(o.id, v)} conjuros={conjuros} onCrearConjuro={onCrearConjuro}
+            clasesDisponibles={clasesDisponibles} listaPropia aptitud cambio />
+          <div className="co-tarjeta-pie"><button type="button" className="co-boton" onClick={() => alternar(o.id, false)}>Listo</button></div>
+        </>}
       </div>
     })}
-    <button type="button" className="rasgos-especie-add" onClick={() => setSelectorAbierto(true)}><Plus size={16} />Vincular conjuro</button>
-    <SelectorConjuros abierto={selectorAbierto} conjuros={conjuros} idsVinculados={vinculos.map(v => v.conjuroId)} onVincular={vincular}
-      onCrear={conjuro => { onCrearConjuro(conjuro); vincular(conjuro) }} onCerrar={() => setSelectorAbierto(false)} />
+    <button type="button" className="co-enlace" onClick={() => { const nuevo = nuevoOtorgamiento(nivelFijo ?? 1); onChange([...otorgamientos, nuevo]); alternar(nuevo.id, true) }}>
+      <Plus size={15} />Agregar conjuros otorgados</button>
   </div>
 }

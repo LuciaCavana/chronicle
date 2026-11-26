@@ -45,6 +45,8 @@ type Props = {
   onCrearConjuro: (conjuro: Conjuro) => void
   /** Las demás especies del libro, para avisar si el nombre ya existe. */
   especies?: Especie[]
+  /** Nombres de clase para las listas de conjuros (popup). */
+  clasesDisponibles?: string[]
   /** Lo escrito antes de recargar, recuperado de la copia local. */
   borrador?: Especie | null
   onCambioBorrador?: (borrador: Especie | null) => void
@@ -85,6 +87,7 @@ export default function EspecieForm({
   initialData,
   onSave,
   especies = [],
+  clasesDisponibles = [],
   onCancel,
   conjuros,
   onCrearConjuro,
@@ -413,9 +416,10 @@ export default function EspecieForm({
         onChange={setRasgos}
         conjuros={conjuros}
         onCrearConjuro={onCrearConjuro}
+        clasesDisponibles={clasesDisponibles}
       />
 
-      <LinajesEspecie linajes={linajes} onChange={setLinajes} conjuros={conjuros} onCrearConjuro={onCrearConjuro} />
+      <LinajesEspecie linajes={linajes} onChange={setLinajes} conjuros={conjuros} onCrearConjuro={onCrearConjuro} clasesDisponibles={clasesDisponibles} />
       <TransformacionesEspecie
         transformaciones={transformaciones}
         onChange={setTransformaciones}

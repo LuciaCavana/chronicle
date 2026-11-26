@@ -1,4 +1,4 @@
-import type { ConjuroOtorgado } from './conjuro'
+import type { ConjuroOtorgado, OtorgamientoConjuros } from './conjuro'
 
 export type CampoAdicionalEspecie = {
   id: string
@@ -21,7 +21,7 @@ export type MovimientoEspecie = 'caminar' | 'nado' | 'vuelo' | 'trepar' | 'excav
 
 /**
  * Lo que un rasgo o un beneficio de linaje le da al personaje, además de su texto, para que el
- * creador de personajes lo aplique solo. Los conjuros van aparte (conjurosOtorgados).
+ * creador de personajes lo aplique solo. Los conjuros van aparte (conjuros).
  */
 export type EfectoEspecie =
   | { id: string; tipo: 'vision_oscuridad'; modo: 'establecer' | 'sumar'; pies: number }
@@ -41,6 +41,8 @@ export type RasgoEspecie = {
   nombre: string
   descripcion: string
 
+  conjuros?: OtorgamientoConjuros[]
+  /** Formato anterior: se convierte a `conjuros` al abrir. */
   conjurosOtorgados?: ConjuroOtorgado[]
   efectos?: EfectoEspecie[]
 }
@@ -49,7 +51,9 @@ export type BeneficioNivel = {
   id: string
   nivel: number
   descripcion: string
-  /** Solo en linajes: conjuros que se obtienen a ese nivel (p. ej. Drow: Fuego feérico a nivel 3). */
+  /** Conjuros que se obtienen a ese nivel (p. ej. Drow: Fuego feérico a nivel 3). */
+  conjuros?: OtorgamientoConjuros[]
+  /** Formato anterior: se convierte a `conjuros` al abrir. */
   conjurosOtorgados?: ConjuroOtorgado[]
   efectos?: EfectoEspecie[]
 }

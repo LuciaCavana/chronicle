@@ -1324,6 +1324,7 @@ export default function NuevaPropuesta() {
                 onSave={guardarEspecie}
                 onCancel={cerrarFormularioEspecie}
                 especies={especies}
+                clasesDisponibles={clasesParaListas}
                 conjuros={conjuros}
                 onCrearConjuro={crearConjuro}
               />

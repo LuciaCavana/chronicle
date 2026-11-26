@@ -76,19 +76,6 @@
   .dote-form .dote-beneficio { padding:12px; }
 }
 
-/* Popup de clases (usa la base de SelectorConjuros). */
-.selector-clases-ayuda { margin:-8px 0 14px; color:var(--color-texto-suave); font-size:13px; }
-.selector-clases-lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:8px; margin:12px 0; }
-.selector-clases-opcion { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--color-borde-suave); border-radius:9px; background:var(--color-fondo-campo); color:var(--color-texto); font-size:14px; cursor:pointer; }
-.selector-clases-opcion:has(input:checked) { border-color:var(--color-acento); background:var(--color-fondo-activo); }
-.selector-clases-opcion input { width:17px; height:17px; margin:0; accent-color:var(--color-acento); }
-.selector-clases-otra { display:flex; gap:8px; margin:4px 0 16px; }
-.selector-clases-otra input { flex:1; min-height:40px; padding:8px 12px; border:1px solid var(--color-borde); border-radius:8px; background:var(--color-fondo-campo); color:var(--color-texto); font:inherit; }
-.selector-clases-otra button, .selector-clases-cancelar, .selector-clases-aceptar { min-height:40px; padding:8px 16px; border:1px solid var(--color-acento-borde); border-radius:8px; background:transparent; color:var(--color-texto); font:inherit; font-size:14px; cursor:pointer; }
-.selector-clases-otra button:disabled { opacity:.5; cursor:default; }
-.selector-clases-aceptar { margin-left:8px; border-color:var(--color-acento); background:var(--color-acento); color:var(--color-texto-sobre-acento); font-weight:650; }
-.selector-clases-acciones { padding-top:14px; border-top:1px solid var(--color-borde-suave); color:var(--color-texto-suave); font-size:13px; }
-.selector-clases { color:var(--color-texto); }
 
 /* Beneficios cerrados: tarjeta compacta con título, comienzo del texto y lo que da. */
 .dote-form .dote-beneficio--cerrado { display:flex; align-items:flex-start; gap:12px; padding:12px 14px; }

@@ -1,0 +1,40 @@
+/* Conjuros otorgados: la misma tarjeta en dotes, rasgos de especie y beneficios de linaje. */
+.co-campos { margin: 4px 0 6px; padding: 10px 14px; border-radius: 9px; background: var(--color-fondo-campo); color: var(--color-texto); }
+.co-modo { display: flex; flex-wrap: wrap; gap: 2px 22px; padding-bottom: 6px; margin-bottom: 8px; border-bottom: 1px solid var(--color-borde-suave); }
+.co-casilla { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 13.5px; line-height: 1.4; cursor: pointer; }
+.co-casilla--chica { padding: 3px 0; font-size: 13px; }
+.co-casilla input { width: 16px; height: 16px; margin: 0; accent-color: var(--color-acento); cursor: pointer; }
+.co-ayuda { margin: 4px 0; color: var(--color-texto-suave); font-size: 12.5px; }
+.co-conjuro { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; padding: 9px 12px; margin: 6px 0; border: 1px solid var(--color-borde-suave); border-radius: 8px; background: var(--color-fondo-seccion); font-size: 13px; }
+.co-desvincular { padding: 5px 10px; border: 1px solid var(--color-peligro-borde); border-radius: 7px; background: transparent; color: var(--color-error-texto); font: inherit; font-size: 12px; cursor: pointer; }
+.co-desvincular:hover { background: var(--color-peligro-fondo); }
+.co-enlace { display: inline-flex; align-items: center; gap: 5px; padding: 6px 0; border: 0; background: transparent; color: var(--color-acento); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.co-enlace:hover { color: var(--color-acento-claro); }
+.co-fila { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 14px; margin: 4px 0; }
+.co-fila > label, .co-etiqueta { display: flex; flex: 1 1 140px; flex-direction: column; gap: 5px; color: var(--color-texto-etiqueta); font-size: 12.5px; }
+.co-campos select, .co-campos textarea, .co-campos input:not([type="checkbox"]):not([type="radio"]) {
+  box-sizing: border-box; width: 100%; min-height: 38px; padding: 7px 10px; border: 1px solid var(--color-borde); border-radius: 8px;
+  background: var(--color-fondo-seccion); color: var(--color-texto); font: inherit; font-size: 13.5px;
+}
+.co-quitar { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; margin-bottom: 2px; border: 1px solid var(--color-borde-suave); border-radius: 7px; background: transparent; color: var(--color-texto-suave); cursor: pointer; }
+.co-quitar:hover { color: var(--color-peligro); border-color: var(--color-peligro-borde); background: var(--color-peligro-fondo); }
+.co-sangria { padding-left: 26px; }
+.co-bloque { margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--color-borde-suave); }
+.co-subtitulo { display: block; margin: 6px 0 4px; color: var(--color-texto-etiqueta); font-size: 12.5px; font-weight: 600; }
+.co-clases { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+.co-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border: 1px solid var(--color-acento-borde); border-radius: 999px; background: var(--color-fondo-elevado); font-size: 12.5px; }
+.co-chip button { display: inline-flex; padding: 2px; border: 0; border-radius: 50%; background: transparent; color: var(--color-texto-suave); cursor: pointer; }
+.co-chip button:hover { color: var(--color-peligro); }
+.co-boton { padding: 5px 12px; border: 1px solid var(--color-acento); border-radius: 7px; background: transparent; color: var(--color-acento); font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.co-aptitudes { display: flex; flex-wrap: wrap; gap: 0 18px; margin-top: 4px; }
+.co-notas { margin-top: 10px; }
+.co-editor { margin: 14px 0 6px; }
+.co-editor h5 { margin: 0 0 8px; color: var(--color-acento); font-size: 14px; }
+.co-tarjeta { margin-bottom: 10px; padding: 8px 10px; border: 1px solid var(--color-borde-suave); border-left: 3px solid var(--color-acento-tenue); border-radius: 9px; background: var(--color-fondo-seccion); }
+.co-tarjeta-cabecera { display: flex; align-items: flex-start; gap: 10px; }
+.co-tarjeta-resumen { flex: 1; display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 4px 2px; border: 0; background: transparent; color: var(--color-texto); font: inherit; font-size: 13.5px; line-height: 1.45; text-align: left; cursor: pointer; }
+.co-tarjeta-resumen:hover { color: var(--color-acento-claro); }
+.co-nivel { color: var(--color-acento); font-weight: 650; }
+.co-tarjeta-botones { display: flex; gap: 4px; }
+.co-tarjeta-botones button { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 1px solid var(--color-borde-suave); border-radius: 7px; background: transparent; color: var(--color-texto-suave); cursor: pointer; }
+.co-tarjeta-pie { display: flex; justify-content: flex-end; margin-top: 4px; }
