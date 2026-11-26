@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { ArrowDown, ArrowUp, Plus, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import type { Conjuro } from '../../types/conjuro'
 import SelectorConjuros from './SelectorConjuros'
 import SelectorClases from './SelectorClases'
 import type { BeneficioDote, ConjurosBeneficio, Dote, EfectoDote, SeleccionConjurosDote } from '../../types/trasfondo'
-import { conjurosVacios, normalizarDote, nuevoBeneficio, prepararDoteParaGuardar, usaListaDeConjuros } from '../../lib/dotes'
+import { conjurosVacios, normalizarDote, nuevoBeneficio, prepararDoteParaGuardar, resumenBeneficio, usaListaDeConjuros } from '../../lib/dotes'
 import { nombreRepetido } from '../../lib/listas'
 import '../../styles/formularios/EspecieForm.css'
 import '../../styles/formularios/DoteForm.css'
@@ -45,7 +45,11 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
   const [categoria, setCategoria] = useState(fuente?.categoria ?? 'origen')
   const [repetible, setRepetible] = useState(Boolean(fuente?.repetible))
   const [requisitos, setRequisitos] = useState((fuente?.requisitos ?? []).join('\n'))
-  const [beneficios, setBeneficios] = useState<BeneficioDote[]>(fuente?.beneficios.length ? fuente.beneficios : [nuevoBeneficio()])
+  const [beneficios, setBeneficios] = useState<BeneficioDote[]>(() => fuente?.beneficios.length ? fuente.beneficios : [nuevoBeneficio()])
+  // Tarjetas abiertas para editar: los beneficios ya cargados se muestran cerrados (título y resumen).
+  const [abiertos, setAbiertos] = useState<Set<string>>(() => new Set(fuente?.beneficios.length ? [] : beneficios.map(b => b.id)))
+  const abrir = (beneficioId: string) => setAbiertos(a => new Set(a).add(beneficioId))
+  const cerrar = (beneficioId: string) => setAbiertos(a => { const n = new Set(a); n.delete(beneficioId); return n })
   const [lista, setLista] = useState<SeleccionConjurosDote>(() => ({ ...listaInicial, ...(fuente?.seleccionConjuros ?? {}) }))
   const [libro, setLibro] = useState(fuente?.fuente?.libro ?? '')
   const [pagina, setPagina] = useState(fuente?.fuente?.pagina?.toString() ?? '')
@@ -101,12 +105,13 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
     const conContenido = beneficios.filter(b => b.nombre.trim() || b.descripcion.trim() || b.conjuros || b.tipo === 'cambiar_conjuro')
     for (const b of conContenido) {
       const nombreB = b.nombre.trim() || 'Un beneficio'
+      const fallo = (mensaje: string) => { abrir(b.id); setError(mensaje) }
       if (b.conjuros?.modo === 'eleccion' && (!b.conjuros.selecciones.length || b.conjuros.selecciones.some(s => !Number.isInteger(s.cantidad) || s.cantidad < 1))) {
-        setError(`«${nombreB}» da conjuros: indicá el nivel y una cantidad de al menos 1.`); return
+        fallo(`«${nombreB}» da conjuros: indicá el nivel y una cantidad de al menos 1.`); return
       }
-      if (b.conjuros?.modo === 'fijos' && !b.conjuros.conjurosIds.length) { setError(`«${nombreB}» da conjuros: vinculá al menos uno o desmarcá la opción.`); return }
-      if (b.conjuros?.lanzamientoSinEspacio && !(b.conjuros.lanzamientoSinEspacio.usos >= 1)) { setError(`«${nombreB}»: los usos sin espacio tienen que ser al menos 1.`); return }
-      if (b.tipo === 'cambiar_conjuro' && !(b.cambioConjuro && b.cambioConjuro.cantidad >= 1)) { setError(`«${nombreB}»: indicá cuántos conjuros se pueden cambiar.`); return }
+      if (b.conjuros?.modo === 'fijos' && !b.conjuros.conjurosIds.length) { fallo(`«${nombreB}» da conjuros: vinculá al menos uno o desmarcá la opción.`); return }
+      if (b.conjuros?.lanzamientoSinEspacio && !(b.conjuros.lanzamientoSinEspacio.usos >= 1)) { fallo(`«${nombreB}»: los usos sin espacio tienen que ser al menos 1.`); return }
+      if (b.tipo === 'cambiar_conjuro' && !(b.cambioConjuro && b.cambioConjuro.cantidad >= 1)) { fallo(`«${nombreB}»: indicá cuántos conjuros se pueden cambiar.`); return }
     }
     if (usaListaDeConjuros(conContenido) && !lista.listasPermitidas.length) { setError('Elegí al menos una clase para la lista de conjuros de la dote.'); return }
     if (usaListaDeConjuros(conContenido) && !lista.caracteristicasMagicas.length) { setError('Elegí al menos una aptitud mágica.'); return }
@@ -173,13 +178,32 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
       {beneficios.map((b, indice) => {
         const esCambio = b.tipo === 'cambiar_conjuro'
         const c = b.conjuros
+        const abierto = abiertos.has(b.id)
+        const botones = <>
+              <button type="button" aria-label="Subir" disabled={indice === 0} onClick={() => mover(b.id, -1)}><ArrowUp size={15} /></button>
+              <button type="button" aria-label="Bajar" disabled={indice === beneficios.length - 1} onClick={() => mover(b.id, 1)}><ArrowDown size={15} /></button>
+              <button type="button" aria-label="Quitar beneficio" className="dote-quitar" onClick={() => setBeneficios(actuales => actuales.filter(x => x.id !== b.id))}><Trash2 size={15} /></button>
+        </>
+        if (!abierto) {
+          const resumen = resumenBeneficio(b, nombreDeConjuro)
+          return <article className={`dote-beneficio dote-beneficio--cerrado${esCambio ? ' dote-beneficio--cambio' : ''}`} key={b.id}>
+            <div className="dote-beneficio-cerrado-cuerpo" role="button" tabIndex={0} aria-label={`Editar ${b.nombre || `beneficio ${indice + 1}`}`}
+              onClick={() => abrir(b.id)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(b.id) } }}>
+              <strong>{b.nombre.trim() || (esCambio ? 'Cambiar conjuro' : 'Sin título')}</strong>
+              {b.descripcion.trim() && <p className="dote-beneficio-texto">{b.descripcion}</p>}
+              {resumen && <p className="dote-beneficio-resumen">{resumen}</p>}
+            </div>
+            <div className="dote-beneficio-botones">
+              <button type="button" aria-label="Editar beneficio" onClick={() => abrir(b.id)}><Pencil size={15} /></button>
+              {botones}
+            </div>
+          </article>
+        }
         return <article className={`dote-beneficio${esCambio ? ' dote-beneficio--cambio' : ''}`} key={b.id}>
           <header className="dote-beneficio-cabecera">
             <span className="dote-beneficio-etiqueta">{esCambio ? 'Cambiar conjuro' : `Beneficio ${indice + 1}`}</span>
             <div className="dote-beneficio-botones">
-              <button type="button" aria-label="Subir" disabled={indice === 0} onClick={() => mover(b.id, -1)}><ArrowUp size={15} /></button>
-              <button type="button" aria-label="Bajar" disabled={indice === beneficios.length - 1} onClick={() => mover(b.id, 1)}><ArrowDown size={15} /></button>
-              <button type="button" aria-label="Quitar beneficio" className="dote-quitar" onClick={() => setBeneficios(actuales => actuales.filter(x => x.id !== b.id))}><Trash2 size={15} /></button>
+              {botones}
             </div>
           </header>
           <div className="nueva-propuesta-field"><label htmlFor={`ben-nombre-${b.id}`}>Título</label>
@@ -231,11 +255,12 @@ export default function DoteForm({ initialData, dotes, conjuros, clasesDisponibl
               <label className="dote-casilla"><input type="checkbox" checked={Boolean(c.permiteUsarEspacios)} onChange={e => cambiarConjuros(b, { permiteUsarEspacios: e.target.checked })} /><span>También se puede lanzar con espacios de conjuro</span></label>
             </div>}
           </>}
+          <div className="dote-beneficio-pie"><button type="button" className="dote-accion dote-accion--suave" onClick={() => cerrar(b.id)}>Listo</button></div>
         </article>
       })}
       <div className="dote-agregar">
-        <button type="button" className="dote-accion" onClick={() => setBeneficios(actuales => [...actuales, nuevoBeneficio()])}><Plus size={15} />Agregar beneficio</button>
-        {!hayCambioConjuro && <button type="button" className="dote-accion dote-accion--suave" onClick={() => setBeneficios(actuales => [...actuales, nuevoBeneficio({ nombre: 'Cambiar conjuro', tipo: 'cambiar_conjuro', cambioConjuro: { cantidad: 1, mismoNivel: true, mismaLista: true } })])}><Plus size={15} />Cambiar conjuro al subir de nivel</button>}
+        <button type="button" className="dote-accion" onClick={() => { const nuevo = nuevoBeneficio(); setBeneficios(actuales => [...actuales, nuevo]); abrir(nuevo.id) }}><Plus size={15} />Agregar beneficio</button>
+        {!hayCambioConjuro && <button type="button" className="dote-accion dote-accion--suave" onClick={() => { const nuevo = nuevoBeneficio({ nombre: 'Cambiar conjuro', tipo: 'cambiar_conjuro', cambioConjuro: { cantidad: 1, mismoNivel: true, mismaLista: true } }); setBeneficios(actuales => [...actuales, nuevo]); abrir(nuevo.id) }}><Plus size={15} />Cambiar conjuro al subir de nivel</button>}
       </div>
     </div>
 
