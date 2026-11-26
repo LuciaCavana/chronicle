@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-
 
 import AppLayout from '../components/layout/AppLayout'
 import { useAuth } from '../contexts/useAuth'
-import { eliminarPorId, reemplazarOAgregar } from '../lib/listas'
+import { eliminarPorId, primerNombreRepetido, reemplazarOAgregar } from '../lib/listas'
 import { borrarRespaldoBorrador, useAvisoAntesDeSalir, useRespaldoBorrador } from '../hooks/useRespaldoBorrador'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
@@ -206,6 +206,10 @@ export default function NuevaPropuesta() {
       libroOrigenTitulo: version.titulo,
     }))
   )
+  // Clases para armar listas de conjuros (dotes): las del libro, las de libros publicados y las que figuran en los conjuros.
+  const clasesParaListas = [...clases.map(c => c.nombre), ...clasesExternas.map(c => c.nombre),
+    ...conjuros.flatMap(c => c.clases ?? []), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).flatMap(c => c.clases ?? []))]
+    .filter((nombre): nombre is string => typeof nombre === 'string' && Boolean(nombre.trim()))
   const clasesDisponiblesSubclase = [...clases, ...clasesExternas.filter(clase => !clases.some(local => local.id === clase.id))]
   const claseValidaSubclase = (claseId: string) => clasesDisponiblesSubclase.some(clase => clase.id === claseId)
 
@@ -517,6 +521,24 @@ export default function NuevaPropuesta() {
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
       setVista('cat:clases')
+      return
+    }
+    // Dos elementos de la misma categoría con el mismo nombre (sin contar mayúsculas ni tildes).
+    const repetidos: [string, string, string | null][] = [
+      ['especies', 'especies', primerNombreRepetido(especies)],
+      ['clases', 'clases', primerNombreRepetido(clases)],
+      ['subclases', 'subclases de la misma clase', primerNombreRepetido(subclases, (s: Elemento) => (s.datos as { claseId?: string }).claseId ?? '')],
+      ['objetos', 'objetos', primerNombreRepetido(objetos)],
+      ['conjuros', 'conjuros', primerNombreRepetido(conjuros)],
+      ['dotes', 'dotes', primerNombreRepetido(dotes)],
+      ['trasfondos', 'trasfondos', primerNombreRepetido(trasfondos)],
+      ['criaturas', 'criaturas', primerNombreRepetido(criaturas)],
+      ['otras', 'características del mismo tipo', primerNombreRepetido(caracteristicas, (c: CaracteristicaLibro) => c.tipo)],
+    ]
+    const repetido = repetidos.find(([, , nombre]) => nombre)
+    if (repetido) {
+      setErrorGuardado(`Hay dos ${repetido[1]} con el nombre «${repetido[2]}». Cambiale el nombre a una antes de guardar.`)
+      setVista(`cat:${repetido[0]}`)
       return
     }
 
@@ -1286,7 +1308,7 @@ export default function NuevaPropuesta() {
             ) : showTrasfondoForm ? (
               <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} {...propsBorrador<Trasfondo>('trasfondos', editingTrasfondoId)} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} />
             ) : showDoteForm ? (
-              <DoteForm key={editingDoteId ?? 'nueva'} {...propsBorrador<Dote>('dotes', editingDoteId)} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clases.map(c => c.nombre).filter(Boolean)} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
+              <DoteForm key={editingDoteId ?? 'nueva'} {...propsBorrador<Dote>('dotes', editingDoteId)} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clasesParaListas} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
             ) : showConjuroForm ? (
               <ConjuroForm key={editingConjuroId ?? 'nuevo'} {...propsBorrador<Conjuro>('conjuros', editingConjuroId)} initialData={conjuros.find(c => c.id === editingConjuroId)} conjuros={conjuros} onSave={guardarConjuro} onCancel={() => { setShowConjuroForm(false); setEditingConjuroId(null) }} />
             ) : showEspecieForm ? (
@@ -1299,6 +1321,7 @@ export default function NuevaPropuesta() {
                 )}
                 onSave={guardarEspecie}
                 onCancel={cerrarFormularioEspecie}
+                especies={especies}
                 conjuros={conjuros}
                 onCrearConjuro={crearConjuro}
               />

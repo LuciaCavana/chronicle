@@ -1,5 +1,7 @@
 import { nuevoId, type Bloque } from '../types/capitulo'
 import { TERMINO, unirRenglones, comoOracion } from './pegarDesdeLibro'
+import { nuevoBeneficio } from './dotes'
+import type { BeneficioDote } from '../types/trasfondo'
 
 /**
  * Fichas que aparecen dentro del texto del libro (conjuros, dotes, trasfondos, especies,
@@ -202,16 +204,18 @@ export function leerDote(nombre: string, renglones: RenglonFicha[]): Record<stri
     if (m[2]) datos.requisitos = m[2].replace(/^(?:pre|pr)?requisitos?\s*:\s*/i, '').split(/\s*,\s*(?=[A-ZÁÉÍÓÚÑa-z])/).map(x => x.trim()).filter(Boolean)
   }
   const parrafos = parrafosDe(renglones.slice(1))
-  const beneficios: string[] = []
+  // Cada beneficio es una tarjeta: el término en negrita («Dos trucos») es el título.
+  const beneficios: BeneficioDote[] = []
   const descripcion: string[] = []
   for (const p of parrafos) {
     const t = conTermino(p)
-    if (t) beneficios.push(`${t.nombre}. ${t.texto}`)
+    if (t) beneficios.push(nuevoBeneficio({ nombre: t.nombre, descripcion: t.texto }))
     else if (!beneficios.length) descripcion.push(p)
-    else beneficios[beneficios.length - 1] += ` ${p}`
+    else beneficios[beneficios.length - 1].descripcion += ` ${p}`
   }
   if (descripcion.length) datos.descripcion = aHtml(descripcion)
   if (beneficios.length) datos.beneficios = beneficios
+  if (beneficios.some(b => /^repetible/i.test(b.nombre))) datos.repetible = true
   return datos
 }
 

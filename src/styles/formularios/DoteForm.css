@@ -26,3 +26,66 @@
 .dote-form .dote-conjuro-opcion { justify-content:space-between; flex-wrap:wrap; cursor:default; }
 .dote-form .dote-desvincular { padding:7px 11px; border:1px solid #a96363; border-radius:7px; background:transparent; color:var(--color-error-texto); font:inherit; font-size:12px; cursor:pointer; }
 .dote-form .dote-desvincular:hover { background:rgba(225,154,154,.12); }
+
+/* Rediseño 26/11: categoría con «Repetible», lista de conjuros global y beneficios en tarjetas. */
+.dote-form .dote-fila-categoria { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; align-items:end; }
+.dote-form .dote-ayuda { display:block; margin-top:6px; color:var(--color-texto-suave); font-size:12.5px; line-height:1.5; }
+.dote-form .dote-casilla { display:flex; align-items:center; gap:10px; padding:8px 0; color:var(--color-texto); font-size:14px; line-height:1.4; cursor:pointer; }
+.dote-form .dote-casilla input[type="radio"] { width:17px; height:17px; margin:0; accent-color:var(--color-acento); cursor:pointer; }
+.dote-form .dote-casilla--chica { padding:4px 0; font-size:13.5px; }
+.dote-form .dote-repetible { min-height:44px; padding:6px 14px; margin-bottom:16px; border:1px solid var(--color-borde); border-radius:9px; background:var(--color-fondo-campo); }
+.dote-form .dote-repetible:has(input:checked) { border-color:var(--color-acento); }
+.dote-form .dote-repetible span { display:flex; flex-direction:column; }
+.dote-form .dote-repetible small { color:var(--color-texto-suave); font-size:12px; }
+.dote-form .dote-titulo-seccion { margin:26px 0 10px; color:var(--color-acento); font-size:15px; font-weight:650; }
+.dote-form .dote-subtitulo { display:block; margin:12px 0 4px; color:var(--color-texto-etiqueta); font-size:13px; font-weight:600; }
+.dote-form .dote-aptitud > div { display:flex; flex-wrap:wrap; gap:6px 22px; }
+.dote-form .dote-clases { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:4px 0 8px; }
+.dote-form .dote-chip { display:inline-flex; align-items:center; gap:6px; padding:5px 6px 5px 12px; border:1px solid var(--color-acento-borde); border-radius:999px; background:var(--color-fondo-elevado); color:var(--color-texto); font-size:13px; }
+.dote-form .dote-chip button { display:inline-flex; padding:3px; border:0; border-radius:50%; background:transparent; color:var(--color-texto-suave); cursor:pointer; }
+.dote-form .dote-chip button:hover { color:var(--color-peligro); background:var(--color-peligro-fondo); }
+.dote-form .dote-clases .dote-accion { margin:0; }
+.dote-form .dote-beneficio { margin:0 0 14px; padding:14px 16px 10px; border:1px solid var(--color-borde-suave); border-left:3px solid var(--color-acento-tenue); border-radius:10px; background:var(--color-fondo-seccion); }
+.dote-form .dote-beneficio--cambio { border-left-color:var(--color-texto-apagado); }
+.dote-form .dote-beneficio-cabecera { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:6px; }
+.dote-form .dote-beneficio-etiqueta { color:var(--color-texto-apagado); font-size:12px; font-weight:650; letter-spacing:.04em; text-transform:uppercase; }
+.dote-form .dote-beneficio-botones { display:flex; gap:4px; }
+.dote-form .dote-beneficio-botones button, .dote-form .dote-quitar { display:inline-flex; align-items:center; justify-content:center; width:32px; height:32px; padding:0; border:1px solid var(--color-borde-suave); border-radius:7px; background:transparent; color:var(--color-texto-suave); cursor:pointer; }
+.dote-form .dote-beneficio-botones button:hover:not(:disabled) { color:var(--color-acento); border-color:var(--color-acento-borde); }
+.dote-form .dote-beneficio-botones button:disabled { opacity:.35; cursor:default; }
+.dote-form .dote-quitar:hover { color:var(--color-peligro); border-color:var(--color-peligro-borde); background:var(--color-peligro-fondo); }
+.dote-form .dote-da-conjuros { margin-top:2px; font-weight:600; }
+.dote-form .dote-opciones { margin:2px 0 6px; padding:10px 14px; border-radius:9px; background:var(--color-fondo-campo); }
+.dote-form .dote-modo { display:flex; flex-wrap:wrap; gap:4px 22px; padding-bottom:6px; border-bottom:1px solid var(--color-borde-suave); margin-bottom:8px; }
+.dote-form .dote-seleccion { display:flex; flex-wrap:wrap; align-items:flex-end; gap:12px; }
+.dote-form .dote-seleccion .nueva-propuesta-field { flex:1 1 140px; margin-bottom:8px; }
+.dote-form .dote-seleccion .dote-quitar { margin-bottom:14px; }
+.dote-form .dote-sangria { padding-left:27px; }
+.dote-form .dote-campo-corto { max-width:280px; }
+.dote-form .dote-enlace { display:inline-flex; align-items:center; gap:5px; padding:6px 0; border:0; background:transparent; color:var(--color-acento); font:inherit; font-size:13px; font-weight:600; cursor:pointer; }
+.dote-form .dote-enlace:hover { color:var(--color-acento-claro); }
+.dote-form .dote-agregar { display:flex; flex-wrap:wrap; gap:10px; }
+.dote-form .dote-accion { gap:6px; }
+.dote-form .dote-accion--suave { border-color:var(--color-acento-borde); background:transparent; color:var(--color-texto); }
+.dote-form .dote-avanzado { margin:18px 0; padding:12px 16px; border:1px solid var(--color-borde-suave); border-radius:10px; }
+.dote-form .dote-avanzado summary { color:var(--color-texto-suave); font-size:14px; cursor:pointer; }
+.dote-form .dote-avanzado p { color:var(--color-texto-tenue); font-size:13px; }
+.dote-form .dote-error { color:var(--color-error-texto); }
+@media(max-width:650px) {
+  .dote-form .dote-fila-categoria { grid-template-columns:1fr; gap:0; }
+  .dote-form .dote-beneficio { padding:12px; }
+}
+
+/* Popup de clases (usa la base de SelectorConjuros). */
+.selector-clases-ayuda { margin:-8px 0 14px; color:var(--color-texto-suave); font-size:13px; }
+.selector-clases-lista { display:grid; grid-template-columns:repeat(auto-fill, minmax(170px, 1fr)); gap:8px; margin:12px 0; }
+.selector-clases-opcion { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px solid var(--color-borde-suave); border-radius:9px; background:var(--color-fondo-campo); color:var(--color-texto); font-size:14px; cursor:pointer; }
+.selector-clases-opcion:has(input:checked) { border-color:var(--color-acento); background:var(--color-fondo-activo); }
+.selector-clases-opcion input { width:17px; height:17px; margin:0; accent-color:var(--color-acento); }
+.selector-clases-otra { display:flex; gap:8px; margin:4px 0 16px; }
+.selector-clases-otra input { flex:1; min-height:40px; padding:8px 12px; border:1px solid var(--color-borde); border-radius:8px; background:var(--color-fondo-campo); color:var(--color-texto); font:inherit; }
+.selector-clases-otra button, .selector-clases-cancelar, .selector-clases-aceptar { min-height:40px; padding:8px 16px; border:1px solid var(--color-acento-borde); border-radius:8px; background:transparent; color:var(--color-texto); font:inherit; font-size:14px; cursor:pointer; }
+.selector-clases-otra button:disabled { opacity:.5; cursor:default; }
+.selector-clases-aceptar { margin-left:8px; border-color:var(--color-acento); background:var(--color-acento); color:var(--color-texto-sobre-acento); font-weight:650; }
+.selector-clases-acciones { padding-top:14px; border-top:1px solid var(--color-borde-suave); color:var(--color-texto-suave); font-size:13px; }
+.selector-clases { color:var(--color-texto); }
