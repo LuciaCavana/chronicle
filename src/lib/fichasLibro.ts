@@ -46,6 +46,8 @@ const separarLista = (t: string) => t.replace(/\.$/, '').split(/\s*,\s*|\s+[yeo]
 /** Quita las referencias «(consulta el capítulo 5)» / «(ver …)» de un valor. */
 const sinReferencia = (t: string) => t.replace(/\s*\((?:consulta|ver)\b[^)]*\)/gi, '').replace(/\s+/g, ' ').trim()
 const capitalizar = (t: string) => t ? t.charAt(0).toLocaleUpperCase('es') + t.slice(1) : t
+/** «Clérigo, Druida y Hechicero)» → nombres de clase limpios (sin paréntesis sueltos). */
+const nombresDeClase = (t: string) => separarLista(t.replace(/[()]/g, ' ')).map(capitalizar)
 const escapar = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 /** Párrafos a HTML simple (el formato de las descripciones del editor), con **negrita**. */
 export const aHtml = (parrafos: string[]) => parrafos.map(p => p.trim()).filter(Boolean)
@@ -120,12 +122,21 @@ function camposYTexto(renglones: RenglonFicha[], etiquetas: RegExp[]): { campos:
 export const INICIO_CONJURO = /^(truco de \p{L}+|\p{L}+ de nivel \d+)\b/iu
 export function leerConjuro(nombre: string, renglones: RenglonFicha[]): Record<string, unknown> {
   const datos: Record<string, unknown> = { nombre }
-  const linea = renglones[0]?.texto ?? ''
+  // Si la lista de clases no entra en un renglón («… (Clérigo, Druida, Explorador,» / «Hechicero)»),
+  // se unen los renglones hasta cerrar el paréntesis.
+  let linea = renglones[0]?.texto ?? ''
+  let usados = renglones.length ? 1 : 0
+  const abiertos = (t: string) => (t.match(/\(/g)?.length ?? 0) - (t.match(/\)/g)?.length ?? 0)
+  while (INICIO_CONJURO.test(linea) && abiertos(linea) > 0 && usados < Math.min(renglones.length, 3)) {
+    linea = `${linea} ${renglones[usados].texto}`.replace(/\s+/g, ' ')
+    usados++
+  }
   const truco = linea.match(/^truco de (\p{L}+)\s*(?:\((.+?)\))?/iu)
   const nivel = linea.match(/^(\p{L}+) de nivel (\d+)\s*(?:\((.+?)\))?/iu)
-  if (truco) Object.assign(datos, { nivel: 0, tipo: 'truco', escuela: capitalizar(truco[1]), clases: separarLista(truco[2] ?? '').map(capitalizar) })
-  else if (nivel) Object.assign(datos, { nivel: Number(nivel[2]), tipo: 'conjuro', escuela: capitalizar(nivel[1]), clases: separarLista(nivel[3] ?? '').map(capitalizar) })
-  const { campos, resto } = camposYTexto(renglones.slice(1), [/^tiempo de lanzamiento\s*:\s*/i, /^alcance\s*:\s*/i, /^componentes\s*:\s*/i, /^duraci[óo]n\s*:\s*/i])
+  if (truco) Object.assign(datos, { nivel: 0, tipo: 'truco', escuela: capitalizar(truco[1]), clases: nombresDeClase(truco[2] ?? '') })
+  else if (nivel) Object.assign(datos, { nivel: Number(nivel[2]), tipo: 'conjuro', escuela: capitalizar(nivel[1]), clases: nombresDeClase(nivel[3] ?? '') })
+  else usados = Math.min(usados, 1)
+  const { campos, resto } = camposYTexto(renglones.slice(usados), [/^tiempo de lanzamiento\s*:\s*/i, /^alcance\s*:\s*/i, /^componentes\s*:\s*/i, /^duraci[óo]n\s*:\s*/i])
   const tiempo = campos.get(0)
   if (tiempo) {
     datos.ritual = /ritual/i.test(tiempo)

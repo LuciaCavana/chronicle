@@ -209,7 +209,9 @@ export default function NuevaPropuesta() {
   // Clases para armar listas de conjuros (dotes): las del libro, las de libros publicados y las que figuran en los conjuros.
   const clasesParaListas = [...clases.map(c => c.nombre), ...clasesExternas.map(c => c.nombre),
     ...conjuros.flatMap(c => c.clases ?? []), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).flatMap(c => c.clases ?? []))]
-    .filter((nombre): nombre is string => typeof nombre === 'string' && Boolean(nombre.trim()))
+    .filter((nombre): nombre is string => typeof nombre === 'string')
+    // Sin paréntesis sueltos que dejan algunas importaciones («Hechicero)»).
+    .map(nombre => nombre.replace(/[()]/g, '').trim()).filter(Boolean)
   const clasesDisponiblesSubclase = [...clases, ...clasesExternas.filter(clase => !clases.some(local => local.id === clase.id))]
   const claseValidaSubclase = (claseId: string) => clasesDisponiblesSubclase.some(clase => clase.id === claseId)
 
