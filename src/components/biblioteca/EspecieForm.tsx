@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react'
+import { nombreRepetido } from '../../lib/listas'
 import { useReportarBorrador } from '../../hooks/useRespaldoBorrador'
 import { Bird, Footprints, Mountain, Plus, Shovel, Trash2, Waves } from 'lucide-react'
 
@@ -42,6 +43,8 @@ type Props = {
   onCancel: () => void
   conjuros: Conjuro[]
   onCrearConjuro: (conjuro: Conjuro) => void
+  /** Las demás especies del libro, para avisar si el nombre ya existe. */
+  especies?: Especie[]
   /** Lo escrito antes de recargar, recuperado de la copia local. */
   borrador?: Especie | null
   onCambioBorrador?: (borrador: Especie | null) => void
@@ -81,6 +84,7 @@ export default function EspecieForm({
   bookCode,
   initialData,
   onSave,
+  especies = [],
   onCancel,
   conjuros,
   onCrearConjuro,
@@ -90,6 +94,7 @@ export default function EspecieForm({
   const fuente = borrador ?? initialData
   const [idNuevo] = useState(() => fuente?.id ?? crypto.randomUUID())
   const [nombre, setNombre] = useState(fuente?.nombre ?? '')
+  const [errorNombre, setErrorNombre] = useState('')
   const [descripcion, setDescripcion] = useState(
     fuente?.descripcion ?? ''
   )
@@ -190,6 +195,12 @@ export default function EspecieForm({
       return
     }
 
+    if (nombreRepetido(especies, { id: initialData?.id ?? idNuevo, nombre })) {
+      setErrorNombre('Ya existe una especie con ese nombre.')
+      document.getElementById('species-name')?.focus()
+      return
+    }
+
     onSave({
       id: initialData?.id ?? idNuevo,
       nombre: nombre.trim(),
@@ -228,10 +239,12 @@ export default function EspecieForm({
         <input
           id="species-name"
           value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
+          onChange={(e) => { setNombre(e.target.value); setErrorNombre('') }}
           placeholder="Ej. Elfo"
           required
+          aria-invalid={Boolean(errorNombre)}
         />
+        {errorNombre && <p role="alert" className="criatura-error">{errorNombre}</p>}
       </div>
 
       <div className="nueva-propuesta-field">

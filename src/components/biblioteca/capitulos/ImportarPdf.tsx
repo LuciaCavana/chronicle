@@ -96,7 +96,7 @@ export default function ImportarPdf({ existentes, onAgregar, onCancelar }: Props
       setIndiceDesdeTxt(String(desdeI)); setIndiceHastaTxt(String(hastaI))
       const leidas = await pdf.leer(desdeI, Math.min(pdf.total, hastaI + PAGINAS_INDICE), (hechas, total) => setProgreso({ hechas, total }), () => cerrado.current)
       const indicadas = leidas.filter(p => p.numero <= hastaI)
-      const encontrado = analizarIndice(leidas)
+      const encontrado = analizarIndice(leidas, { desde: desdeI, hasta: hastaI })
       if (encontrado && encontrado.paginasPdf.some(n => n <= hastaI)) {
         setIndice(encontrado); setModo('indice'); setElegidosIndice(new Set(encontrado.capitulos.map(c => c.id)))
       } else if (indicadas.reduce((n, p) => n + p.fragmentos.length, 0) < indicadas.length * 3) {

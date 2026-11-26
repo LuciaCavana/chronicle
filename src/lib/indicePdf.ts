@@ -53,7 +53,7 @@ export function parecido(a: string, b: string): number {
   return 1 - distancia(x, y) / Math.max(x.length, y.length)
 }
 
-type Renglon = { x0: number; base: number; h: number; texto: string }
+type Renglon = { x0: number; x1: number; base: number; h: number; texto: string }
 
 /** Renglones de una página de índice: palabras muy juntas (las columnas del índice están cerca). */
 function renglonesIndice(p: PaginaPdf): Renglon[] {
@@ -64,14 +64,38 @@ function renglonesIndice(p: PaginaPdf): Renglon[] {
     if (g) { g.partes.push(f); g.x1 = Math.max(g.x1, f.x1) }
     else grupos.push({ x0: f.x0, x1: f.x1, base: f.base, h: f.h, partes: [f] })
   }
-  return grupos.map(g => ({ x0: g.x0, base: g.base, h: g.h, texto: g.partes.sort((a, b) => a.x0 - b.x0).map(f => f.texto).join(' ').replace(/\s+/g, ' ').trim() }))
+  const renglones: Renglon[] = grupos.map(g => ({ x0: g.x0, x1: g.x1, base: g.base, h: g.h, texto: g.partes.sort((a, b) => a.x0 - b.x0).map(f => f.texto).join(' ').replace(/\s+/g, ' ').trim() }))
+  return unirNumerosSueltos(renglones, p.ancho)
+}
+
+/**
+ * En muchos índices el número de página está alineado a la derecha, lejos del título y sin
+ * puntos que los unan («Cómo jugar          8»): se lee como dos renglones separados. Cada número
+ * suelto se pega al título de su misma altura que tenga más cerca a la izquierda, con dos
+ * espacios en el medio para que se reconozca como entrada.
+ */
+function unirNumerosSueltos(renglones: Renglon[], ancho: number): Renglon[] {
+  const usados = new Set<Renglon>()
+  const unidos = new Map<Renglon, Renglon>()
+  const numeros = renglones.filter(r => /^\d{1,4}$/.test(r.texto))
+  for (const n of numeros) {
+    const titulo = renglones
+      .filter(r => r !== n && !usados.has(r) && !/^\d{1,4}$/.test(r.texto) && !ENTRADA.test((unidos.get(r) ?? r).texto)
+        && Math.abs(r.base - n.base) < Math.min(r.h, n.h) * 0.5 && r.x1 <= n.x0 && n.x0 - r.x1 < ancho * 0.6)
+      .sort((a, b) => (n.x0 - a.x1) - (n.x0 - b.x1))[0]
+    if (!titulo) continue
+    const actual = unidos.get(titulo) ?? titulo
+    unidos.set(titulo, { ...actual, x1: n.x1, texto: `${actual.texto}  ${n.texto}` })
+    usados.add(n)
+  }
+  return renglones.filter(r => !usados.has(r)).map(r => unidos.get(r) ?? r)
 }
 
 /** Lee las entradas de una página; devuelve null si la página no parece un índice. */
-function entradasDePagina(p: PaginaPdf): (EntradaIndice & { columna: number; x0: number })[] | null {
+function entradasDePagina(p: PaginaPdf, minimo = 12): (EntradaIndice & { columna: number; x0: number })[] | null {
   const renglones = renglonesIndice(p).filter(r => /\p{L}|\d/u.test(r.texto))
   const conNumero = renglones.filter(r => ENTRADA.test(r.texto))
-  if (conNumero.length < 12 || conNumero.length < renglones.length * 0.45) return null
+  if (conNumero.length < minimo || conNumero.length < renglones.length * 0.45) return null
   // Columnas del índice: se agrupan los comienzos de renglón separados por más de 12% del ancho.
   const xs = [...new Set(renglones.map(r => Math.round(r.x0)))].sort((a, b) => a - b)
   const inicios: number[] = []
@@ -87,7 +111,7 @@ function entradasDePagina(p: PaginaPdf): (EntradaIndice & { columna: number; x0:
       if (!m) {
         // Un título largo puede seguir en el renglón de abajo ("Opciones de invocación / Sobrenatural…71").
         const anterior = pendiente as Renglon | null
-        if (r.h < 2 * (lista[0]?.h ?? r.h) && !/^[íi]ndice$/i.test(r.texto)) pendiente = anterior ? { x0: anterior.x0, base: anterior.base, h: anterior.h, texto: `${anterior.texto} ${r.texto}` } : r
+        if (r.h < 2 * (lista[0]?.h ?? r.h) && !/^[íi]ndice$/i.test(r.texto)) pendiente = anterior ? { x0: anterior.x0, x1: r.x1, base: anterior.base, h: anterior.h, texto: `${anterior.texto} ${r.texto}` } : r
         continue
       }
       const desdeArriba: Renglon | null = pendiente
@@ -101,12 +125,18 @@ function entradasDePagina(p: PaginaPdf): (EntradaIndice & { columna: number; x0:
   return entradas
 }
 
-/** Busca el índice en las primeras páginas y calcula el desfase entre páginas del libro y del PDF. */
-export function analizarIndice(paginas: PaginaPdf[]): IndiceLibro | null {
+/**
+ * Busca el índice en las primeras páginas y calcula el desfase entre páginas del libro y del PDF.
+ * `indicadas`: páginas del PDF donde la usuaria dijo que está el índice; ahí alcanza con menos
+ * entradas por página. La última página del índice suele tener pocas, así que después de la
+ * primera también se aceptan páginas más cortas.
+ */
+export function analizarIndice(paginas: PaginaPdf[], indicadas?: { desde: number; hasta: number }): IndiceLibro | null {
   const paginasIndice: number[] = []
   const entradas: EntradaIndice[] = []
   for (const p of paginas) {
-    const e = entradasDePagina(p)
+    const indicada = indicadas && p.numero >= indicadas.desde && p.numero <= indicadas.hasta
+    const e = entradasDePagina(p, indicada ? 4 : paginasIndice.length ? 6 : 12)
     if (e) { paginasIndice.push(p.numero); entradas.push(...e) }
     else if (paginasIndice.length) break // el índice ocupa páginas seguidas
   }
@@ -164,7 +194,9 @@ export function calcularDesfase(paginas: PaginaPdf[]): number | null {
     const ordenados = [...pie].sort((a, b) => a.x0 - b.x0)
     const textoPie = ordenados.map(f => f.texto).join(' ')
     if (!/\|/.test(textoPie) && !/cap[ií]tulo|introducci|ap[ée]ndice/i.test(textoPie)) continue
+    // El número puede venir suelto o pegado al texto del pie («8 CAPÍTULO 1 | CÓMO JUGAR»).
     const numero = [ordenados[0], ordenados[ordenados.length - 1]].map(f => f.texto.match(/^\d{1,4}$/)?.[0]).find(Boolean)
+      ?? textoPie.trim().match(/^(\d{1,4})\s/)?.[1] ?? textoPie.trim().match(/\s(\d{1,4})$/)?.[1]
     if (!numero) continue
     const desfase = p.numero - Number(numero)
     votos.set(desfase, (votos.get(desfase) ?? 0) + 1)

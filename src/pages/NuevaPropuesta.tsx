@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Eye, ListTree, Save, Send, X } from 'lucide-
 
 import AppLayout from '../components/layout/AppLayout'
 import { useAuth } from '../contexts/useAuth'
-import { eliminarPorId, reemplazarOAgregar } from '../lib/listas'
+import { eliminarPorId, primerNombreRepetido, reemplazarOAgregar } from '../lib/listas'
 import { borrarRespaldoBorrador, useAvisoAntesDeSalir, useRespaldoBorrador } from '../hooks/useRespaldoBorrador'
 import { supabase } from '../lib/supabase'
 // Se importa antes de los componentes para conservar el orden de la cascada
@@ -517,6 +517,24 @@ export default function NuevaPropuesta() {
     if (clases.some(clase => !clase.nombre.trim())) {
       setErrorGuardado('Todas las clases deben tener un nombre antes de guardar.')
       setVista('cat:clases')
+      return
+    }
+    // Dos elementos de la misma categoría con el mismo nombre (sin contar mayúsculas ni tildes).
+    const repetidos: [string, string, string | null][] = [
+      ['especies', 'especies', primerNombreRepetido(especies)],
+      ['clases', 'clases', primerNombreRepetido(clases)],
+      ['subclases', 'subclases de la misma clase', primerNombreRepetido(subclases, (s: Elemento) => (s.datos as { claseId?: string }).claseId ?? '')],
+      ['objetos', 'objetos', primerNombreRepetido(objetos)],
+      ['conjuros', 'conjuros', primerNombreRepetido(conjuros)],
+      ['dotes', 'dotes', primerNombreRepetido(dotes)],
+      ['trasfondos', 'trasfondos', primerNombreRepetido(trasfondos)],
+      ['criaturas', 'criaturas', primerNombreRepetido(criaturas)],
+      ['otras', 'características del mismo tipo', primerNombreRepetido(caracteristicas, (c: CaracteristicaLibro) => c.tipo)],
+    ]
+    const repetido = repetidos.find(([, , nombre]) => nombre)
+    if (repetido) {
+      setErrorGuardado(`Hay dos ${repetido[1]} con el nombre «${repetido[2]}». Cambiale el nombre a una antes de guardar.`)
+      setVista(`cat:${repetido[0]}`)
       return
     }
 
@@ -1299,6 +1317,7 @@ export default function NuevaPropuesta() {
                 )}
                 onSave={guardarEspecie}
                 onCancel={cerrarFormularioEspecie}
+                especies={especies}
                 conjuros={conjuros}
                 onCrearConjuro={crearConjuro}
               />
