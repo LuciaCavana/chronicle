@@ -50,7 +50,10 @@ export function normalizarDote(guardada: DoteGuardada): Dote {
   const beneficios = crudos.map(comoBeneficio).filter((b): b is BeneficioDote => b !== null)
   const sel = guardada.seleccionConjuros
   const yaTieneConjuros = beneficios.some(b => b.conjuros)
-  const dote: Dote = { ...guardada, beneficios }
+  // Importaciones anteriores dejaban «prerrequisito:» pegado al primer requisito.
+  const requisitos = (Array.isArray(guardada.requisitos) ? guardada.requisitos : [])
+    .map(r => String(r).replace(/^(?:pre)?r?requisitos?\s*:\s*/i, '').trim()).filter(Boolean)
+  const dote: Dote = { ...guardada, requisitos, beneficios }
 
   if (formatoAnterior || (!yaTieneConjuros && (sel?.selecciones?.length || guardada.conjurosIds?.length))) {
     const libre = (patron: RegExp) => beneficios.find(b => !b.conjuros && b.tipo !== 'cambiar_conjuro' && patron.test(sinTildes(b.nombre)))

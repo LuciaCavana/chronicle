@@ -197,13 +197,23 @@ export function efectosDelTexto(parrafos: string[]): Record<string, unknown> {
 export const INICIO_DOTE = /^dote (de origen|general|de estilo de combate|de don [ée]pico)\b/i
 export function leerDote(nombre: string, renglones: RenglonFicha[]): Record<string, unknown> {
   const datos: Record<string, unknown> = { nombre }
-  const m = (renglones[0]?.texto ?? '').match(/^dote (de origen|general|de estilo de combate|de don [ée]pico)\s*(?:\((.+)\))?/i)
+  // La categoría y el prerrequisito pueden ocupar más de un renglón cuando el paréntesis es largo:
+  // «Dote general (prerrequisito: nivel 4+, Carisma» / «13+)». Se unen hasta cerrar el paréntesis.
+  let cabecera = renglones[0]?.texto ?? ''
+  let usados = renglones.length ? 1 : 0
+  const abiertos = (t: string) => (t.match(/\(/g)?.length ?? 0) - (t.match(/\)/g)?.length ?? 0)
+  while (INICIO_DOTE.test(cabecera) && abiertos(cabecera) > 0 && usados < Math.min(renglones.length, 4)) {
+    cabecera = `${cabecera} ${renglones[usados].texto}`.replace(/\s+/g, ' ')
+    usados++
+  }
+  const m = cabecera.match(/^dote (de origen|general|de estilo de combate|de don [ée]pico)\s*(?:\((.+)\))?/i)
   if (m) {
     const tipo = sinTildes(m[1])
     datos.categoria = tipo.includes('origen') ? 'origen' : tipo.includes('estilo') ? 'estilo_combate' : tipo.includes('epico') ? 'epica' : 'general'
-    if (m[2]) datos.requisitos = m[2].replace(/^(?:pre|pr)?requisitos?\s*:\s*/i, '').split(/\s*,\s*(?=[A-ZÁÉÍÓÚÑa-z])/).map(x => x.trim()).filter(Boolean)
-  }
-  const parrafos = parrafosDe(renglones.slice(1))
+    // «prerrequisito:», «prerequisito:» o «requisitos:» al comienzo no es parte del requisito.
+    if (m[2]) datos.requisitos = m[2].replace(/^(?:pre)?r?requisitos?\s*:\s*/i, '').split(/\s*,\s*(?=[A-ZÁÉÍÓÚÑa-z])/).map(x => x.trim()).filter(Boolean)
+  } else usados = Math.min(usados, 1)
+  const parrafos = parrafosDe(renglones.slice(usados))
   // Cada beneficio es una tarjeta: el término en negrita («Dos trucos») es el título.
   const beneficios: BeneficioDote[] = []
   const descripcion: string[] = []
