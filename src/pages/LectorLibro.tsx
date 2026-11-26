@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useRef, useState } from 'react'
 import { datosDeEfecto } from '../lib/efectosConjuro'
 import { tamanosEspecie, velocidadesEspecie, visionEspecie } from '../lib/datosEspecie'
+import { normalizarDote, resumenBeneficio } from '../lib/dotes'
+import type { Dote } from '../types/trasfondo'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, BookOpen, ChevronRight, Feather, Footprints, ScrollText, WandSparkles, X } from 'lucide-react'
 import AppLayout from '../components/layout/AppLayout'
@@ -243,6 +245,38 @@ function EspeciesDesplegables({ seccion, sinEncabezado }: { seccion: Seccion; si
           {lista(especie.transformaciones).length > 0 && <div className="lector-libro__rasgos">
             <h4>Transformaciones</h4>
             {lista(especie.transformaciones).map((tr, j) => <div key={texto(tr.id) || j}><strong>{tituloElemento(tr, j)}</strong><TextoSeguro valor={tr.descripcion}/></div>)}
+          </div>}
+        </article>
+      </details>
+    })}</div>
+  </section>
+}
+const CATEGORIAS_DOTE: Record<string, string> = { origen: 'Dote de origen', general: 'Dote general', epica: 'Dote épica', estilo_combate: 'Dote de estilo de combate' }
+/** Dotes: categoría, prerrequisitos, descripción y cada beneficio con lo que da. */
+function DotesDesplegables({ seccion, conjuros, sinEncabezado }: { seccion: Seccion; conjuros?: Registro[]; sinEncabezado?: boolean }) {
+  const nombreConjuro = (id: string) => texto((conjuros ?? []).find(c => texto(c.id) === id)?.nombre)
+  return <section className="lector-libro__seccion" id={seccion.id}>
+    {!sinEncabezado && <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>Dotes</h2></div>}
+    <div className="lector-libro__clases">{seccion.elementos.map((guardada, i) => {
+      const dote = normalizarDote(guardada as unknown as Dote)
+      const categoria = CATEGORIAS_DOTE[texto(dote.categoria)] ?? texto(dote.categoria)
+      const requisitos = valoresTexto(dote.requisitos)
+      const datos: [string, string][] = ([
+        ['Categoría', categoria], ['Prerrequisito', requisitos.join(', ')],
+        ['Lista de conjuros', valoresTexto(dote.seleccionConjuros?.listasPermitidas).join(', ')], ['Repetible', dote.repetible ? 'Sí' : ''],
+      ] as [string, string][]).filter(([, v]) => v)
+      return <details className="lector-libro__clase" key={texto(dote.id) || i}>
+        <summary className="lector-libro__clase-resumen"><span className="lector-libro__clase-insignia"><ScrollText size={20} aria-hidden="true"/></span><span className="lector-libro__clase-titulo">{tituloElemento(guardada, i)}{categoria && <span className="lector-libro__clase-detalle"> · {categoria}</span>}</span><ChevronRight className="lector-libro__clase-flecha" size={20} aria-hidden="true"/></summary>
+        <article className="lector-libro__conjuro" aria-label={tituloElemento(guardada, i)}>
+          {datos.length > 0 && <dl className="lector-libro__conjuro-datos">
+            {datos.map(([etiqueta, valor]) => <div key={etiqueta} className="lector-libro__conjuro-dato"><dt>{etiqueta}</dt><dd>{valor}</dd></div>)}
+          </dl>}
+          <TextoSeguro valor={dote.descripcion}/>
+          {dote.beneficios.length > 0 && <div className="lector-libro__rasgos">
+            {dote.beneficios.map(b => <div key={b.id}>
+              <p className="lector-libro__texto">{b.nombre && <strong>{b.nombre}. </strong>}{b.descripcion.replace(/<[^>]*>/g, ' ')}</p>
+              {resumenBeneficio(b, nombreConjuro) && <p className="lector-libro__texto lector-libro__nota"><em>{resumenBeneficio(b, nombreConjuro)}</em></p>}
+            </div>)}
           </div>}
         </article>
       </details>
@@ -539,6 +573,7 @@ function BloqueLector({ bloque, capitular, porCategoria }: { bloque: Bloque; cap
       if (bloque.categoria === 'subclases') return <SubclasesDesplegables seccion={seccion} clases={porCategoria.clases ?? []} sinEncabezado/>
       if (bloque.categoria === 'conjuros') return <ConjurosDesplegables seccion={seccion} sinEncabezado/>
       if (bloque.categoria === 'especies') return <EspeciesDesplegables seccion={seccion} sinEncabezado/>
+      if (bloque.categoria === 'dotes') return <DotesDesplegables seccion={seccion} conjuros={porCategoria.conjuros} sinEncabezado/>
       return <SeccionContenido seccion={seccion} sinEncabezado/>
     }
   }

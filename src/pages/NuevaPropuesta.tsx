@@ -206,6 +206,10 @@ export default function NuevaPropuesta() {
       libroOrigenTitulo: version.titulo,
     }))
   )
+  // Clases para armar listas de conjuros (dotes): las del libro, las de libros publicados y las que figuran en los conjuros.
+  const clasesParaListas = [...clases.map(c => c.nombre), ...clasesExternas.map(c => c.nombre),
+    ...conjuros.flatMap(c => c.clases ?? []), ...versionesPublicadas.flatMap(v => ((v.conjuros ?? []) as Conjuro[]).flatMap(c => c.clases ?? []))]
+    .filter((nombre): nombre is string => typeof nombre === 'string' && Boolean(nombre.trim()))
   const clasesDisponiblesSubclase = [...clases, ...clasesExternas.filter(clase => !clases.some(local => local.id === clase.id))]
   const claseValidaSubclase = (claseId: string) => clasesDisponiblesSubclase.some(clase => clase.id === claseId)
 
@@ -1304,7 +1308,7 @@ export default function NuevaPropuesta() {
             ) : showTrasfondoForm ? (
               <TrasfondoForm key={editingTrasfondoId ?? 'nuevo'} {...propsBorrador<Trasfondo>('trasfondos', editingTrasfondoId)} initialData={trasfondos.find(t => t.id === editingTrasfondoId)} trasfondos={trasfondos} dotes={dotes} objetos={objetos} onSave={guardarTrasfondo} onCancel={() => { setShowTrasfondoForm(false); setEditingTrasfondoId(null) }} />
             ) : showDoteForm ? (
-              <DoteForm key={editingDoteId ?? 'nueva'} {...propsBorrador<Dote>('dotes', editingDoteId)} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clases.map(c => c.nombre).filter(Boolean)} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
+              <DoteForm key={editingDoteId ?? 'nueva'} {...propsBorrador<Dote>('dotes', editingDoteId)} initialData={dotes.find(d => d.id === editingDoteId)} dotes={dotes} conjuros={conjuros} clasesDisponibles={clasesParaListas} onCrearConjuro={crearConjuro} onSave={guardarDote} onCancel={() => { setShowDoteForm(false); setEditingDoteId(null) }} />
             ) : showConjuroForm ? (
               <ConjuroForm key={editingConjuroId ?? 'nuevo'} {...propsBorrador<Conjuro>('conjuros', editingConjuroId)} initialData={conjuros.find(c => c.id === editingConjuroId)} conjuros={conjuros} onSave={guardarConjuro} onCancel={() => { setShowConjuroForm(false); setEditingConjuroId(null) }} />
             ) : showEspecieForm ? (

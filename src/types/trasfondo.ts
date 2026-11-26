@@ -57,6 +57,29 @@ export type SeleccionConjurosDote = {
 /** Restricción de una dote al otorgarla desde un trasfondo u otra fuente. */
 export type RestriccionOrigenDote = { listaConjurosFijada?: string }
 
+/** Conjuros que da un beneficio: a elegir de la lista de la dote, o conjuros puntuales del catálogo. */
+export type ConjurosBeneficio = {
+  modo: 'eleccion' | 'fijos'
+  /** Modo «eleccion»: cuántos conjuros de cada nivel (0 = truco) se eligen de la lista de la dote. */
+  selecciones: Array<{ nivel: number; cantidad: number }>
+  /** Modo «fijos»: IDs de conjuros del catálogo. */
+  conjurosIds: string[]
+  siemprePreparado?: boolean
+  lanzamientoSinEspacio?: { usos: number; recuperacion: 'descanso_largo' | 'descanso_corto' }
+  permiteUsarEspacios?: boolean
+}
+
+/** Un beneficio de la dote: título («Dos trucos»), texto y, si corresponde, lo que otorga. */
+export type BeneficioDote = {
+  id: string
+  nombre: string
+  descripcion: string
+  /** «cambiar_conjuro»: permite reemplazar conjuros de la dote al subir de nivel. */
+  tipo?: 'normal' | 'cambiar_conjuro'
+  conjuros?: ConjurosBeneficio
+  cambioConjuro?: { cantidad: number; mismoNivel: boolean; mismaLista: boolean }
+}
+
 /** Dote reutilizable por trasfondos y otras fuentes. */
 export type Dote = {
   id: string
@@ -64,11 +87,15 @@ export type Dote = {
   descripcion: string
   categoria: string
   requisitos: string[]
-  beneficios: string[]
+  /** Las dotes guardadas antes del 26/11/2026 tienen texto suelto; normalizarDote las convierte. */
+  beneficios: BeneficioDote[]
+  /** Se puede elegir más de una vez. */
+  repetible?: boolean
   fuente?: { libro?: string; pagina?: number }
   efectos?: EfectoDote[]
-  /** IDs de conjuros del catálogo; evita duplicar su definición. */
+  /** IDs de conjuros del catálogo (todos los «fijos» de los beneficios; se calcula al guardar). */
   conjurosIds?: string[]
+  /** Lista de conjuros de la dote (clases y aptitud mágica). `selecciones` se calcula al guardar. */
   seleccionConjuros?: SeleccionConjurosDote
   datosAdicionales?: Record<string, unknown>
 }
