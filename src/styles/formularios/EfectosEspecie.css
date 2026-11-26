@@ -1,0 +1,28 @@
+/* Efectos de rasgos y beneficios de linaje (visión, velocidad, competencias, resistencias…). */
+.efectos-especie { margin: 14px 0 6px; }
+.efectos-especie h5 { margin: 0 0 8px; color: var(--color-acento); font-size: 14px; }
+.efectos-vacio { margin: 0 0 8px; color: var(--color-texto-suave); font-size: 13px; }
+.efectos-item { margin-bottom: 10px; padding: 10px 12px; border: 1px solid var(--color-borde-suave); border-left: 3px solid var(--color-acento-tenue); border-radius: 9px; background: var(--color-fondo-campo); }
+.efectos-item-cabecera { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; color: var(--color-texto-etiqueta); font-size: 13px; font-weight: 650; }
+.efectos-item-cabecera button { display: inline-flex; padding: 6px; border: 1px solid var(--color-borde-suave); border-radius: 7px; background: transparent; color: var(--color-texto-suave); cursor: pointer; }
+.efectos-item-cabecera button:hover { color: var(--color-peligro); border-color: var(--color-peligro-borde); background: var(--color-peligro-fondo); }
+.efectos-campos { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; }
+.efectos-campos > label { display: flex; flex: 1 1 150px; flex-direction: column; gap: 5px; color: var(--color-texto-etiqueta); font-size: 12.5px; }
+.efectos-campos select, .efectos-campos input:not([type="checkbox"]), .efectos-agregar, .efectos-otra input {
+  box-sizing: border-box; width: 100%; min-height: 38px; padding: 7px 10px; border: 1px solid var(--color-borde); border-radius: 8px;
+  background: var(--color-fondo-seccion); color: var(--color-texto); font: inherit; font-size: 13.5px;
+}
+.efectos-campos .efectos-ancho { flex-basis: 100%; }
+.efectos-ancho small { display: block; margin-bottom: 4px; color: var(--color-texto-suave); font-size: 12px; }
+.efectos-campos > label.efectos-check { flex-direction: row; align-items: center; gap: 8px; min-height: 38px; color: var(--color-texto); font-size: 13px; }
+.efectos-check input, .efectos-casilla input { width: 16px; height: 16px; margin: 0; accent-color: var(--color-acento); }
+.efectos-casillas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 12px; }
+.efectos-casilla { display: flex; align-items: center; gap: 8px; padding: 4px 0; color: var(--color-texto); font-size: 13px; cursor: pointer; }
+.efectos-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.efectos-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border: 1px solid var(--color-acento-borde); border-radius: 999px; background: var(--color-fondo-elevado); font-size: 12.5px; }
+.efectos-chip button { display: inline-flex; padding: 2px; border: 0; border-radius: 50%; background: transparent; color: var(--color-texto-suave); cursor: pointer; }
+.efectos-otra { display: flex; gap: 6px; margin-top: 6px; }
+.efectos-otra button { padding: 6px 12px; border: 1px solid var(--color-acento-borde); border-radius: 8px; background: transparent; color: var(--color-texto); font: inherit; font-size: 13px; cursor: pointer; }
+.efectos-otra button:disabled { opacity: .5; cursor: default; }
+.efectos-resumen { margin: 8px 0 0; color: var(--color-texto-suave); font-size: 12.5px; font-style: italic; }
+.efectos-agregar { max-width: 320px; cursor: pointer; }

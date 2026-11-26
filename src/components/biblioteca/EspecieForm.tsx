@@ -415,7 +415,7 @@ export default function EspecieForm({
         onCrearConjuro={onCrearConjuro}
       />
 
-      <LinajesEspecie linajes={linajes} onChange={setLinajes} />
+      <LinajesEspecie linajes={linajes} onChange={setLinajes} conjuros={conjuros} onCrearConjuro={onCrearConjuro} />
       <TransformacionesEspecie
         transformaciones={transformaciones}
         onChange={setTransformaciones}

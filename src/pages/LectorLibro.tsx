@@ -2,6 +2,7 @@ import { Fragment, useEffect, useRef, useState } from 'react'
 import { datosDeEfecto } from '../lib/efectosConjuro'
 import { tamanosEspecie, velocidadesEspecie, visionEspecie } from '../lib/datosEspecie'
 import { normalizarDote, resumenBeneficio } from '../lib/dotes'
+import { leerEfectos, resumenEfecto } from '../lib/efectosEspecie'
 import type { Dote } from '../types/trasfondo'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { ArrowUp, BookOpen, ChevronRight, Feather, Footprints, ScrollText, WandSparkles, X } from 'lucide-react'
@@ -215,7 +216,13 @@ function SeccionContenido({ seccion, sinEncabezado }: { seccion: Seccion; sinEnc
       </article>)}</div>}
   </section>
 }
-function EspeciesDesplegables({ seccion, sinEncabezado }: { seccion: Seccion; sinEncabezado?: boolean }) {
+/** Lo que otorga un rasgo o beneficio de linaje: «Visión en la oscuridad: 120 pies · Conjuros: Fuego feérico». */
+function OtorgaEspecie({ elemento, conjuros }: { elemento: Registro; conjuros?: Registro[] }) {
+  const nombres = lista(elemento.conjurosOtorgados).map(v => texto((conjuros ?? []).find(c => texto(c.id) === texto(v.conjuroId))?.nombre)).filter(Boolean)
+  const partes = [...leerEfectos(elemento.efectos).map(resumenEfecto), nombres.length ? `Conjuros: ${nombres.join(', ')}` : ''].filter(Boolean)
+  return partes.length ? <p className="lector-libro__texto lector-libro__nota"><em>{partes.join(' · ')}</em></p> : null
+}
+function EspeciesDesplegables({ seccion, conjuros, sinEncabezado }: { seccion: Seccion; conjuros?: Registro[]; sinEncabezado?: boolean }) {
   return <section className="lector-libro__seccion" id={seccion.id}>
     {!sinEncabezado && <div className="lector-libro__seccion-encabezado"><Feather size={20} aria-hidden="true"/><h2>Especies</h2></div>}
     <div className="lector-libro__clases">{seccion.elementos.map((especie, i) => {
@@ -234,12 +241,12 @@ function EspeciesDesplegables({ seccion, sinEncabezado }: { seccion: Seccion; si
           <TextoSeguro valor={especie.descripcion}/>
           {lista(especie.rasgos).length > 0 && <div className="lector-libro__rasgos">
             <h4>Rasgos</h4>
-            {lista(especie.rasgos).map((rasgo, j) => <div key={texto(rasgo.id) || j}><strong>{tituloElemento(rasgo, j)}</strong><TextoSeguro valor={rasgo.descripcion}/></div>)}
+            {lista(especie.rasgos).map((rasgo, j) => <div key={texto(rasgo.id) || j}><strong>{tituloElemento(rasgo, j)}</strong><TextoSeguro valor={rasgo.descripcion}/><OtorgaEspecie elemento={rasgo} conjuros={conjuros}/></div>)}
           </div>}
           {lista(especie.linajes).length > 0 && <div className="lector-libro__rasgos">
             <h4>Linajes</h4>
             {lista(especie.linajes).map((linaje, j) => <div key={texto(linaje.id) || j}><strong>{tituloElemento(linaje, j)}</strong><TextoSeguro valor={linaje.descripcion}/>
-              {lista(linaje.beneficios).map((b, k) => <p key={texto(b.id) || k} className="lector-libro__texto"><em>Nivel {texto(b.nivel) || '1'}.</em> {texto(b.descripcion).replace(/<[^>]*>/g, ' ')}</p>)}
+              {lista(linaje.beneficios).map((b, k) => <Fragment key={texto(b.id) || k}><p className="lector-libro__texto"><em>Nivel {texto(b.nivel) || '1'}.</em> {texto(b.descripcion).replace(/<[^>]*>/g, ' ')}</p><OtorgaEspecie elemento={b} conjuros={conjuros}/></Fragment>)}
             </div>)}
           </div>}
           {lista(especie.transformaciones).length > 0 && <div className="lector-libro__rasgos">
@@ -572,7 +579,7 @@ function BloqueLector({ bloque, capitular, porCategoria }: { bloque: Bloque; cap
       if (bloque.categoria === 'clases') return <ClasesDesplegables seccion={seccion} conjuros={porCategoria.conjuros} sinEncabezado/>
       if (bloque.categoria === 'subclases') return <SubclasesDesplegables seccion={seccion} clases={porCategoria.clases ?? []} sinEncabezado/>
       if (bloque.categoria === 'conjuros') return <ConjurosDesplegables seccion={seccion} sinEncabezado/>
-      if (bloque.categoria === 'especies') return <EspeciesDesplegables seccion={seccion} sinEncabezado/>
+      if (bloque.categoria === 'especies') return <EspeciesDesplegables seccion={seccion} conjuros={porCategoria.conjuros} sinEncabezado/>
       if (bloque.categoria === 'dotes') return <DotesDesplegables seccion={seccion} conjuros={porCategoria.conjuros} sinEncabezado/>
       return <SeccionContenido seccion={seccion} sinEncabezado/>
     }

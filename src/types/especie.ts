@@ -15,18 +15,43 @@ export type TamanoEspecie = {
 }
 
 
+/** De qué se da competencia (o se elige): habilidades, armas, idiomas… */
+export type CategoriaCompetencia = 'habilidades' | 'armas' | 'armaduras' | 'herramientas' | 'idiomas' | 'salvaciones'
+export type MovimientoEspecie = 'caminar' | 'nado' | 'vuelo' | 'trepar' | 'excavar'
+
+/**
+ * Lo que un rasgo o un beneficio de linaje le da al personaje, además de su texto, para que el
+ * creador de personajes lo aplique solo. Los conjuros van aparte (conjurosOtorgados).
+ */
+export type EfectoEspecie =
+  | { id: string; tipo: 'vision_oscuridad'; modo: 'establecer' | 'sumar'; pies: number }
+  | { id: string; tipo: 'velocidad'; movimiento: MovimientoEspecie; modo: 'sumar' | 'establecer' | 'igual_caminar'; pies: number }
+  /** modo «fija»: da todas las opciones; «eleccion»: se eligen `cantidad` entre las opciones (vacías = cualquiera). */
+  | { id: string; tipo: 'competencia'; categoria: CategoriaCompetencia; modo: 'fija' | 'eleccion'; opciones: string[]; cantidad: number }
+  | { id: string; tipo: 'resistencia'; grado: 'resistencia' | 'inmunidad'; danos: string[]; aEleccion?: boolean }
+  /** Ventaja en tiradas de salvación (u otras) contra algo, p. ej. «el estado hechizado». */
+  | { id: string; tipo: 'ventaja'; contra: string }
+  | { id: string; tipo: 'puntos_golpe'; alObtener: number; porNivel: number }
+  | { id: string; tipo: 'dote'; categoria: string; cantidad: number }
+
+export type TipoEfectoEspecie = EfectoEspecie['tipo']
+
 export type RasgoEspecie = {
   id: string
   nombre: string
   descripcion: string
 
   conjurosOtorgados?: ConjuroOtorgado[]
+  efectos?: EfectoEspecie[]
 }
 
 export type BeneficioNivel = {
   id: string
   nivel: number
   descripcion: string
+  /** Solo en linajes: conjuros que se obtienen a ese nivel (p. ej. Drow: Fuego feérico a nivel 3). */
+  conjurosOtorgados?: ConjuroOtorgado[]
+  efectos?: EfectoEspecie[]
 }
 
 export type LinajeEspecie = {

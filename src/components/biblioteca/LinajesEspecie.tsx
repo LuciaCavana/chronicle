@@ -5,12 +5,18 @@ import type {
   LinajeEspecie,
   BeneficioNivel,
 } from '../../types/especie'
+import type { Conjuro } from '../../types/conjuro'
+import ConjurosOtorgadosEditor from './ConjurosOtorgadosEditor'
+import EfectosEspecieEditor from './EfectosEspecieEditor'
+import { leerEfectos, resumenEfecto } from '../../lib/efectosEspecie'
 import '../../styles/formularios/LinajesEspecie.css'
 import CampoNumero from '../../components/shared/CampoNumero'
 
 type Props = {
   linajes: LinajeEspecie[]
   onChange: (linajes: LinajeEspecie[]) => void
+  conjuros: Conjuro[]
+  onCrearConjuro: (conjuro: Conjuro) => void
 }
 
 function nuevoBeneficio(): BeneficioNivel {
@@ -24,6 +30,8 @@ function nuevoBeneficio(): BeneficioNivel {
 export default function LinajesEspecie({
   linajes,
   onChange,
+  conjuros,
+  onCrearConjuro,
 }: Props) {
   const [editandoId, setEditandoId] = useState<string | null>(null)
   const [formularioAbierto, setFormularioAbierto] = useState(false)
@@ -31,6 +39,7 @@ export default function LinajesEspecie({
   const [descripcion, setDescripcion] = useState('')
   const [beneficios, setBeneficios] = useState<BeneficioNivel[]>([])
   const [expandidos, setExpandidos] = useState<string[]>([])
+  const [errorForm, setErrorForm] = useState('')
 
   function limpiarFormulario() {
     setEditandoId(null)
@@ -38,6 +47,7 @@ export default function LinajesEspecie({
     setNombre('')
     setDescripcion('')
     setBeneficios([])
+    setErrorForm('')
   }
 
   function agregarLinaje() {
@@ -49,7 +59,7 @@ export default function LinajesEspecie({
     setEditandoId(linaje.id)
     setNombre(linaje.nombre)
     setDescripcion(linaje.descripcion)
-    setBeneficios(linaje.beneficios.map((beneficio) => ({ ...beneficio })))
+    setBeneficios(linaje.beneficios.map((beneficio) => ({ ...beneficio, efectos: leerEfectos(beneficio.efectos) })))
     setFormularioAbierto(true)
   }
 
@@ -75,6 +85,11 @@ export default function LinajesEspecie({
     )
   }
 
+  /** Conjuros y efectos de un beneficio. */
+  function cambiarBeneficio(id: string, cambio: Partial<BeneficioNivel>) {
+    setBeneficios((actuales) => actuales.map((beneficio) => beneficio.id === id ? { ...beneficio, ...cambio } : beneficio))
+  }
+
   function eliminarBeneficio(id: string) {
     setBeneficios((actuales) =>
       actuales.filter((beneficio) => beneficio.id !== id)
@@ -94,7 +109,7 @@ export default function LinajesEspecie({
     )
 
     if (nombreRepetido) {
-      alert('Ya existe un linaje con ese nombre.')
+      setErrorForm('Ya existe un linaje con ese nombre.')
       return
     }
 
@@ -106,7 +121,7 @@ export default function LinajesEspecie({
           !beneficio.descripcion.trim()
       )
     ) {
-      alert('Cada beneficio debe tener un nivel válido y una descripción.')
+      setErrorForm('Cada beneficio debe tener un nivel válido y una descripción.')
       return
     }
 
@@ -118,6 +133,9 @@ export default function LinajesEspecie({
         .map((beneficio) => ({
           ...beneficio,
           descripcion: beneficio.descripcion.trim(),
+          // Los conjuros del beneficio se obtienen al nivel del beneficio.
+          conjurosOtorgados: (beneficio.conjurosOtorgados ?? []).map((v) => ({ ...v, nivelRequerido: beneficio.nivel })),
+          efectos: beneficio.efectos ?? [],
         }))
         .sort((a, b) => a.nivel - b.nivel),
     }
@@ -139,6 +157,11 @@ export default function LinajesEspecie({
     if (!window.confirm('¿Eliminar este linaje?')) return
 
     onChange(linajes.filter((linaje) => linaje.id !== id))
+  }
+
+  function resumenBeneficioLinaje(beneficio: BeneficioNivel): string {
+    const nombres = (beneficio.conjurosOtorgados ?? []).map((v) => conjuros.find((c) => c.id === v.conjuroId)?.nombre).filter(Boolean)
+    return [...leerEfectos(beneficio.efectos).map(resumenEfecto), nombres.length ? `Conjuros: ${nombres.join(', ')}` : ''].filter(Boolean).join(' · ')
   }
 
   function alternarExpandido(id: string) {
@@ -273,9 +296,22 @@ export default function LinajesEspecie({
                   placeholder="Describí el beneficio obtenido..."
                 />
               </label>
+              <ConjurosOtorgadosEditor
+                titulo="Conjuros de este nivel"
+                nivelFijo={beneficio.nivel}
+                vinculos={beneficio.conjurosOtorgados ?? []}
+                onChange={(conjurosOtorgados) => cambiarBeneficio(beneficio.id, { conjurosOtorgados })}
+                conjuros={conjuros}
+                onCrearConjuro={onCrearConjuro}
+              />
+              <EfectosEspecieEditor
+                efectos={beneficio.efectos ?? []}
+                onChange={(efectos) => cambiarBeneficio(beneficio.id, { efectos })}
+              />
             </div>
           ))}
 
+          {errorForm && <p role="alert" className="linajes-especie-error">{errorForm}</p>}
           <div className="linajes-especie-actions">
             <button
               type="button"
@@ -354,6 +390,7 @@ export default function LinajesEspecie({
                     <div key={beneficio.id}>
                       <strong>Nivel {beneficio.nivel}</strong>
                       <p>{beneficio.descripcion}</p>
+                      {resumenBeneficioLinaje(beneficio) && <p className="linajes-especie-otorga">{resumenBeneficioLinaje(beneficio)}</p>}
                     </div>
                   ))}
                 </div>
